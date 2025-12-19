@@ -29,75 +29,25 @@ import {
 
 import { runAnalysis } from './services/analysis';
 
-// --- Analysis Logic (Hybrid: Real + Mock Fallback) ---
+// --- Analysis Logic ---
 const analyzeEssay = async (text, model, instruction, context) => {
-  let fallbackReason = "Unknown";
-
-  // 1. Try Real Gemini API first
   try {
     const realResult = await runAnalysis(text, model, "Student Draft", instruction, context);
-    if (realResult) {
-      // Add the detected type and model prefix to the real result
-      const isAwardee = text.toLowerCase().includes("award") || text.toLowerCase().includes("winner");
-      const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
-
-      return {
-        ...realResult,
-        detectedType,
-        globalSummary: `✨ [AI Analysis] ${realResult.globalSummary}`
-      };
-    } else {
-      fallbackReason = "API Key Missing";
+    if (!realResult) {
+      throw new Error("Analysis failed to return results");
     }
+
+    const isAwardee = text.toLowerCase().includes("award") || text.toLowerCase().includes("winner");
+    const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
+
+    return {
+      ...realResult,
+      detectedType,
+    };
   } catch (error) {
-    console.warn("Falling back to mock analysis due to API error:", error);
-    fallbackReason = `API Error: ${error.message || error.toString()}`;
+    console.error("Analysis Error:", error);
+    throw error;
   }
-
-  // 2. Fallback to Mock Data (if no key or error)
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
-  const snippet = text.slice(0, 50) + (text.length > 50 ? "..." : "");
-  const modelPrefix = `⚡ [Demo Mode: ${fallbackReason}]`;
-
-  // Mock Auto-Detection
-  const isAwardee = text.toLowerCase().includes("award") || text.toLowerCase().includes("winner");
-  const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
-
-  return {
-    detectedType,
-    globalSummary: `${modelPrefix} Analysis of ${detectedType}. The essay starts with "${snippet}". ${isAwardee ? "This piece exhibits strong narrative control and clear thematic progression." : "This draft shows promise but requires stronger connections between personal experience and future goals."}`,
-    paragraphBreakdown: [
-      {
-        section: "Introduction",
-        role: "Context",
-        main_idea: "Establishes the applicant's background and sets the stage for the challenge.",
-        strength: "Clear context setting.",
-        status: isAwardee ? "strong" : "needs_improvement"
-      },
-      {
-        section: "Body Paragraph 1",
-        role: "Action",
-        main_idea: "Demonstrates leadership through specific actions taken during the event.",
-        strength: "Strong verb usage.",
-        status: "strong"
-      },
-      {
-        section: "Body Paragraph 2",
-        role: "Reflection",
-        main_idea: "Connects the challenge faced to future academic goals.",
-        strength: "Insightful connection.",
-        status: isAwardee ? "strong" : "neutral"
-      },
-      {
-        section: "Conclusion",
-        role: "Outcome",
-        main_idea: "Summarizes the journey and provides a forward-looking statement.",
-        strength: "Inspiring closing.",
-        status: "strong"
-      }
-    ]
-  };
 };
 
 function App() {
@@ -111,7 +61,7 @@ function App() {
   const [fileUrl, setFileUrl] = useState(null);
   const [fileType, setFileType] = useState(null);
   const [chatInput, setChatInput] = useState('');
-  const [selectedModel, setSelectedModel] = useState('openai');
+  /* Removed selectedModel state as we're enforcing server-side logic now */
   const fileInputRef = useRef(null);
   const chatInputRef = useRef(null);
 
@@ -123,16 +73,20 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
 
+  const [error, setError] = useState(null);
+
   const performAnalysis = async () => {
     if (!essayText.trim()) return;
     setIsAnalyzing(true);
+    setError(null);
     try {
-      console.log(`Analyzing with model: ${selectedModel}`);
-      const result = await analyzeEssay(essayText, selectedModel, chatInput, contextText);
+      console.log(`Analyzing essay...`);
+      const result = await analyzeEssay(essayText, 'openai', chatInput, contextText);
       setAnalysisResult(result);
       setIsAnalyzed(true);
     } catch (error) {
       console.error("Analysis failed", error);
+      setError(error.message || "An unexpected error occurred.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -226,7 +180,7 @@ function App() {
     // But user asked for "Analyze this section" action.
     // Let's force a call:
     setIsAnalyzing(true);
-    analyzeEssay(essayText, selectedModel, instruction, text).then(result => {
+    analyzeEssay(essayText, 'openai', instruction, text).then(result => {
       setAnalysisResult(result);
       setIsAnalyzed(true);
       setIsAnalyzing(false);
@@ -262,7 +216,7 @@ function App() {
 
         <div className="p-4 border-t border-white/10 bg-oxford-blue">
           <button className="w-full flex items-center gap-3 px-2 py-2 text-left text-sm text-white/80 hover:bg-white/10 rounded-lg transition-colors">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bronze to-amber-600 flex items-center justify-center text-white shadow-md">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
               <span className="font-serif font-bold text-xs">JD</span>
             </div>
             <div className="flex-1 min-w-0">
@@ -404,7 +358,131 @@ function App() {
                     )}
                   </div>
 
-                  {/* Chat / Input Interface */}
+
+                </div>
+              </div>
+
+              {/* Right Column: Analysis Dashboard */}
+              <div className="bg-white rounded-2xl border border-oxford-blue/10 shadow-xl shadow-oxford-blue/5 overflow-hidden flex flex-col h-full min-h-0">
+                {error ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-red-600 animate-fadeIn">
+                    <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                      <AlertCircle size={40} />
+                    </div>
+                    <h3 className="text-xl font-serif font-medium mb-2">Analysis Error</h3>
+                    <p className="max-w-xs opacity-80 mb-6">{error}</p>
+                    <button
+                      onClick={() => setError(null)}
+                      className="px-6 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-lg transition-colors border border-red-200"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : !analysisResult ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-oxford-blue/40">
+                    <div className="w-24 h-24 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6">
+                      <Activity size={40} />
+                    </div>
+                    <h3 className="text-xl font-serif font-medium text-oxford-blue mb-2">Ready to Analyze</h3>
+                    <p className="max-w-xs">Paste your essay and click generate to receive comprehensive feedback.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Header (No Dropdown) */}
+                    <div className="p-6 border-b border-oxford-blue/10 flex items-center justify-between bg-oxford-blue/5 shrink-0">
+                      <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-1">Analysis Result</h3>
+                        <p className="text-xs text-oxford-blue/60 font-medium">{analysisResult.detectedType}</p>
+                      </div>
+                      <div className="bg-white border border-oxford-blue/10 px-3 py-1 rounded-full text-xs font-medium text-oxford-blue/60 shadow-sm">
+                        Structure & Summary
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+
+                      {/* View: Smart Summaries */}
+                      <div className="space-y-8 animate-fadeIn">
+                        <div className="bg-gradient-to-br from-paper to-white p-6 rounded-xl border border-oxford-blue/10 shadow-sm">
+                          <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-3 flex items-center gap-2">
+                            <Award size={16} /> Global Summary
+                          </h3>
+                          <p className="text-oxford-blue/80 leading-relaxed font-serif text-lg break-words">
+                            {analysisResult.globalSummary}
+                          </p>
+                        </div>
+
+                        <div>
+                          <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-4">Structural Analysis</h3>
+                          <div className="space-y-6">
+                            {analysisResult.paragraphBreakdown.map((item, idx) => (
+                              <div key={idx} className="bg-white rounded-xl border border-oxford-blue/10 shadow-sm p-5 hover:shadow-md transition-all group">
+                                {/* Header: Section Name + Role Badge */}
+                                <div className="flex items-center justify-between mb-4">
+                                  <h4 className="font-serif font-bold text-oxford-blue text-lg">{item.section}</h4>
+                                  {item.role && (
+                                    <span className="text-[10px] uppercase tracking-wider font-bold text-white bg-bronze px-2 py-1 rounded-md shadow-sm">
+                                      {item.role}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Purpose */}
+                                {item.purpose && (
+                                  <div className="mb-4 bg-oxford-blue/5 p-3 rounded-lg border border-oxford-blue/5">
+                                    <p className="text-[10px] font-bold text-oxford-blue/50 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                      <Zap size={10} /> Purpose
+                                    </p>
+                                    <p className="text-sm text-oxford-blue/80 italic font-medium">
+                                      {item.purpose}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Main Idea */}
+                                {item.main_idea && (
+                                  <div className="mb-4">
+                                    <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-wide mb-1">Main Idea</p>
+                                    <p className="text-sm text-oxford-blue leading-relaxed font-medium">
+                                      {item.main_idea}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Critique - Constructive Feedback */}
+                                {item.critique && (
+                                  <div className="mb-4 bg-orange-50 p-3 rounded-lg border border-orange-100">
+                                    <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                      <AlertCircle size={10} /> Expert Critique
+                                    </p>
+                                    <p className="text-sm text-orange-800 italic font-medium">
+                                      {item.critique}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Fallback strength display if no quality metrics */}
+                                {item.strength && (
+                                  <div className="flex items-center gap-2 pt-2 border-t border-oxford-blue/5 mt-2">
+                                    <CheckCircle size={12} className="text-green-600" />
+                                    <p className="text-xs font-medium text-green-700">
+                                      {item.strength}
+                                    </p>
+                                  </div>
+                                )}
+
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  </>
+                )}
+                <div className="border-t border-oxford-blue/10 bg-white p-3 shrink-0">
+                  {/* Chat / Input Interface - Moved to Right Column */}
                   <div className="bg-paper rounded-2xl p-2 border border-oxford-blue/10 shadow-sm shrink-0 flex flex-col">
                     {/* Context Indicator */}
                     {contextText && (
@@ -448,16 +526,10 @@ function App() {
                           onChange={handleFileUpload}
                           accept=".pdf,.docx,.txt"
                         />
+                        <span className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-wider">GPT-4o</span>
                       </div>
 
                       <div className="flex items-center gap-2">
-
-                        {/* Model Badge (Static OpenAI) */}
-                        <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-gradient-to-r from-green-600 to-emerald-600 text-white flex items-center gap-1 shadow-sm opacity-90 cursor-default">
-                          <Bot size={10} />
-                          <span>OpenAI</span>
-                        </div>
-
                         <button
                           onClick={handleChatSubmit}
                           disabled={isAnalyzing || (!chatInput.trim() && !essayText.trim())}
@@ -466,98 +538,13 @@ function App() {
                           {isAnalyzing ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           ) : (
-                            <Brain size={16} />
+                            <Send size={16} />
                           )}
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Right Column: Analysis Dashboard */}
-              <div className="bg-white rounded-2xl border border-oxford-blue/10 shadow-xl shadow-oxford-blue/5 overflow-hidden flex flex-col h-full min-h-0">
-                {!analysisResult ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-oxford-blue/40">
-                    <div className="w-24 h-24 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6">
-                      <Activity size={40} />
-                    </div>
-                    <h3 className="text-xl font-serif font-medium text-oxford-blue mb-2">Ready to Analyze</h3>
-                    <p className="max-w-xs">Paste your essay and click generate to receive comprehensive feedback.</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Header (No Dropdown) */}
-                    <div className="p-6 border-b border-oxford-blue/10 flex items-center justify-between bg-oxford-blue/5 shrink-0">
-                      <div>
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-1">Analysis Result</h3>
-                        <p className="text-xs text-oxford-blue/60 font-medium">{analysisResult.detectedType}</p>
-                      </div>
-                      <div className="bg-white border border-oxford-blue/10 px-3 py-1 rounded-full text-xs font-medium text-oxford-blue/60 shadow-sm">
-                        Structure & Summary
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-
-                      {/* View: Smart Summaries */}
-                      <div className="space-y-8 animate-fadeIn">
-                        <div className="bg-gradient-to-br from-paper to-white p-6 rounded-xl border border-oxford-blue/10 shadow-sm">
-                          <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-3 flex items-center gap-2">
-                            <Award size={16} /> Global Summary
-                          </h3>
-                          <p className="text-oxford-blue/80 leading-relaxed font-serif text-lg break-words">
-                            {analysisResult.globalSummary}
-                          </p>
-                        </div>
-
-                        <div>
-                          <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-4">Paragraph Breakdown</h3>
-                          <div className="space-y-4">
-                            {analysisResult.paragraphBreakdown.map((item, idx) => (
-                              <div key={idx} className="flex gap-4 p-4 rounded-lg bg-white border border-oxford-blue/10 hover:border-bronze/30 transition-all shadow-sm">
-                                <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${item.status === 'strong' ? 'bg-green-500' : 'bg-amber-500'}`} />
-                                <div className="flex-1 space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="font-bold text-oxford-blue text-sm">{item.section}</h4>
-                                    {item.role && (
-                                      <span className="text-[10px] uppercase tracking-wider font-bold text-bronze bg-bronze/10 px-2 py-0.5 rounded-full">
-                                        {item.role}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {item.main_idea && (
-                                    <p className="text-sm text-oxford-blue/80 leading-relaxed">
-                                      <span className="font-semibold text-oxford-blue/60 text-xs uppercase tracking-wide mr-1">Main Idea:</span>
-                                      {item.main_idea}
-                                    </p>
-                                  )}
-
-                                  {item.strength && (
-                                    <div className="flex items-center gap-2 pt-1">
-                                      <CheckCircle size={12} className="text-green-600" />
-                                      <p className="text-xs font-medium text-green-700">
-                                        {item.strength}
-                                      </p>
-                                    </div>
-                                  )}
-
-                                  {/* Fallback for legacy summary if main_idea is missing */}
-                                  {!item.main_idea && item.summary && (
-                                    <p className="text-sm text-oxford-blue/70 leading-relaxed break-words">{item.summary}</p>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           </div>
