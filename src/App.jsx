@@ -450,14 +450,12 @@ function App() {
                                   </div>
                                 )}
 
-                                {/* Critique - Constructive Feedback */}
-                                {item.critique && (
-                                  <div className="mb-4 bg-orange-50 p-3 rounded-lg border border-orange-100">
-                                    <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1 flex items-center gap-1">
-                                      <AlertCircle size={10} /> Expert Critique
-                                    </p>
-                                    <p className="text-sm text-orange-800 italic font-medium">
-                                      {item.critique}
+                                {/* Evidence Quote */}
+                                {item.evidence_quote && (
+                                  <div className="mb-4 pl-3 border-l-2 border-bronze/40">
+                                    <p className="text-[10px] font-bold text-bronze/70 uppercase tracking-wide mb-1">Evidence</p>
+                                    <p className="text-sm text-oxford-blue/70 italic font-serif leading-relaxed">
+                                      "{item.evidence_quote}"
                                     </p>
                                   </div>
                                 )}
