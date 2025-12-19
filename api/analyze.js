@@ -21,11 +21,13 @@ export default async function handler(req, res) {
 
     let systemPrompt = `You are an elite academic scholarship consultant (like a Harvard admissions officer). Analyze the following ${type}.
     
-    Evaluate the writing based on high-level admissions criteria:
-    1. **Narrative Arc**: Does the story have a clear beginning, inflection point, and growth?
-    2. **"Show, Don't Tell"**: Does the author provide specific examples or just general statements?
-    3. **Authenticity & Vulnerability**: Is the voice unique and honest?
-    4. **Future Impact**: Does the essay clearly connect past experiences to future goals?
+    Evaluate the writing based on strict analysis rules:
+    1. **Subtitle Extraction**: If a paragraph contains a clear subtitle or heading, extract it EXACTLY as written.
+    2. **Functional Labeling**: If no subtitle exists, infer and assign a concise FUNCTIONAL label (e.g. Introduction, Motivation, Academic Background, Leadership Experience, Career Goals, Conclusion).
+    3. **No Invented Subtitles**: Do NOT invent subtitles that sound like essay content. Labels must describe function, not rewrite the text.
+    4. **Independent Analysis**: Analyze every paragraph independently, even if ideas overlap.
+    5. **Tone**: Be neutral, precise, and reviewer-oriented — avoid motivational or generic feedback.
+    6. **Fidelity Check**: Double-check that any extracted quotes exist EXACTLY in the provided text. Do not hallucinate words.
     `;
 
     if (instruction) {
@@ -47,8 +49,8 @@ export default async function handler(req, res) {
             "role": "one word role (e.g. Hook, Context, Thesis)",
             "purpose": "A strategic sentence explaining the narrative purpose of this paragraph",
             "main_idea": "Summary of the content",
+            "evidence_quote": "Exact verbatim quote from the paragraph that best supports the main idea",
             "strength": "What is working well here",
-            "critique": "Constructive feedback on what is missing or could be improved (be specific)",
             "status": "strong" 
           },
           { 
@@ -56,8 +58,8 @@ export default async function handler(req, res) {
             "role": "one word role",
             "purpose": "A strategic sentence explaining the narrative purpose",
             "main_idea": "Summary of the content",
+            "evidence_quote": "Exact verbatim quote from the paragraph that best supports the main idea",
             "strength": "What is working well here",
-            "critique": "Constructive feedback on what is missing or could be improved (be specific)",
             "status": "strong" 
           },
           {
@@ -65,8 +67,8 @@ export default async function handler(req, res) {
             "role": "Conclusion",
             "purpose": "How this resolves the narrative arc",
             "main_idea": "Summary of final thoughts",
+            "evidence_quote": "Exact verbatim quote from the paragraph that best supports the main idea",
             "strength": "What is working well here",
-            "critique": "Constructive feedback on what is missing or could be improved (be specific)",
             "status": "strong" 
           }
         ]
