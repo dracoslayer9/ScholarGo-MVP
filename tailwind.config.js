@@ -5,17 +5,19 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+
     extend: {
       colors: {
-        'paper': '#FDFBF7',
-        'oxford-blue': '#0F172A',
-        'bronze': '#B45309',
+        'paper': '#F8FAFC', // Slate-50: Cool white
+        'oxford-blue': '#172554', // Blue-950: Deep primary blue
+        'bronze': '#2563EB', // Blue-600: Bright action blue (replacing bronze)
       },
       fontFamily: {
-        serif: ['"Playfair Display"', 'serif'],
+        serif: ['"Inter"', 'sans-serif'], // Remapped to sans for modern look
         sans: ['"Inter"', 'sans-serif'],
       },
     },
+
   },
   plugins: [],
 }
