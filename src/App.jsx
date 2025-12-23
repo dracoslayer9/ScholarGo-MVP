@@ -389,14 +389,54 @@ function App() {
                 ) : (
                   <>
                     {/* Header (No Dropdown) */}
-                    <div className="p-6 border-b border-oxford-blue/10 flex items-center justify-between bg-oxford-blue/5 shrink-0">
-                      <div>
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-1">Analysis Result</h3>
-                        <p className="text-xs text-oxford-blue/60 font-medium">{analysisResult.detectedType}</p>
-                      </div>
-                      <div className="bg-white border border-oxford-blue/10 px-3 py-1 rounded-full text-xs font-medium text-oxford-blue/60 shadow-sm">
-                        Structure & Summary
-                      </div>
+                    {/* Header: Document Classification */}
+                    <div className="p-6 border-b border-oxford-blue/10 bg-oxford-blue/5 shrink-0">
+
+                      {/* Classification Data */}
+                      {analysisResult.documentClassification ? (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue">
+                                {analysisResult.documentClassification.primaryType}
+                              </h3>
+                              {/* Evaluation Badge */}
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${analysisResult.documentClassification.confidence === 'High'
+                                ? 'bg-green-100 text-green-700 border-green-200'
+                                : 'bg-amber-100 text-amber-700 border-amber-200'
+                                }`}>
+                                {analysisResult.documentClassification.confidence} Confidence
+                              </span>
+                            </div>
+                            <div className="text-[10px] font-medium text-oxford-blue/50 uppercase tracking-widest">
+                              Document Type
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-oxford-blue/70 italic mb-3 leading-relaxed">
+                            "{analysisResult.documentClassification.reasoning}"
+                          </p>
+
+                          <div className="flex flex-wrap gap-2">
+                            {analysisResult.documentClassification.structuralSignals.map((signal, idx) => (
+                              <span key={idx} className="text-[10px] px-2 py-0.5 bg-white border border-oxford-blue/10 rounded-md text-oxford-blue/60 font-medium">
+                                {signal}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        /* Fallback for legacy/simple analysis */
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-1">Analysis Result</h3>
+                            <p className="text-xs text-oxford-blue/60 font-medium">{analysisResult.detectedType || "Document Analysis"}</p>
+                          </div>
+                          <div className="bg-white border border-oxford-blue/10 px-3 py-1 rounded-full text-xs font-medium text-oxford-blue/60 shadow-sm">
+                            Structure & Summary
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Content */}
@@ -413,58 +453,162 @@ function App() {
                           </p>
                         </div>
 
+                        {/* Deep Analysis Section */}
+                        {analysisResult.deepAnalysis && (
+                          <div className="space-y-6 animate-fadeIn">
+
+                            {/* Overall Deep Assessment */}
+                            {analysisResult.deepAnalysis.overallAssessment && (
+                              <div className="bg-oxford-blue/5 p-4 rounded-lg border border-oxford-blue/10">
+                                <p className="text-oxford-blue font-serif italic text-center">
+                                  "{analysisResult.deepAnalysis.overallAssessment}"
+                                </p>
+                              </div>
+                            )}
+
+                            <div className="flex flex-col gap-4">
+                              {/* Authenticity */}
+                              <div className="bg-white p-4 rounded-xl border border-oxford-blue/5 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2 text-bronze">
+                                  <Sparkles size={16} />
+                                  <h4 className="font-bold text-xs uppercase tracking-wider">Narrative Authenticity</h4>
+                                </div>
+                                <p className="text-sm font-medium text-oxford-blue mb-2">{analysisResult.deepAnalysis.authenticity?.strengths}</p>
+                                <div className="text-xs bg-oxford-blue/5 p-2 rounded text-oxford-blue/70 italic">
+                                  "{analysisResult.deepAnalysis.authenticity?.evidence}"
+                                </div>
+                              </div>
+
+                              {/* Structure */}
+                              <div className="bg-white p-4 rounded-xl border border-oxford-blue/5 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2 text-blue-600">
+                                  <Layout size={16} />
+                                  <h4 className="font-bold text-xs uppercase tracking-wider">Structure & Flow</h4>
+                                </div>
+                                <div className="mb-2">
+                                  <span className="text-[10px] uppercase font-bold text-oxford-blue/40">Type:</span>
+                                  <p className="text-sm font-medium text-oxford-blue">{analysisResult.deepAnalysis.structure?.type}</p>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] uppercase font-bold text-oxford-blue/40">Flow:</span>
+                                  <p className="text-xs text-oxford-blue/80">{analysisResult.deepAnalysis.structure?.flow}</p>
+                                </div>
+                              </div>
+
+                              {/* Values */}
+                              <div className="bg-white p-4 rounded-xl border border-oxford-blue/5 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2 text-green-600">
+                                  <Award size={16} />
+                                  <h4 className="font-bold text-xs uppercase tracking-wider">Value Alignment</h4>
+                                </div>
+                                <div className="mb-2">
+                                  <span className="text-[10px] uppercase font-bold text-oxford-blue/40">Values:</span>
+                                  <p className="text-sm font-medium text-oxford-blue">{analysisResult.deepAnalysis.values?.detectedValues}</p>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] uppercase font-bold text-oxford-blue/40">Alignment:</span>
+                                  <p className="text-xs text-oxford-blue/80">{analysisResult.deepAnalysis.values?.alignment}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Strategic Improvements */}
+                            {analysisResult.deepAnalysis.strategicImprovements && (
+                              <div className="bg-white p-5 rounded-xl border-l-4 border-bronze shadow-sm">
+                                <h4 className="font-serif font-bold text-oxford-blue mb-3">Top 3 Strategic Improvements</h4>
+                                <ul className="space-y-2">
+                                  {analysisResult.deepAnalysis.strategicImprovements.map((imp, idx) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-oxford-blue/80">
+                                      <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-bronze shrink-0" />
+                                      {imp}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                          </div>
+                        )}
+
                         <div>
                           <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-4">Structural Analysis</h3>
                           <div className="space-y-6">
                             {analysisResult.paragraphBreakdown.map((item, idx) => (
-                              <div key={idx} className="bg-white rounded-xl border border-oxford-blue/10 shadow-sm p-5 hover:shadow-md transition-all group">
-                                {/* Header: Section Name + Role Badge */}
-                                <div className="flex items-center justify-between mb-4">
-                                  <h4 className="font-serif font-bold text-oxford-blue text-lg">{item.section}</h4>
-                                  {item.role && (
-                                    <span className="text-[10px] uppercase tracking-wider font-bold text-white bg-bronze px-2 py-1 rounded-md shadow-sm">
-                                      {item.role}
+                              <div key={idx} className="bg-white rounded-xl border border-oxford-blue/5 shadow-sm p-6 hover:shadow-md transition-all group">
+
+                                {/* Header Row */}
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest">
+                                      {item.paragraph_number ? `Para ${item.paragraph_number}` : ''}
+                                    </span>
+                                    <h4 className="font-serif font-bold text-oxford-blue text-lg">
+                                      {item.detected_subtitle || item.section_label || item.section}
+                                    </h4>
+                                  </div>
+
+                                  {(item.functional_label || item.role) && (
+                                    <span className="text-[10px] uppercase tracking-wider font-bold text-bronze bg-bronze/10 px-2 py-1 rounded-md">
+                                      {item.functional_label || item.role}
                                     </span>
                                   )}
                                 </div>
 
-                                {/* Purpose */}
-                                {item.purpose && (
-                                  <div className="mb-4 bg-oxford-blue/5 p-3 rounded-lg border border-oxford-blue/5">
-                                    <p className="text-[10px] font-bold text-oxford-blue/50 uppercase tracking-wide mb-1 flex items-center gap-1">
-                                      <Zap size={10} /> Purpose
-                                    </p>
-                                    <p className="text-sm text-oxford-blue/80 italic font-medium">
-                                      {item.purpose}
-                                    </p>
+                                {/* Gap Analysis - Clear & Distinct */}
+                                {(item.analysis_current || item.analysis_gap) && (
+                                  <div className="flex flex-col gap-3 mb-5 pt-2">
+
+                                    {/* Current - Gray */}
+                                    <div className="pl-3 border-l-2 border-oxford-blue/10">
+                                      <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest mb-0.5">Current Approach</p>
+                                      <p className="text-xs text-oxford-blue/70">
+                                        {item.analysis_current || item.purpose}
+                                      </p>
+                                    </div>
+
+                                    {/* Ideal - Green */}
+                                    <div className="pl-3 border-l-2 border-green-500/30">
+                                      <p className="text-[10px] font-bold text-green-700/50 uppercase tracking-widest mb-0.5">Ideal Standard</p>
+                                      <p className="text-xs text-green-800/80">
+                                        {item.analysis_ideal}
+                                      </p>
+                                    </div>
+
+                                    {/* Gap - Amber */}
+                                    <div className="pl-3 border-l-2 border-amber-500/40">
+                                      <p className="text-[10px] font-bold text-amber-700/50 uppercase tracking-widest mb-0.5">The Gap</p>
+                                      <p className="text-xs text-amber-800/90 italic font-medium">
+                                        {item.analysis_gap}
+                                      </p>
+                                    </div>
                                   </div>
                                 )}
 
-                                {/* Main Idea */}
-                                {item.main_idea && (
-                                  <div className="mb-4">
-                                    <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-wide mb-1">Main Idea</p>
-                                    <p className="text-sm text-oxford-blue leading-relaxed font-medium">
-                                      {item.main_idea}
-                                    </p>
-                                  </div>
-                                )}
+                                {/* Main Content */}
+                                <div className="space-y-4">
+                                  {/* Main Idea - The "Hero" Content */}
+                                  {item.main_idea && (
+                                    <div>
+                                      <p className="text-[10px] font-bold text-oxford-blue/20 uppercase tracking-widest mb-1">Main Idea</p>
+                                      <p className="text-sm md:text-base text-oxford-blue leading-relaxed font-medium">
+                                        {item.main_idea}
+                                      </p>
+                                    </div>
+                                  )}
 
-                                {/* Evidence Quote */}
-                                {item.evidence_quote && (
-                                  <div className="mb-4 pl-3 border-l-2 border-bronze/40">
-                                    <p className="text-[10px] font-bold text-bronze/70 uppercase tracking-wide mb-1">Evidence</p>
-                                    <p className="text-sm text-oxford-blue/70 italic font-serif leading-relaxed">
+                                  {/* Evidence - Clean Quote Style */}
+                                  {item.evidence_quote && (
+                                    <blockquote className="pl-4 border-l-2 border-bronze/30 text-sm text-oxford-blue/60 italic font-serif leading-relaxed">
                                       "{item.evidence_quote}"
-                                    </p>
-                                  </div>
-                                )}
+                                    </blockquote>
+                                  )}
+                                </div>
 
-                                {/* Fallback strength display if no quality metrics */}
+                                {/* Footer: Strength/Status */}
                                 {item.strength && (
-                                  <div className="flex items-center gap-2 pt-2 border-t border-oxford-blue/5 mt-2">
-                                    <CheckCircle size={12} className="text-green-600" />
-                                    <p className="text-xs font-medium text-green-700">
+                                  <div className="mt-4 pt-3 border-t border-oxford-blue/5 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                                    <p className="text-xs font-medium text-oxford-blue/70">
                                       {item.strength}
                                     </p>
                                   </div>
