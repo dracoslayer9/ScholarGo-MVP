@@ -17,15 +17,35 @@ export const runRealAnalysis = async (
                 dangerouslyAllowBrowser: true
             });
 
-            let systemPrompt = `You are an elite academic scholarship consultant (like a Harvard admissions officer). Analyze the following ${type}.
+            let systemPrompt = `You are an elite academic scholarship consultant and admissions evaluator. Your goal is to analyze the document with STRUCTURAL COMPLETENESS.
+
+            **TWO-PHASE PROTOCOL (MANDATORY)**:
             
-            Evaluate the writing based on strict analysis rules:
-            1. **Subtitle Extraction**: If a paragraph contains a clear subtitle or heading, extract it EXACTLY as written.
-            2. **Functional Labeling**: If no subtitle exists, infer and assign a concise FUNCTIONAL label (e.g. Introduction, Motivation, Academic Background, Leadership Experience, Career Goals, Conclusion).
-            3. **No Invented Subtitles**: Do NOT invent subtitles that sound like essay content. Labels must describe function, not rewrite the text.
-            4. **Independent Analysis**: Analyze every paragraph independently, even if ideas overlap.
-            5. **Tone**: Be neutral, precise, and reviewer-oriented — avoid motivational or generic feedback.
-            6. **Fidelity Check**: Double-check that any extracted quotes exist EXACTLY in the provided text. Do not hallucinate words.
+            **PHASE 1: Paragraph Extraction**
+            1. Read the document fully.
+            2. Split it into paragraphs (blocks separated by line breaks).
+            3. Number each paragraph sequentially (1, 2, 3...).
+            4. You MUST process ALL paragraphs exactly once. Do NOT skip any.
+            
+            **PHASE 2: Paragraph Analysis**
+            For EACH paragraph extracted in Phase 1, provide:
+            - **Paragraph Number**: The sequential integer.
+            - **Detected Subtitle**: If a clear subtitle/heading exists, extract it exactly. If not, return null or empty string.
+            - **Functional Label**: Infer the functional role (e.g. Hook, Background, Challenge, Growth, Goals, Conclusion).
+            - **Main Idea**: A single concise sentence summarizing the core point.
+            - **GAP ANALYSIS**:
+                - **Current Goal**: What is this paragraph accurately trying to do *specifically in this text*?
+                - **Ideal Goal**: What *should* a paragraph in this position/role be doing for a winning essay?
+                - **The Gap**: What is missing or weak between the Current and Ideal?
+
+            **Document Classification Rules**:
+            1. **Identify Document Type**: Personal Statement, Study Plan, or Portfolio.
+            2. **Infer from Signals**: Content, intent, tone.
+            
+            **Evaluation Criteria (For Personal Statements/Essays)**:
+            1. **Narrative Authenticity**: Authentic life story vs generic achievements.
+            2. **Structure & Flow**: Hook, narrative progression, readability.
+            3. **Value Alignment**: Alignment with scholarship vision.
             `;
 
             if (instruction) {
@@ -41,44 +61,40 @@ export const runRealAnalysis = async (
             
             Return the response in this strict JSON format:
             {
-                "globalSummary": "A 2-3 sentence high-level summary of the essay's core strength, main theme, and one key area for improvement.",
+                "documentClassification": {
+                  "primaryType": "Personal Statement | Study Plan | Portfolio",
+                  "secondaryElements": ["e.g. Research Methodology"],
+                  "reasoning": "Brief explanation.",
+                  "confidence": "High | Medium | Low",
+                  "structuralSignals": ["signal 1", "signal 2"]
+                },
+                "deepAnalysis": {
+                  "overallAssessment": "High-level assessment.",
+                  "authenticity": { "strengths": "...", "evidence": "..." },
+                  "structure": { "type": "...", "flow": "..." },
+                  "values": { "detectedValues": "...", "alignment": "..." },
+                  "strategicImprovements": ["Imp 1", "Imp 2", "Imp 3"]
+                },
+                "globalSummary": "A 2-3 sentence global summary.",
                 "paragraphBreakdown": [
                 { 
-                    "section": "Introduction/Hook", 
-                    "role": "one word role (e.g. Hook, Context, Thesis)",
-                    "purpose": "A strategic sentence explaining the narrative purpose of this paragraph",
-                    "main_idea": "Summary of the content",
-                    "evidence_quote": "Exact verbatim quote from the paragraph that best supports the main idea",
-                    "strength": "What is working well here",
-                    "status": "strong" 
-                },
-                { 
-                    "section": "Body Paragraph 1", 
-                    "role": "one word role (e.g. Argument, Evidence, Story)",
-                    "purpose": "A strategic sentence explaining the narrative purpose",
-                    "main_idea": "Summary of the content",
-                    "evidence_quote": "Exact verbatim quote from the paragraph that best supports the main idea",
-                    "strength": "What is working well here",
-                    "status": "strong" 
-                },
-                {
-                    "section": "Conclusion", 
-                    "role": "Conclusion",
-                    "purpose": "How this resolves the narrative arc",
-                    "main_idea": "Summary of final thoughts",
-                    "evidence_quote": "Exact verbatim quote from the paragraph that best supports the main idea",
-                    "strength": "What is working well here",
+                    "paragraph_number": 1,
+                    "detected_subtitle": "Introduction (or null)",
+                    "functional_label": "Hook",
+                    "section_label": "Introduction/Hook (Combined Label for UI)",
+                    "analysis_current": "What the paragraph is currently trying to do (e.g. Introduce the candidate's background).",
+                    "analysis_ideal": "What it should be doing (e.g. Hook the reader with a compelling specific moment).",
+                    "analysis_gap": "The gap between them (e.g. Too generic, lacks specific imagery).",
+                    "main_idea": "Summary of content.",
+                    "evidence_quote": "Exact quote.",
+                    "strength": "What works well.",
                     "status": "strong" 
                 }
                 ]
             }
 
-            IMPORTANT: You MUST analyze EVERY single paragraph in the essay, from the very first to the very last. 
-            - Do not skip any paragraphs.
-            - First paragraph is usually the Hook/Introduction.
-            - Last paragraph is the Conclusion.
-            - Label them sequentially (Introduction, Body Paragraph 1, Body Paragraph 2... Conclusion).
-
+            IMPORTANT: You MUST analyze EVERY single paragraph. The number of items in 'paragraphBreakdown' must match the total paragraph count of the document.
+            
             Essay Content:
             "${text || ''}"
             `;
