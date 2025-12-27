@@ -28,11 +28,12 @@ import {
 } from 'lucide-react';
 
 import { runAnalysis } from './services/analysis';
+import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/openai'; // Updated import
 
 // --- Analysis Logic ---
 const analyzeEssay = async (text, model, instruction, context) => {
   try {
-    const realResult = await runAnalysis(text, model, "Student Draft", instruction, context);
+    const realResult = await runRealAnalysis(text, model, instruction, context); // Direct usage
     if (!realResult) {
       throw new Error("Analysis failed to return results");
     }
@@ -58,6 +59,7 @@ function App() {
 
   // New State for Reader Mode & Chat
   const [isAnalyzed, setIsAnalyzed] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]); // New Chat History State
   const [fileUrl, setFileUrl] = useState(null);
   const [fileType, setFileType] = useState(null);
   const [chatInput, setChatInput] = useState('');
@@ -68,6 +70,7 @@ function App() {
   // Text Selection State
   const [selectionPopup, setSelectionPopup] = useState({ show: false, x: 0, y: 0, text: '' });
   const [contextText, setContextText] = useState(null);
+  const [floatingChat, setFloatingChat] = useState({ show: false, x: 0, y: 0, context: '' });
 
   // Sidebar State
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -112,8 +115,30 @@ function App() {
     }
   };
 
-  const handleChatSubmit = () => {
+  const handleChatSubmit = async () => {
     if (!chatInput.trim() && !essayText.trim()) return;
+
+    // MODE 1: FOLLOW-UP CHAT (Analysis ALREADY Exists)
+    if (analysisResult) {
+      setIsAnalyzing(true);
+      setError(null);
+      try {
+        const userMsg = chatInput;
+        setChatInput("");
+        const newHistory = [...chatHistory, { role: "user", content: userMsg }];
+        setChatHistory(newHistory); // Optimistic UI
+
+        const aiResponse = await sendChatMessage(userMsg, newHistory, essayText);
+
+        setChatHistory([...newHistory, { role: "assistant", content: aiResponse }]);
+      } catch (err) {
+        console.error("Chat Failed:", err);
+        setError("Failed to get response.");
+      } finally {
+        setIsAnalyzing(false);
+      }
+      return;
+    }
 
     console.log("Chat submitted:", chatInput, "Context:", contextText);
 
@@ -128,21 +153,42 @@ function App() {
     setContextText(null);
   };
 
+  // Insight Handler
+  const handleInsightClick = async () => {
+    const textToAnalyze = selectionPopup.text;
+    setSelectionPopup({ ...selectionPopup, show: false });
+
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      const userMsg = `Analyze this section:\n"${textToAnalyze.substring(0, 50)}..."`;
+      const newHistory = [...chatHistory, { role: "user", content: userMsg }];
+      setChatHistory(newHistory);
+
+      const aiResponse = await analyzeParagraphInsight(textToAnalyze);
+
+      setChatHistory([...newHistory, { role: "assistant", content: aiResponse }]);
+
+    } catch (err) {
+      console.error("Insight Failed", err);
+      setError("Failed to generate insight.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Text Selection Handler
   const handleTextSelection = (e) => {
     const selection = window.getSelection();
     if (selection && selection.toString().trim().length > 0) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      const containerRect = e.currentTarget.getBoundingClientRect();
-
-      const relativeX = rect.left - containerRect.left + (rect.width / 2);
-      const relativeY = rect.top - containerRect.top;
 
       setSelectionPopup({
         show: true,
-        x: relativeX,
-        y: relativeY - 40,
+        x: rect.left + (rect.width / 2),
+        y: rect.top - 10,
         text: selection.toString()
       });
     } else {
@@ -304,28 +350,7 @@ function App() {
                 <div className="flex-1 flex flex-col gap-4 relative min-h-0">
                   {/* Document Display Area */}
                   <div className="flex-1 bg-white rounded-xl border border-oxford-blue/10 shadow-sm overflow-hidden relative group">
-                    {/* Text Selection Popup */}
-                    {selectionPopup.show && (
-                      <div
-                        className="absolute z-50 bg-oxford-blue text-white rounded-lg shadow-xl transform -translate-x-1/2 flex items-center overflow-hidden animate-fadeIn divide-x divide-white/10"
-                        style={{ left: selectionPopup.x, top: selectionPopup.y }}
-                      >
-                        <button
-                          onClick={handleQuickAnalyze}
-                          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition-colors text-xs font-medium"
-                        >
-                          <Sparkles size={14} className="text-bronze" />
-                          Analyze
-                        </button>
-                        <button
-                          onClick={handleSelectionChat}
-                          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition-colors text-xs font-medium"
-                        >
-                          <MessageSquare size={14} />
-                          Chat
-                        </button>
-                      </div>
-                    )}
+
 
                     {isAnalyzed ? (
                       <div
@@ -537,7 +562,7 @@ function App() {
                               <div key={idx} className="bg-white rounded-xl border border-oxford-blue/5 shadow-sm p-6 hover:shadow-md transition-all group">
 
                                 {/* Header Row */}
-                                <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center mb-3">
                                   <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest">
                                       {item.paragraph_number ? `Para ${item.paragraph_number}` : ''}
@@ -546,47 +571,21 @@ function App() {
                                       {item.detected_subtitle || item.section_label || item.section}
                                     </h4>
                                   </div>
-
-                                  {(item.functional_label || item.role) && (
-                                    <span className="text-[10px] uppercase tracking-wider font-bold text-bronze bg-bronze/10 px-2 py-1 rounded-md">
-                                      {item.functional_label || item.role}
-                                    </span>
-                                  )}
                                 </div>
 
-                                {/* Gap Analysis - Clear & Distinct */}
-                                {(item.analysis_current || item.analysis_gap) && (
-                                  <div className="flex flex-col gap-3 mb-5 pt-2">
-
-                                    {/* Current - Gray */}
-                                    <div className="pl-3 border-l-2 border-oxford-blue/10">
-                                      <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest mb-0.5">Current Approach</p>
-                                      <p className="text-xs text-oxford-blue/70">
-                                        {item.analysis_current || item.purpose}
-                                      </p>
-                                    </div>
-
-                                    {/* Ideal - Green */}
-                                    <div className="pl-3 border-l-2 border-green-500/30">
-                                      <p className="text-[10px] font-bold text-green-700/50 uppercase tracking-widest mb-0.5">Ideal Standard</p>
-                                      <p className="text-xs text-green-800/80">
-                                        {item.analysis_ideal}
-                                      </p>
-                                    </div>
-
-                                    {/* Gap - Amber */}
-                                    <div className="pl-3 border-l-2 border-amber-500/40">
-                                      <p className="text-[10px] font-bold text-amber-700/50 uppercase tracking-widest mb-0.5">The Gap</p>
-                                      <p className="text-xs text-amber-800/90 italic font-medium">
-                                        {item.analysis_gap}
-                                      </p>
-                                    </div>
+                                {/* Current Structural Goal (The "What") */}
+                                {(item.analysis_current || item.purpose) && (
+                                  <div className="mb-4">
+                                    <p className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest mb-1">Current Structure</p>
+                                    <p className="text-sm font-medium text-oxford-blue/80">
+                                      {item.analysis_current || item.purpose}
+                                    </p>
                                   </div>
                                 )}
 
                                 {/* Main Content */}
                                 <div className="space-y-4">
-                                  {/* Main Idea - The "Hero" Content */}
+                                  {/* Main Idea */}
                                   {item.main_idea && (
                                     <div>
                                       <p className="text-[10px] font-bold text-oxford-blue/20 uppercase tracking-widest mb-1">Main Idea</p>
@@ -596,11 +595,17 @@ function App() {
                                     </div>
                                   )}
 
-                                  {/* Evidence - Clean Quote Style */}
+                                  {/* Evidence with Line Numbers */}
                                   {item.evidence_quote && (
-                                    <blockquote className="pl-4 border-l-2 border-bronze/30 text-sm text-oxford-blue/60 italic font-serif leading-relaxed">
-                                      "{item.evidence_quote}"
-                                    </blockquote>
+                                    <div className="pl-4 border-l-2 border-bronze/30">
+                                      <p className="text-[10px] font-bold text-bronze/50 uppercase tracking-widest mb-1">
+                                        Evidence
+                                        {item.evidence_location && <span className="ml-2 text-oxford-blue/30 text-[9px] normal-case bg-oxford-blue/5 px-1.5 py-0.5 rounded">Re: {item.evidence_location}</span>}
+                                      </p>
+                                      <p className="text-sm text-oxford-blue/60 italic font-serif leading-relaxed">
+                                        "{item.evidence_quote}"
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
 
@@ -626,6 +631,7 @@ function App() {
                 <div className="border-t border-oxford-blue/10 bg-white p-3 shrink-0">
                   {/* Chat / Input Interface - Moved to Right Column */}
                   <div className="bg-paper rounded-2xl p-2 border border-oxford-blue/10 shadow-sm shrink-0 flex flex-col">
+
                     {/* Context Indicator */}
                     {contextText && (
                       <div className="mx-2 mt-1 mb-1 px-3 py-1.5 bg-oxford-blue/10 rounded-lg flex items-center justify-between text-xs text-oxford-blue/80 border border-oxford-blue/5">
@@ -636,6 +642,24 @@ function App() {
                         <button onClick={() => setContextText(null)} className="hover:bg-oxford-blue/10 rounded p-0.5">
                           <X size={12} />
                         </button>
+                      </div>
+                    )}
+
+
+
+                    {/* Chat History Display */}
+                    {chatHistory.length > 0 && (
+                      <div className="flex-1 overflow-y-auto min-h-[0] max-h-[300px] mb-2 space-y-3 p-2 custom-scrollbar">
+                        {chatHistory.map((msg, idx) => (
+                          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${msg.role === 'user'
+                              ? 'bg-oxford-blue text-white rounded-br-sm'
+                              : 'bg-white border border-oxford-blue/10 text-oxford-blue rounded-bl-sm shadow-sm'
+                              }`}>
+                              {msg.content}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
 
@@ -692,6 +716,94 @@ function App() {
           </div>
         </main>
       </div>
+      {/* GLOBAL PORTAL: Selection Popup */}
+      {selectionPopup.show && (
+        <div
+          className="fixed z-50 bg-oxford-blue text-white rounded-lg shadow-xl transform -translate-x-1/2 -translate-y-full flex items-center overflow-hidden animate-fadeIn divide-x divide-white/10"
+          style={{ left: selectionPopup.x, top: selectionPopup.y }}
+        >
+          <button
+            onClick={() => {
+              setContextText(selectionPopup.text);
+              setFloatingChat({
+                show: true,
+                x: selectionPopup.x,
+                y: selectionPopup.y + 20,
+                context: selectionPopup.text
+              });
+              setSelectionPopup({ ...selectionPopup, show: false });
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition-colors text-xs font-medium"
+          >
+            <MessageSquare size={14} />
+            Chat
+          </button>
+          <button
+            onClick={handleInsightClick}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition-colors text-xs font-bold text-bronze"
+          >
+            <Sparkles size={14} />
+            Insight
+          </button>
+        </div>
+      )}
+
+      {/* GLOBAL PORTAL: Floating Chat Window */}
+      {floatingChat.show && (
+        <div
+          className="fixed z-50 bg-white/90 backdrop-blur-xl border border-oxford-blue/10 rounded-xl shadow-2xl p-4 w-80 animate-fadeIn"
+          style={{ left: floatingChat.x, top: floatingChat.y }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-oxford-blue text-white rounded-full flex items-center justify-center">
+                <MessageSquare size={12} />
+              </div>
+              <span className="text-xs font-bold text-oxford-blue uppercase tracking-wider">Context Chat</span>
+            </div>
+            <button
+              onClick={() => setFloatingChat({ ...floatingChat, show: false })}
+              className="text-oxford-blue/40 hover:text-red-500 transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Context Snippet */}
+          <div className="bg-oxford-blue/5 rounded-lg p-2 mb-3 border-l-2 border-bronze">
+            <p className="text-[10px] text-oxford-blue/60 italic truncate">"{floatingChat.context}"</p>
+          </div>
+
+          {/* Input Area */}
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleChatSubmit();
+                  setFloatingChat({ ...floatingChat, show: false });
+                }
+              }}
+              placeholder="Ask or type @pattern..."
+              className="flex-1 bg-white border border-oxford-blue/10 rounded-lg px-3 py-2 text-sm text-oxford-blue focus:ring-2 focus:ring-bronze/20 outline-none"
+            />
+            <button
+              onClick={() => {
+                handleChatSubmit();
+                setFloatingChat({ ...floatingChat, show: false });
+              }}
+              className="bg-oxford-blue text-white p-2 rounded-lg hover:bg-oxford-blue/90 transition-colors"
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
