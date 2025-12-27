@@ -19,35 +19,32 @@ export default async function handler(req, res) {
 
     console.log("Processing analysis request:", { type, instructionPresent: !!instruction });
 
-    let systemPrompt = `You are an elite academic scholarship consultant and admissions evaluator. Your goal is to analyze the document with STRUCTURAL COMPLETENESS.
+    // Pre-process text with line numbers for accurate citation
+    const textWithLines = (text || '').split('\n').map((line, i) => `Line ${i + 1}: ${line}`).join('\n');
 
-    **TWO-PHASE PROTOCOL (MANDATORY)**:
+    let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
+
+    **TWO-PHASE PROTOCOL**:
     
     **PHASE 1: Paragraph Extraction**
-    1. Read the document fully.
-    2. Split it into paragraphs (blocks separated by line breaks).
-    3. Number each paragraph sequentially (1, 2, 3...).
-    4. You MUST process ALL paragraphs exactly once. Do NOT skip any.
+    1. Read the document (Pay attention to the provided Line Numbers).
+    2. Split it into paragraphs.
+    3. Number each paragraph sequentially.
+    4. Process ALL paragraphs.
     
     **PHASE 2: Paragraph Analysis**
-    For EACH paragraph extracted in Phase 1, provide:
-    - **Paragraph Number**: The sequential integer.
-    - **Detected Subtitle**: If a clear subtitle/heading exists, extract it exactly. If not, return null or empty string.
-    - **Functional Label**: Infer the functional role (e.g. Hook, Background, Challenge, Growth, Goals, Conclusion).
-    - **Main Idea**: A single concise sentence summarizing the core point.
-    - **GAP ANALYSIS**:
-        - **Current Goal**: What is this paragraph accurately trying to do *specifically in this text*?
-        - **Ideal Goal**: What *should* a paragraph in this position/role be doing for a winning essay?
-        - **The Gap**: What is missing or weak between the Current and Ideal?
+    For EACH paragraph, provide:
+    - **Paragraph Number**: Sequential integer.
+    - **Detected Subtitle**: Exact subtitle if present, else null.
+    - **Functional Label**: Infer role (e.g. Hook, Context, Challenge, Growth).
+    - **Main Idea**: One sentence summary of content.
+    - **Current Approach**: What is this paragraph trying to do structurally?
+    - **Evidence Location**: The specific Line Numbers where this main idea is generated (e.g. "Lines 12-15").
 
-    **Document Classification Rules**:
-    1. **Identify Document Type**: Personal Statement, Study Plan, or Portfolio.
-    2. **Infer from Signals**: Content, intent, tone.
-    
-    **Evaluation Criteria (For Personal Statements/Essays)**:
-    1. **Narrative Authenticity**: Authentic life story vs generic achievements.
-    2. **Structure & Flow**: Hook, narrative progression, readability.
-    3. **Value Alignment**: Alignment with scholarship vision.
+    **Criteria**:
+    1. Narrative Authenticity
+    2. Structure & Flow
+    3. Value Alignment
     `;
 
     if (instruction) {
@@ -82,22 +79,21 @@ export default async function handler(req, res) {
             "paragraph_number": 1,
             "detected_subtitle": "Introduction (or null)",
             "functional_label": "Hook",
-            "section_label": "Introduction/Hook (Combined Label for UI)",
+            "section_label": "Introduction/Hook",
             "analysis_current": "What the paragraph is currently trying to do (e.g. Introduce the candidate's background).",
-            "analysis_ideal": "What it should be doing (e.g. Hook the reader with a compelling specific moment).",
-            "analysis_gap": "The gap between them (e.g. Too generic, lacks specific imagery).",
             "main_idea": "Summary of content.",
-            "evidence_quote": "Exact quote.",
+            "evidence_quote": "Exact verbatim quote.",
+            "evidence_location": "Lines 12-15",
             "strength": "What works well.",
             "status": "strong" 
           }
         ]
       }
 
-      IMPORTANT: You MUST analyze EVERY single paragraph. The number of items in 'paragraphBreakdown' must match the total paragraph count of the document.
+      IMPORTANT: Analyze EVERY paragraph.
       
-      Essay Content:
-      "${text || ''}"
+      Essay Content with Line Numbers:
+      "${textWithLines}"
     `;
 
     const completion = await openai.chat.completions.create({
