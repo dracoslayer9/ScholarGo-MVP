@@ -17,35 +17,32 @@ export const runRealAnalysis = async (
                 dangerouslyAllowBrowser: true
             });
 
-            let systemPrompt = `You are an elite academic scholarship consultant and admissions evaluator. Your goal is to analyze the document with STRUCTURAL COMPLETENESS.
+            // Pre-process text with line numbers for accurate citation
+            const textWithLines = (text || '').split('\n').map((line, i) => `Line ${i + 1}: ${line}`).join('\n');
 
-            **TWO-PHASE PROTOCOL (MANDATORY)**:
+            let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
+
+            **TWO-PHASE PROTOCOL**:
             
             **PHASE 1: Paragraph Extraction**
-            1. Read the document fully.
-            2. Split it into paragraphs (blocks separated by line breaks).
-            3. Number each paragraph sequentially (1, 2, 3...).
-            4. You MUST process ALL paragraphs exactly once. Do NOT skip any.
+            1. Read the document (Pay attention to the provided Line Numbers).
+            2. Split it into paragraphs.
+            3. Number each paragraph sequentially.
+            4. Process ALL paragraphs.
             
             **PHASE 2: Paragraph Analysis**
-            For EACH paragraph extracted in Phase 1, provide:
-            - **Paragraph Number**: The sequential integer.
-            - **Detected Subtitle**: If a clear subtitle/heading exists, extract it exactly. If not, return null or empty string.
-            - **Functional Label**: Infer the functional role (e.g. Hook, Background, Challenge, Growth, Goals, Conclusion).
-            - **Main Idea**: A single concise sentence summarizing the core point.
-            - **GAP ANALYSIS**:
-                - **Current Goal**: What is this paragraph accurately trying to do *specifically in this text*?
-                - **Ideal Goal**: What *should* a paragraph in this position/role be doing for a winning essay?
-                - **The Gap**: What is missing or weak between the Current and Ideal?
+            For EACH paragraph, provide:
+            - **Paragraph Number**: Sequential integer.
+            - **Detected Subtitle**: Exact subtitle if present, else null.
+            - **Functional Label**: Infer role (e.g. Hook, Context, Challenge, Growth).
+            - **Main Idea**: One sentence summary of content.
+            - **Current Approach**: What is this paragraph trying to do structurally?
+            - **Evidence Location**: The specific Line Numbers where this main idea is generated (e.g. "Lines 12-15").
 
-            **Document Classification Rules**:
-            1. **Identify Document Type**: Personal Statement, Study Plan, or Portfolio.
-            2. **Infer from Signals**: Content, intent, tone.
-            
-            **Evaluation Criteria (For Personal Statements/Essays)**:
-            1. **Narrative Authenticity**: Authentic life story vs generic achievements.
-            2. **Structure & Flow**: Hook, narrative progression, readability.
-            3. **Value Alignment**: Alignment with scholarship vision.
+            **Criteria**:
+            1. Narrative Authenticity
+            2. Structure & Flow
+            3. Value Alignment
             `;
 
             if (instruction) {
@@ -81,22 +78,21 @@ export const runRealAnalysis = async (
                     "paragraph_number": 1,
                     "detected_subtitle": "Introduction (or null)",
                     "functional_label": "Hook",
-                    "section_label": "Introduction/Hook (Combined Label for UI)",
+                    "section_label": "Introduction/Hook",
                     "analysis_current": "What the paragraph is currently trying to do (e.g. Introduce the candidate's background).",
-                    "analysis_ideal": "What it should be doing (e.g. Hook the reader with a compelling specific moment).",
-                    "analysis_gap": "The gap between them (e.g. Too generic, lacks specific imagery).",
                     "main_idea": "Summary of content.",
-                    "evidence_quote": "Exact quote.",
+                    "evidence_quote": "Exact verbatim quote.",
+                    "evidence_location": "Lines 12-15",
                     "strength": "What works well.",
                     "status": "strong" 
                 }
                 ]
             }
 
-            IMPORTANT: You MUST analyze EVERY single paragraph. The number of items in 'paragraphBreakdown' must match the total paragraph count of the document.
+            IMPORTANT: Analyze EVERY paragraph.
             
-            Essay Content:
-            "${text || ''}"
+            Essay Content with Line Numbers:
+            "${textWithLines}"
             `;
 
 
@@ -143,4 +139,152 @@ export const runRealAnalysis = async (
 
     // If backend already returns the JSON object
     return data;
+};
+// ... existing runRealAnalysis code ...
+
+/**
+ * Handles conversational follow-up questions about the document.
+ */
+export const sendChatMessage = async (
+    message,
+    history = [],
+    documentContent = ""
+) => {
+    // FALLBACK: Client-Side Execution for Local Development
+    if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY) {
+        try {
+            console.log("Running Local Chat Message...");
+            const openai = new OpenAI({
+                apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+                dangerouslyAllowBrowser: true
+            });
+
+            let systemPrompt = `You are an elite academic scholarship consultant. 
+            You have already analyzed the user's essay. Now, you are answering their follow-up questions to help them improve it.
+            
+            **Context - The User's Essay**:
+            "${documentContent}"
+
+            **Guidelines**:
+            1. Be helpful, specific, and encouraging.
+            2. Cite specific parts of the essay if relevant.
+            3. Keep answers concise (under 3 paragraphs) unless asked for more.
+            4. If the user asks for a rewrite, provide a high-quality example.
+            `;
+
+            // PATTERN COMMAND INTERCEPT
+            if (message.includes("@pattern")) {
+                console.log("Pattern Analysis Triggered");
+                systemPrompt = `You are an expert in Awardee Narrative Patterns. Your goal is to map the user's paragraph to winning storytelling structures.
+
+                **Context - Selected Paragraph**:
+                "${documentContent}" (or specifically the focused section)
+
+                **Your Task**:
+                Analyze how this specific paragraph fits into "Awardee-Style" narrative patterns.
+                
+                **Look For**:
+                - **Hero's Journey**: Call to Adventure, Crossing the Threshold, Ordeal, Return.
+                - **Conflict-Resolution**: How tension is built and released.
+                - **Value Anchoring**: How abstract values are grounded in concrete action.
+                - **"Show, Don't Tell"**: Presence of sensory details.
+
+                **Output**:
+                - Identify the *primary* pattern used.
+                - Explain *how* it is used effectively (or where it fails).
+                - Cite the exact lines where the pattern emerges.
+                `;
+            }
+
+            const messages = [
+                { role: "system", content: systemPrompt },
+                ...history,
+                { role: "user", content: message }
+            ];
+
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: messages,
+                temperature: 0.7,
+            });
+
+            return completion.choices[0].message.content;
+
+        } catch (error) {
+            console.error("Local Chat Failed:", error);
+            throw error;
+        }
+    }
+
+    // SERVER-SIDE Execution (Production)
+    const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, history, documentContent }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data?.error || `Request failed with status ${response.status}`);
+    }
+
+    return data.result;
+};
+
+/**
+ * Generates a quick "Insight" analysis for a specific paragraph.
+ * Strictly explanatory: Main Idea, Approach, Evidence. No evaluation.
+ */
+export const analyzeParagraphInsight = async (paragraphText) => {
+    // FALLBACK: Client-Side Execution for Local Development
+    if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY) {
+        try {
+            console.log("Running Paragraph Insight...");
+            const openai = new OpenAI({
+                apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+                dangerouslyAllowBrowser: true
+            });
+
+            const systemPrompt = `You are an expert writing analyst. Your goal is to help the user understand the selected paragraph quickly.
+
+            **Tasks**:
+            1. **Identify the Main Idea**: What is the core point?
+            2. **Explain the Writer's Approach**: How are they conveying it? (e.g., storytelling, explanation, reflection, contrast).
+            3. **Cite Evidence**: Quote exact phrases that support the main idea.
+
+            **Rules**:
+            - Focus ONLY on the provided text.
+            - Be concise and explanatory.
+            - DO NOT evaluate quality (good/bad).
+            - DO NOT suggest improvements.
+            - Format as a clean, easy-to-read list or short paragraphs.
+            `;
+
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: `Analyze this paragraph:\n"${paragraphText}"` }
+                ],
+                temperature: 0.5,
+            });
+
+            return completion.choices[0].message.content;
+
+        } catch (error) {
+            console.error("Insight Analysis Failed:", error);
+            throw error;
+        }
+    }
+
+    // SERVER-SIDE Execution
+    const response = await fetch("/api/insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: paragraphText }),
+    });
+
+    const data = await response.json();
+    return data.result;
 };
