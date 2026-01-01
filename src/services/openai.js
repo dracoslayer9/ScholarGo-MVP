@@ -172,18 +172,21 @@ export const sendChatMessage = async (
             1. **Interaction Mode**: Answer questions by referencing specific cards.
             2. **References**: Always cite the Paragraph Number.
             3. **Concise and Clear**: Keep PURELY informational/fact-based answers concise.
-            4. **MANDATORY CARD FORMAT**: If the user asks for analysis (e.g., "Analisis semua"), YOU MUST use this specific format for EACH paragraph:
-               
+            4. **MANDATORY CARD FORMAT**: If the user asks for analysis (e.g., "Analisis semua"), YOU MUST use this specific format for EACH paragraph. **Separate each paragraph card clearly**.
+
+               **Paragraf [Nomor]**
                1. **Gagasan Utama**: [Ide pokok dalam 1 kalimat padat]
-               2. **Pengembangan Ide**: [Jelaskan cara penyampaian (narasi, data, rencana, dll)]
-               3. **Bukti Kalimat**: [Kutip kalimat kunci]
+               2. **Pengembangan Ide**: [Penjelasan teknik penulisan: Naratif/Data/Rencana Aksi]
+               3. **Bukti Kalimat**: "[Kutipan teks asli]"
 
             5. **RESEARCH MODE**: If the user asks for "Research" or "Riset" (verification):
-               - **NO CARDS**. Use a clean, standard text format.
-               - **Structure**:
-                 1. **Heading**: [Relevant Topic Title]
-                 2. **Verification Points**: Bullet points focusing on facts. **Bold** key dates, numbers, and names.
-                 3. **Reference Links**: List 2-3 specific credible sources (e.g., "[Source Name](url)") that support the data.
+               - **MANDATORY CARD FORMAT**: You MUST output the research result in this specific "Research Insight" card format:
+                 
+                 **Research Insight**
+                 1. **Validation Summary**: [Bold Header: Summary of claim validity or news context]
+                 2. **Background Info**: [Bullet points of relevant background info]
+                 3. **References**: [List of 2-3 links: [Source Name](URL)]
+
                - **Logic**: Identify claims -> Simulate/Connect to external knowledge -> Verify validity.
 
             **Document Content**:
