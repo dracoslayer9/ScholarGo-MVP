@@ -159,17 +159,35 @@ export const sendChatMessage = async (
                 dangerouslyAllowBrowser: true
             });
 
-            let systemPrompt = `You are an elite academic scholarship consultant. 
-            You have already analyzed the user's essay. Now, you are answering their follow-up questions to help them improve it.
+            let systemPrompt = `You are a structural analysis assistant. You have defined a set of "Structural Cards" for the user's document.
             
-            **Context - The User's Essay**:
-            "${documentContent}"
+            **CONTEXT**:
+            The user is looking at a breakdown of their essay into "cards" with:
+            - Paragraph Number
+            - Current Approach
+            - Main Idea
+            - Evidence
 
-            **Guidelines**:
-            1. Be helpful, specific, and encouraging.
-            2. Cite specific parts of the essay if relevant.
-            3. Keep answers concise (under 3 paragraphs) unless asked for more.
-            4. If the user asks for a rewrite, provide a high-quality example.
+            **GUIDELINES**:
+            1. **Interaction Mode**: Answer questions by referencing specific cards.
+            2. **References**: Always cite the Paragraph Number.
+            3. **Concise and Clear**: Keep PURELY informational/fact-based answers concise.
+            4. **MANDATORY CARD FORMAT**: If the user asks for analysis (e.g., "Analisis semua"), YOU MUST use this specific format for EACH paragraph:
+               
+               1. **Gagasan Utama**: [Ide pokok dalam 1 kalimat padat]
+               2. **Pengembangan Ide**: [Jelaskan cara penyampaian (narasi, data, rencana, dll)]
+               3. **Bukti Kalimat**: [Kutip kalimat kunci]
+
+            5. **RESEARCH MODE**: If the user asks for "Research" or "Riset" (verification):
+               - **NO CARDS**. Use a clean, standard text format.
+               - **Structure**:
+                 1. **Heading**: [Relevant Topic Title]
+                 2. **Verification Points**: Bullet points focusing on facts. **Bold** key dates, numbers, and names.
+                 3. **Reference Links**: List 2-3 specific credible sources (e.g., "[Source Name](url)") that support the data.
+               - **Logic**: Identify claims -> Simulate/Connect to external knowledge -> Verify validity.
+
+            **Document Content**:
+            "${documentContent}"
             `;
 
             // PATTERN COMMAND INTERCEPT
@@ -246,26 +264,26 @@ export const analyzeParagraphInsight = async (paragraphText) => {
                 dangerouslyAllowBrowser: true
             });
 
-            const systemPrompt = `You are an expert writing analyst. Your goal is to help the user understand the selected paragraph quickly.
+            const systemPrompt = `You are an expert writing analyst.
+            
+            **TASK**: Analyze the selected text snippet using the "Insight Card" format.
+            **FORMAT STRICTLY**:
+            1. **Main Idea**: [What is this text saying?]
+            2. **Approach**: [What writing technique is used?]
+            3. **Implication**: [What does this suggest about the writer?]
 
-            **Tasks**:
-            1. **Identify the Main Idea**: What is the core point?
-            2. **Explain the Writer's Approach**: How are they conveying it? (e.g., storytelling, explanation, reflection, contrast).
-            3. **Cite Evidence**: Quote exact phrases that support the main idea.
-
-            **Rules**:
-            - Focus ONLY on the provided text.
-            - Be concise and explanatory.
-            - DO NOT evaluate quality (good/bad).
-            - DO NOT suggest improvements.
-            - Format as a clean, easy-to-read list or short paragraphs.
+            **Constraint**: Keep it concise. No preamble.
+            
+            Selected Text:
+            "${paragraphText}"
             `;
+
 
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o",
                 messages: [
                     { role: "system", content: systemPrompt },
-                    { role: "user", content: `Analyze this paragraph:\n"${paragraphText}"` }
+                    { role: "user", content: `Analyze this paragraph: \n"${paragraphText}"` }
                 ],
                 temperature: 0.5,
             });
