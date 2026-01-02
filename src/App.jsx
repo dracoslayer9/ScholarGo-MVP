@@ -30,7 +30,8 @@ import {
 } from 'lucide-react';
 
 import { runAnalysis } from './services/analysis';
-import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/openai'; // Updated import
+import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/analysis';
+
 
 // --- Analysis Logic ---
 const analyzeEssay = async (text, model, instruction, context) => {
@@ -350,6 +351,46 @@ const MessageContent = ({ content }) => {
   return <div className="whitespace-pre-wrap">{content}</div>;
 };
 
+// Helper: Chat Messages List
+// Moved outside to prevent re-creation on every render
+const ChatMessagesList = ({ messages }) => {
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+      {messages.map((msg, idx) => (
+        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div className={`max-w-[95%] rounded-2xl shadow-sm overflow-hidden ${msg.role === 'user'
+            ? 'bg-oxford-blue text-white rounded-br-sm px-5 py-3'
+            : 'bg-white border border-oxford-blue/10 text-oxford-blue rounded-bl-sm'
+            }`}>
+            {msg.role === 'assistant' && (
+              <div className="h-1 w-full bg-gradient-to-r from-blue-400 to-indigo-500"></div>
+            )}
+            <div className={msg.role === 'assistant' ? 'p-5' : ''}>
+              {/* Avatar/Header for AI */}
+              {msg.role === 'assistant' && (
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <Sparkles size={10} />
+                  </div>
+                  <span className="text-xs font-bold text-oxford-blue/60 uppercase tracking-wider">ScholarGo AI</span>
+                </div>
+              )}
+              <MessageContent content={msg.content} />
+            </div>
+          </div>
+        </div>
+      ))}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+};
+
 function App() {
   const [essayText, setEssayText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -362,6 +403,8 @@ function App() {
   const [fileUrl, setFileUrl] = useState(null);
   const [fileType, setFileType] = useState(null);
   const [chatInput, setChatInput] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState('openai'); // 'openai' or 'gemini'
+  const [providerMenuOpen, setProviderMenuOpen] = useState(false);
   /* Removed selectedModel state as we're enforcing server-side logic now */
   const fileInputRef = useRef(null);
   const chatInputRef = useRef(null);
@@ -385,7 +428,7 @@ function App() {
     setError(null);
     try {
       console.log(`Analyzing essay...`);
-      const result = await analyzeEssay(essayText, 'openai', chatInput, contextText);
+      const result = await analyzeEssay(essayText, selectedProvider, chatInput, contextText);
       setAnalysisResult(result);
       setIsAnalyzed(true);
     } catch (error) {
@@ -407,17 +450,58 @@ function App() {
 
     if (file.type === "text/plain") {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setEssayText(event.target.result);
-      };
+      reader.onload = (event) => setEssayText(event.target.result);
       reader.readAsText(file);
-    } else {
+    }
+    else if (file.type === "application/pdf") {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const loadingTask = pdfjsLib.getDocument(event.target.result);
+          const pdf = await loadingTask.promise;
+          let fullText = '';
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += `Page ${i}:\n${pageText}\n\n`;
+          }
+          console.log("PDF Parsed:", fullText.substring(0, 100) + "...");
+          setEssayText(fullText);
+        } catch (err) {
+          console.error("PDF Parse Error:", err);
+          setEssayText("Error reading PDF content. Please try converting to text.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.endsWith(".docx")) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const arrayBuffer = event.target.result;
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          console.log("DOCX Parsed:", result.value.substring(0, 100) + "...");
+          setEssayText(result.value);
+        } catch (err) {
+          console.error("DOCX Parse Error:", err);
+          setEssayText("Error reading DOCX content.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    else {
       setEssayText('');
+      console.warn("Unsupported file type for text extraction:", file.type);
     }
   };
 
   const handleChatSubmit = async (manualMessage = null) => {
-    const rawMessage = manualMessage || chatInput;
+    // FIX: If manualMessage is an event object (from onClick), ignore it and use chatInput
+    const isEvent = manualMessage && typeof manualMessage === 'object' && manualMessage._reactName;
+    const rawMessage = (manualMessage && typeof manualMessage === 'string') ? manualMessage : chatInput;
+
     if ((!rawMessage.trim() && !essayText.trim()) || isAnalyzing) return;
 
     // Determine message to send
@@ -438,7 +522,7 @@ function App() {
         const newHistory = [...chatHistory, userMsg]; // Use the new userMsg
         setChatHistory(newHistory); // Optimistic UI
 
-        const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText); // Pass messageToSend
+        const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedProvider); // Pass messageToSend
 
         setChatHistory([...newHistory, { role: "assistant", content: aiResponse }]);
       } catch (err) {
@@ -456,8 +540,29 @@ function App() {
     // For now, we proceed with standard analysis, assuming the backend or prompts will handle instructions 
 
     if (!analysisResult) {
-      performAnalysis();
+      if (essayText.trim()) {
+        performAnalysis();
+      } else if (chatInput.trim()) {
+        // No essay, but user wants to chat. Start a "General Chat" session.
+        // We set a dummy analysisResult or handle it as pure chat.
+        // For simplicity, we initialize a chat session manually.
+        const userMsg = { role: 'user', content: messageToSend };
+        setChatHistory([userMsg]);
+        setIsAnalyzing(true);
+        try {
+          // Pass empty doc content
+          const aiResponse = await sendChatMessage(messageToSend, [userMsg], "", selectedProvider);
+          setChatHistory([userMsg, { role: "assistant", content: aiResponse }]);
+          // We might want to set a dummy AnalysisResult to unlock the dashboard view
+          setAnalysisResult({ globalSummary: "General Chat Session Started.", paragraphBreakdown: [] });
+        } catch (e) {
+          setError("Chat failed: " + e.message);
+        } finally {
+          setIsAnalyzing(false);
+        }
+      }
     }
+
 
     setChatInput('');
     setContextText(null);
@@ -476,7 +581,7 @@ function App() {
       const newHistory = [...chatHistory, { role: "user", content: userMsg }];
       setChatHistory(newHistory);
 
-      const aiResponse = await analyzeParagraphInsight(textToAnalyze);
+      const aiResponse = await analyzeParagraphInsight(textToAnalyze, selectedProvider);
 
       setChatHistory([...newHistory, { role: "assistant", content: aiResponse }]);
 
@@ -583,44 +688,8 @@ function App() {
     });
   };
 
-  // Helper: Chat Messages List
-  const ChatMessagesList = ({ messages }) => {
-    const messagesEndRef = useRef(null);
 
-    useEffect(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
 
-    return (
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[95%] rounded-2xl shadow-sm overflow-hidden ${msg.role === 'user'
-              ? 'bg-oxford-blue text-white rounded-br-sm px-5 py-3'
-              : 'bg-white border border-oxford-blue/10 text-oxford-blue rounded-bl-sm'
-              }`}>
-              {msg.role === 'assistant' && (
-                <div className="h-1 w-full bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-              )}
-              <div className={msg.role === 'assistant' ? 'p-5' : ''}>
-                {/* Avatar/Header for AI */}
-                {msg.role === 'assistant' && (
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                      <Sparkles size={10} />
-                    </div>
-                    <span className="text-xs font-bold text-oxford-blue/60 uppercase tracking-wider">ScholarGo AI</span>
-                  </div>
-                )}
-                <MessageContent content={msg.content} />
-              </div>
-            </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-    );
-  };
 
   return (
     <div className="flex h-screen bg-paper overflow-hidden font-sans selection:bg-bronze/30 selection:text-oxford-blue">
@@ -953,7 +1022,45 @@ function App() {
                           onChange={handleFileUpload}
                           accept=".pdf,.docx,.txt"
                         />
-                        <span className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-wider">GPT-4o</span>
+                        <div className="relative">
+                          <button
+                            onClick={() => setProviderMenuOpen(!providerMenuOpen)}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-oxford-blue/5 transition-colors group"
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full ${selectedProvider === 'openai' ? 'bg-green-500' : 'bg-blue-500'}`} />
+                            <span className="text-[10px] font-bold text-oxford-blue/60 uppercase tracking-wider group-hover:text-oxford-blue transition-colors">
+                              {selectedProvider === 'openai' ? 'GPT-4o' : 'Gemini 1.5'}
+                            </span>
+                            <ChevronDown size={10} className="text-oxford-blue/40 group-hover:text-oxford-blue" />
+                          </button>
+
+                          {/* Dropdown Menu */}
+                          {providerMenuOpen && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-[100]"
+                                onClick={() => setProviderMenuOpen(false)}
+                              />
+                              <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-xl border border-oxford-blue/10 overflow-hidden z-[101] animate-fadeIn py-1">
+                                <div className="px-3 py-2 text-xs font-bold text-oxford-blue/40 uppercase tracking-wider">
+                                  Model
+                                </div>
+                                <button
+                                  onClick={() => { setSelectedProvider('openai'); setProviderMenuOpen(false); }}
+                                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedProvider === 'openai' ? 'bg-black/5 font-medium text-oxford-blue' : 'text-oxford-blue/80 hover:bg-black/5'}`}
+                                >
+                                  OpenAI GPT-4o
+                                </button>
+                                <button
+                                  onClick={() => { setSelectedProvider('gemini'); setProviderMenuOpen(false); }}
+                                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedProvider === 'gemini' ? 'bg-black/5 font-medium text-oxford-blue' : 'text-oxford-blue/80 hover:bg-black/5'}`}
+                                >
+                                  Google Gemini 1.5
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -986,6 +1093,13 @@ function App() {
           style={{ left: selectionPopup.x, top: selectionPopup.y }}
         >
           <button
+            onClick={handleInsightClick}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-oxford-blue/5 transition-colors text-xs font-bold text-bronze"
+          >
+            <Sparkles size={14} />
+            Insight
+          </button>
+          <button
             onClick={() => {
               const text = selectionPopup.text;
               setContextText(text);
@@ -1000,13 +1114,6 @@ function App() {
           >
             <Globe size={14} />
             Research
-          </button>
-          <button
-            onClick={handleInsightClick}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-oxford-blue/5 transition-colors text-xs font-bold text-bronze"
-          >
-            <Sparkles size={14} />
-            Insight
           </button>
         </div>
       )}
