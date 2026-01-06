@@ -16,6 +16,20 @@ export default {
         serif: ['"Inter"', 'sans-serif'], // Remapped to sans for modern look
         sans: ['"Inter"', 'sans-serif'],
       },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        dash: {
+          '0%': { strokeDashoffset: '100' },
+          '100%': { strokeDashoffset: '0' },
+        },
+      },
+      animation: {
+        float: 'float 6s ease-in-out infinite',
+        dash: 'dash 1.5s linear infinite',
+      },
     },
 
   },
