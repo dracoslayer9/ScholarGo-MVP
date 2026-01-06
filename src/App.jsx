@@ -34,6 +34,99 @@ import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './ser
 
 
 // --- Analysis Logic ---
+const AnalysisResultView = ({ result }) => {
+  if (!result) return null;
+  // If this is a dummy result for Chat/Research mode, do not render the Analysis Dashboard.
+  if (result.globalSummary === "Research / Chat Session Active" || result.globalSummary === "General Chat Session Started.") {
+    return null;
+  }
+  return (
+    <div className="space-y-8 animate-fadeIn pb-6 border-b border-oxford-blue/10">
+      {/* Header: Document Classification */}
+      <div className="p-6 border border-oxford-blue/10 bg-oxford-blue/5 rounded-xl">
+        {result.documentClassification ? (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue">
+                  {result.documentClassification.primaryType}
+                </h3>
+                {/* Evaluation Badge */}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${result.documentClassification.confidence === 'High'
+                  ? 'bg-green-100 text-green-700 border-green-200'
+                  : 'bg-amber-100 text-amber-700 border-amber-200'
+                  }`}>
+                  {result.documentClassification.confidence} Confidence
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div>Analysis Result</div>
+        )}
+      </div>
+
+      {/* Global Summary */}
+      <div className="bg-gradient-to-br from-paper to-white p-6 rounded-xl border border-oxford-blue/10 shadow-sm">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-3 flex items-center gap-2">
+          <Award size={16} /> Global Summary
+        </h3>
+        <p className="text-oxford-blue/80 leading-relaxed font-serif text-lg break-words">
+          {result.globalSummary}
+        </p>
+      </div>
+
+      {/* Deep Analysis */}
+      {result.deepAnalysis && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="bg-oxford-blue/5 p-4 rounded-lg border border-oxford-blue/10">
+            <p className="text-oxford-blue font-serif italic text-center">"{result.deepAnalysis.overallAssessment}"</p>
+          </div>
+        </div>
+      )}
+
+      {/* Structural Analysis breakdown */}
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-4">Structural Analysis</h3>
+        <div className="space-y-6">
+          {result.paragraphBreakdown.map((item, idx) => (
+            <div key={idx} className="bg-white rounded-xl border border-oxford-blue/5 shadow-sm p-6 hover:shadow-md transition-all group">
+              <div className="flex items-center mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest">{item.paragraph_number ? `Para ${item.paragraph_number}` : ''}</span>
+                  <h4 className="font-serif font-bold text-oxford-blue text-lg">{item.detected_subtitle || item.section_label || item.section}</h4>
+                </div>
+              </div>
+              {(item.analysis_current || item.purpose) && (
+                <div className="mb-4">
+                  <p className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest mb-1">Current Structure</p>
+                  <p className="text-sm font-medium text-oxford-blue/80">{item.analysis_current || item.purpose}</p>
+                </div>
+              )}
+              <div className="space-y-4">
+                {item.main_idea && (
+                  <div>
+                    <p className="text-[10px] font-bold text-oxford-blue/20 uppercase tracking-widest mb-1">Main Idea</p>
+                    <p className="text-sm md:text-base text-oxford-blue leading-relaxed font-medium">{item.main_idea}</p>
+                  </div>
+                )}
+                {item.evidence_quote && (
+                  <div className="pl-4 border-l-2 border-bronze/30">
+                    <p className="text-[10px] font-bold text-bronze/50 uppercase tracking-widest mb-1">
+                      Evidence {item.evidence_location && <span className="ml-2 text-oxford-blue/30 text-[9px] normal-case bg-oxford-blue/5 px-1.5 py-0.5 rounded">Re: {item.evidence_location}</span>}
+                    </p>
+                    <p className="text-sm text-oxford-blue/60 italic font-serif leading-relaxed">"{item.evidence_quote}"</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const analyzeEssay = async (text, model, instruction, context) => {
   try {
     const realResult = await runRealAnalysis(text, model, instruction, context); // Direct usage
@@ -347,25 +440,57 @@ const MessageContent = ({ content }) => {
     }
   }
 
-  // Default Text
-  return <div className="whitespace-pre-wrap">{content}</div>;
+  // Default Text: Simple Markdown Formatter (Bold Support)
+  // Default Text: Simple Markdown Formatter (Bold & Link Support)
+  const formatText = (text) => {
+    // Regex matches:
+    // 1. **bold**
+    // 2. [link text](url)
+    const regex = /(\*\*.*?\*\*|\[.*?\]\(.*?\))/g;
+    const parts = text.split(regex);
+
+    return parts.map((part, index) => {
+      // Bold Match
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      // Link Match
+      if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
+        const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
+        if (linkMatch) {
+          return (
+            <a
+              key={index}
+              href={linkMatch[2]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-medium"
+            >
+              {linkMatch[1]}
+            </a>
+          );
+        }
+      }
+      // Plain Text
+      return part;
+    });
+  };
+
+  return <div className="whitespace-pre-wrap leading-relaxed">{formatText(content)}</div>;
 };
 
+// --- Landing Page Integration ---
+import LandingPage from './LandingPage';
+
 // Helper: Chat Messages List
-// Moved outside to prevent re-creation on every render
+// Pure list component, specific styling for User vs AI
 const ChatMessagesList = ({ messages }) => {
-  const messagesEndRef = useRef(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+    <div className="space-y-6">
       {messages.map((msg, idx) => (
         <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
           <div className={`max-w-[95%] rounded-2xl shadow-sm overflow-hidden ${msg.role === 'user'
-            ? 'bg-oxford-blue text-white rounded-br-sm px-5 py-3'
+            ? 'bg-gray-100 text-oxford-blue rounded-br-sm px-5 py-3'
             : 'bg-white border border-oxford-blue/10 text-oxford-blue rounded-bl-sm'
             }`}>
             {msg.role === 'assistant' && (
@@ -386,12 +511,14 @@ const ChatMessagesList = ({ messages }) => {
           </div>
         </div>
       ))}
-      <div ref={messagesEndRef} />
     </div>
   );
 };
 
 function App() {
+  const [showLanding, setShowLanding] = useState(true);
+
+  // App State
   const [essayText, setEssayText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -408,6 +535,17 @@ function App() {
   /* Removed selectedModel state as we're enforcing server-side logic now */
   const fileInputRef = useRef(null);
   const chatInputRef = useRef(null);
+
+  // Scroll Ref for Unified View
+  const messagesEndRef = useRef(null);
+
+  // Auto-scroll to bottom of Unified View when content changes
+  useEffect(() => {
+    // Only scroll if we have new chat messages OR a new analysis result came in
+    if (analysisResult || chatHistory.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [analysisResult, chatHistory]);
 
   // Text Selection State
   const [selectionPopup, setSelectionPopup] = useState({ show: false, x: 0, y: 0, text: '' });
@@ -497,7 +635,7 @@ function App() {
     }
   };
 
-  const handleChatSubmit = async (manualMessage = null) => {
+  const handleChatSubmit = async (manualMessage = null, forceChat = false) => {
     // FIX: If manualMessage is an event object (from onClick), ignore it and use chatInput
     const isEvent = manualMessage && typeof manualMessage === 'object' && manualMessage._reactName;
     const rawMessage = (manualMessage && typeof manualMessage === 'string') ? manualMessage : chatInput;
@@ -508,23 +646,37 @@ function App() {
     const messageToSend = rawMessage.trim();
     setChatInput(''); // Clear input
 
-    // If using Quick Prompt, we might want to auto-scroll or set UI state
+    // DETERMINE MODE: Analysis vs Chat
+    // We treat it as Chat if:
+    // 1. Analysis already exists (Follow-up)
+    // 2. forceChat is true (Explicit Research/Question)
+    // 3. No essay text (General Chat)
+    // 4. We want to treat ALL text input as Chat if we decide to separate "Analyze" button from "Send" button, 
+    //    but for now we stick to "Empty Analysis + Essay = Initial Analysis".
 
-    // Add User Message
-    const userMsg = { role: 'user', content: messageToSend };
-    setChatHistory(prev => [...prev, userMsg]);
+    // Exception: If messageToSend is empty and we have essay, it's definitely Analysis ("Analyze" button with empty input)
+    const isAnalysisCmd = !analysisResult && essayText.trim() && !messageToSend && !forceChat;
 
-    // MODE 1: FOLLOW-UP CHAT (Analysis ALREADY Exists)
-    if (analysisResult) {
+    if (!isAnalysisCmd) {
+      // --- CHAT MODE ---
       setIsAnalyzing(true);
       setError(null);
+
+      const userMsg = { role: 'user', content: messageToSend };
+      // Optimistic Update
+      const newHistory = [...chatHistory, userMsg];
+      setChatHistory(newHistory);
+
       try {
-        const newHistory = [...chatHistory, userMsg]; // Use the new userMsg
-        setChatHistory(newHistory); // Optimistic UI
+        // If no analysis result yet, set a dummy one to ensure UI unlocks
+        if (!analysisResult) {
+          setAnalysisResult({ globalSummary: "Research / Chat Session Active", paragraphBreakdown: [] });
+          setIsAnalyzed(true);
+        }
 
-        const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedProvider); // Pass messageToSend
+        const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedProvider);
+        setChatHistory(prev => [...prev, { role: "assistant", content: aiResponse }]);
 
-        setChatHistory([...newHistory, { role: "assistant", content: aiResponse }]);
       } catch (err) {
         console.error("Chat Failed:", err);
         setError("Failed to get response.");
@@ -534,38 +686,12 @@ function App() {
       return;
     }
 
-    console.log("Chat submitted:", chatInput, "Context:", contextText);
-
-    // If there is contextText, we should include it in the analysis request implicitly or explicitly
-    // For now, we proceed with standard analysis, assuming the backend or prompts will handle instructions 
-
-    if (!analysisResult) {
-      if (essayText.trim()) {
-        performAnalysis();
-      } else if (chatInput.trim()) {
-        // No essay, but user wants to chat. Start a "General Chat" session.
-        // We set a dummy analysisResult or handle it as pure chat.
-        // For simplicity, we initialize a chat session manually.
-        const userMsg = { role: 'user', content: messageToSend };
-        setChatHistory([userMsg]);
-        setIsAnalyzing(true);
-        try {
-          // Pass empty doc content
-          const aiResponse = await sendChatMessage(messageToSend, [userMsg], "", selectedProvider);
-          setChatHistory([userMsg, { role: "assistant", content: aiResponse }]);
-          // We might want to set a dummy AnalysisResult to unlock the dashboard view
-          setAnalysisResult({ globalSummary: "General Chat Session Started.", paragraphBreakdown: [] });
-        } catch (e) {
-          setError("Chat failed: " + e.message);
-        } finally {
-          setIsAnalyzing(false);
-        }
-      }
+    // --- ANALYSIS MODE ---
+    console.log("Starting Initial Analysis...");
+    setContextText(null); // Clear context for global analysis unless specified
+    if (essayText.trim()) {
+      performAnalysis();
     }
-
-
-    setChatInput('');
-    setContextText(null);
   };
 
   // Insight Handler
@@ -602,6 +728,9 @@ function App() {
 
       // Don't trigger if clicking inside the popup or floating chat
       if (target.closest('#selection-popup') || target.closest('#floating-chat')) return;
+
+      // NEW CHECK: Ensure we are inside the document
+      if (!target.closest('#document-viewer-container')) return;
 
       // DELAY: Wait 10ms for selection to finalize (fixes inconsistency)
       setTimeout(() => {
@@ -689,6 +818,10 @@ function App() {
   };
 
 
+
+  if (showLanding) {
+    return <LandingPage onStart={() => setShowLanding(false)} />;
+  }
 
 
   return (
@@ -804,7 +937,7 @@ function App() {
 
                 <div className="flex-1 flex flex-col gap-4 relative min-h-0">
                   {/* Document Display Area */}
-                  <div className="flex-1 bg-white rounded-xl border border-oxford-blue/10 shadow-sm overflow-hidden relative group">
+                  <div id="document-viewer-container" className="flex-1 bg-white rounded-xl border border-oxford-blue/10 shadow-sm overflow-hidden relative group">
                     {isAnalyzed ? (
                       <div className="w-full h-full relative overflow-hidden">
                         {fileType === 'application/pdf' ? (
@@ -841,7 +974,7 @@ function App() {
                 </div>
               </div>
 
-              {/* Right Column: Analysis Dashboard */}
+              {/* Right Column: Unified Analysis & Chat Stream */}
               <div className="bg-white rounded-2xl border border-oxford-blue/10 shadow-xl shadow-oxford-blue/5 overflow-hidden flex flex-col h-full min-h-0">
                 {error ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-red-600 animate-fadeIn">
@@ -857,110 +990,53 @@ function App() {
                       Try Again
                     </button>
                   </div>
-                ) : !analysisResult ? (
-                  chatHistory.length > 0 ? (
-                    // Broadened Answer Box: Chat History takes over main view
-                    <ChatMessagesList messages={chatHistory} />
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-oxford-blue/40 animate-fadeIn">
-                      <div className="w-24 h-24 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6">
-                        <Activity size={40} />
-                      </div>
-                      <h3 className="text-xl font-serif font-medium text-oxford-blue mb-2">Ready to Analyze</h3>
-                      <p className="max-w-xs mb-8">Paste your essay or ask a question to get started.</p>
-
-                      {/* Quick Prompts */}
-                      <div className="flex flex-col gap-3 w-full max-w-sm">
-                        <button
-                          onClick={() => handleChatSubmit("Analisis semua paragraf dengan format: Gagasan Utama, Pengembangan Ide, dan Bukti Kalimat")}
-                          className="flex items-center gap-3 p-4 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue/60 group-hover:bg-bronze/10 group-hover:text-bronze transition-colors">
-                            <Sparkles size={16} />
-                          </div>
-                          <div>
-                            <p className="font-bold text-oxford-blue text-sm group-hover:text-bronze transition-colors">Analisis Semua</p>
-                            <p className="text-xs text-oxford-blue/50">Dapatkan breakdown lengkap struktur dokumen</p>
-                          </div>
-                        </button>
-                      </div>
+                ) : (!analysisResult && chatHistory.length === 0) ? (
+                  // Empty State / Ready
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-oxford-blue/40 animate-fadeIn">
+                    <div className="w-24 h-24 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6">
+                      <Activity size={40} />
                     </div>
-                  )
+                    <h3 className="text-xl font-serif font-medium text-oxford-blue mb-2">Ready to Analyze</h3>
+                    <p className="max-w-xs mb-8">Paste your essay or ask a question to get started.</p>
+
+                    {/* Quick Prompts */}
+                    <div className="flex flex-col gap-3 w-full max-w-sm">
+                      <button
+                        onClick={() => handleChatSubmit("Analisis semua paragraf dengan format: Gagasan Utama, Pengembangan Ide, dan Bukti Kalimat")}
+                        className="flex items-center gap-3 p-4 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue/60 group-hover:bg-bronze/10 group-hover:text-bronze transition-colors">
+                          <Sparkles size={16} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-oxford-blue text-sm group-hover:text-bronze transition-colors">Analisis Semua</p>
+                          <p className="text-xs text-oxford-blue/50">Dapatkan breakdown lengkap struktur dokumen</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  /* Existing Analysis Result Rendering (Collapsed for brevity) */
-                  <>
-                    {/* Header: Document Classification */}
-                    <div className="p-6 border-b border-oxford-blue/10 bg-oxford-blue/5 shrink-0">
-                      {/* Classification Data */}
-                      {analysisResult.documentClassification ? (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            {/* ... details ... */}
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue">
-                                {analysisResult.documentClassification.primaryType}
-                              </h3>
-                              {/* Evaluation Badge */}
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${analysisResult.documentClassification.confidence === 'High'
-                                ? 'bg-green-100 text-green-700 border-green-200'
-                                : 'bg-amber-100 text-amber-700 border-amber-200'
-                                }`}>
-                                {analysisResult.documentClassification.confidence} Confidence
-                              </span>
-                            </div>
-                          </div>
-                          {/* ... more content ... */}
-                        </div>
-                      ) : (
-                        /* Fallback */
-                        <div>Analysis Result</div>
+                  // UNIFIED VIEW: Analysis Dashboard + Chat History in ONE scrollable stream
+                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar relative">
+                    <div className="max-w-3xl mx-auto space-y-8">
+                      {/* 1. Analysis Result (if present) - Acts as the "First Message" / Context */}
+                      {analysisResult && (
+                        <AnalysisResultView result={analysisResult} />
                       )}
-                    </div>
 
-                    {/* Main Content Area for Analysis */}
-                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                      {/* Summary & Breakdown */}
-                      <div className="space-y-8 animate-fadeIn">
-                        <div className="bg-gradient-to-br from-paper to-white p-6 rounded-xl border border-oxford-blue/10 shadow-sm">
-                          <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-3 flex items-center gap-2">
-                            <Award size={16} /> Global Summary
-                          </h3>
-                          <p className="text-oxford-blue/80 leading-relaxed font-serif text-lg break-words">
-                            {analysisResult.globalSummary}
-                          </p>
-                        </div>
-                        {/* Deep Analysis & Paragraphs */}
-                        {/* ... (Existing Code) ... */}
-                        {/* Just render the existing blocks here, assume context */}
-                        {analysisResult.deepAnalysis && (
-                          <div className="space-y-6 animate-fadeIn">
-                            {/* ... Deep Analysis ... */}
-                            <div className="bg-oxford-blue/5 p-4 rounded-lg border border-oxford-blue/10"><p className="text-oxford-blue font-serif italic text-center">"{analysisResult.deepAnalysis.overallAssessment}"</p></div>
-                            {/* ... (render rest of analysis) ... */}
-                          </div>
-                        )}
-                        <div>
-                          <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-4">Structural Analysis</h3>
-                          <div className="space-y-6">
-                            {analysisResult.paragraphBreakdown.map((item, idx) => (
-                              <div key={idx} className="bg-white rounded-xl border border-oxford-blue/5 shadow-sm p-6 hover:shadow-md transition-all group">
-                                {/* ... Paragraph Content ... */}
-                                <div className="flex items-center mb-3"><div className="flex items-center gap-2"><span className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest">{item.paragraph_number ? `Para ${item.paragraph_number}` : ''}</span><h4 className="font-serif font-bold text-oxford-blue text-lg">{item.detected_subtitle || item.section_label || item.section}</h4></div></div>
-                                {(item.analysis_current || item.purpose) && (
-                                  <div className="mb-4"><p className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest mb-1">Current Structure</p><p className="text-sm font-medium text-oxford-blue/80">{item.analysis_current || item.purpose}</p></div>
-                                )}
-                                <div className="space-y-4">{item.main_idea && (<div><p className="text-[10px] font-bold text-oxford-blue/20 uppercase tracking-widest mb-1">Main Idea</p><p className="text-sm md:text-base text-oxford-blue leading-relaxed font-medium">{item.main_idea}</p></div>)}{item.evidence_quote && (<div className="pl-4 border-l-2 border-bronze/30"><p className="text-[10px] font-bold text-bronze/50 uppercase tracking-widest mb-1">Evidence {item.evidence_location && <span className="ml-2 text-oxford-blue/30 text-[9px] normal-case bg-oxford-blue/5 px-1.5 py-0.5 rounded">Re: {item.evidence_location}</span>}</p><p className="text-sm text-oxford-blue/60 italic font-serif leading-relaxed">"{item.evidence_quote}"</p></div>)}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                      {/* 2. Chat History (Subsequent conversation) */}
+                      {chatHistory.length > 0 && (
+                        <ChatMessagesList messages={chatHistory} />
+                      )}
+
+                      {/* Spacer & Scroll Anchor */}
+                      <div ref={messagesEndRef} className="h-4" />
                     </div>
-                  </>
+                  </div>
                 )}
 
-                <div className="border-t border-oxford-blue/10 bg-white p-3 shrink-0">
-                  {/* Chat / Input Interface - Moved to Right Column */}
+                <div className="border-t border-oxford-blue/10 bg-white p-3 shrink-0 z-10">
+                  {/* Chat / Input Interface */}
                   <div className="bg-paper rounded-2xl p-2 border border-oxford-blue/10 shadow-sm shrink-0 flex flex-col">
 
                     {/* Context Indicator */}
@@ -976,22 +1052,7 @@ function App() {
                       </div>
                     )}
 
-                    {/* Chat History Display: Show inside footer ONLY if analysisResult exists. 
-                        If NO analysisResult, it is shown in main view (lines 859-873 above) */}
-                    {(analysisResult && chatHistory.length > 0) && (
-                      <div className="flex-1 overflow-y-auto min-h-[0] max-h-[300px] mb-2 space-y-3 p-2 custom-scrollbar">
-                        {chatHistory.map((msg, idx) => (
-                          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${msg.role === 'user'
-                              ? 'bg-oxford-blue text-white rounded-br-sm'
-                              : 'bg-white border border-oxford-blue/10 text-oxford-blue rounded-bl-sm shadow-sm'
-                              }`}>
-                              <MessageContent content={msg.content} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {/* Chat History REMOVED from footer - now in main view */}
 
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 px-2 pt-1">
@@ -1108,7 +1169,7 @@ function App() {
               // Trigger Research Mode automatically via Chat
               // We send a specific directive that the AI will recognize
               const researchPrompt = `Lakukan riset verifikasi mendalam untuk teks ini: "${text}". Fokus pada validasi klaim, data, dan referensi.`;
-              handleChatSubmit(researchPrompt);
+              handleChatSubmit(researchPrompt, true);
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-oxford-blue/5 transition-colors text-xs font-medium"
           >
