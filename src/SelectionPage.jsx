@@ -1,0 +1,55 @@
+
+import React from 'react';
+import { Upload, Layout, ArrowRight } from 'lucide-react';
+
+const SelectionPage = ({ onSelect }) => {
+    return (
+        <div className="min-h-screen bg-[#F8FAFC] font-sans flex items-center justify-center p-6 animate-fadeIn">
+            <div className="max-w-4xl w-full">
+                <h1 className="text-3xl md:text-4xl font-serif font-bold text-center text-oxford-blue mb-12">
+                    What do you want to learn?
+                </h1>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                    {/* Upload Option */}
+                    <button
+                        onClick={() => onSelect('upload')}
+                        className="group relative bg-white border border-oxford-blue/10 rounded-2xl p-8 text-left hover:shadow-xl transition-all duration-300 hover:border-bronze/30 hover:-translate-y-1"
+                    >
+                        <div className="w-12 h-12 bg-oxford-blue/5 rounded-xl flex items-center justify-center text-oxford-blue mb-6 group-hover:bg-oxford-blue group-hover:text-white transition-colors">
+                            <Upload size={24} />
+                        </div>
+                        <h3 className="text-xl font-bold text-oxford-blue mb-2">Upload</h3>
+                        <p className="text-oxford-blue/60 text-sm mb-6">
+                            Analyze awardee documents to uncover their winning pattern
+                        </p>
+                        <div className="flex items-center gap-2 text-sm font-bold text-bronze opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
+                            Select <ArrowRight size={16} />
+                        </div>
+                    </button>
+
+                    {/* Canvas Option */}
+                    <button
+                        onClick={() => onSelect('canvas')}
+                        className="group relative bg-white border border-oxford-blue/10 rounded-2xl p-8 text-left hover:shadow-xl transition-all duration-300 hover:border-bronze/30 hover:-translate-y-1"
+                    >
+                        <div className="w-12 h-12 bg-oxford-blue/5 rounded-xl flex items-center justify-center text-oxford-blue mb-6 group-hover:bg-oxford-blue group-hover:text-white transition-colors">
+                            <Layout size={24} />
+                        </div>
+                        <h3 className="text-xl font-bold text-oxford-blue mb-2">Canvas</h3>
+                        <p className="text-oxford-blue/60 text-sm mb-6">
+                            Brainstorm, draft, and organize your ideas on an infinite whiteboard.
+                        </p>
+                        <div className="flex items-center gap-2 text-sm font-bold text-bronze opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
+                            Select <ArrowRight size={16} />
+                        </div>
+                    </button>
+                </div>
+
+                {/* Search Bar Placeholder (Visual Only as per user image request later? User didn't ask for search yet but image had it. Omit for now to keep focus on requested features) */}
+            </div>
+        </div>
+    );
+};
+
+export default SelectionPage;
