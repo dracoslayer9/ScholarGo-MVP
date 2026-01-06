@@ -89,16 +89,16 @@ const LandingPage = ({ onStart }) => {
                         {/* CTAs */}
                         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                             <button
-                                onClick={onStart}
-                                className="w-full sm:w-auto px-8 py-4 bg-oxford-blue text-white rounded-xl font-bold hover:bg-oxford-blue/90 transition-all hover:scale-105 shadow-xl shadow-oxford-blue/20 flex items-center justify-center gap-2"
-                            >
-                                Start Now <ChevronRight size={20} />
-                            </button>
-                            <button
                                 onClick={scrollToFeatures}
                                 className="w-full sm:w-auto px-8 py-4 bg-white text-oxford-blue rounded-xl font-bold border border-oxford-blue/10 hover:bg-oxford-blue/5 transition-all flex items-center justify-center gap-2"
                             >
                                 Explore AI Features <ArrowDown size={20} />
+                            </button>
+                            <button
+                                onClick={onStart}
+                                className="w-full sm:w-auto px-8 py-4 bg-oxford-blue text-white rounded-xl font-bold hover:bg-oxford-blue/90 transition-all hover:scale-105 shadow-xl shadow-oxford-blue/20 flex items-center justify-center gap-2"
+                            >
+                                Start Now <ChevronRight size={20} />
                             </button>
                         </div>
 
