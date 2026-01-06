@@ -481,6 +481,8 @@ const MessageContent = ({ content }) => {
 
 // --- Landing Page Integration ---
 import LandingPage from './LandingPage';
+import SelectionPage from './SelectionPage';
+import CanvasWorkspace from './CanvasWorkspace';
 
 // Helper: Chat Messages List
 // Pure list component, specific styling for User vs AI
@@ -516,7 +518,8 @@ const ChatMessagesList = ({ messages }) => {
 };
 
 function App() {
-  const [showLanding, setShowLanding] = useState(true);
+  // App Mode: 'landing' | 'selection' | 'upload' | 'canvas'
+  const [appMode, setAppMode] = useState('landing');
 
   // App State
   const [essayText, setEssayText] = useState('');
@@ -819,9 +822,30 @@ function App() {
 
 
 
-  if (showLanding) {
-    return <LandingPage onStart={() => setShowLanding(false)} />;
+
+  if (appMode === 'landing') {
+    return <LandingPage onStart={() => setAppMode('selection')} />;
   }
+
+  if (appMode === 'selection') {
+    return <SelectionPage onSelect={(mode) => setAppMode(mode)} />;
+  }
+
+  if (appMode === 'canvas') {
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setAppMode('selection')}
+          className="absolute top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-sm border border-oxford-blue/10 hover:bg-oxford-blue/5 text-oxford-blue/60"
+        >
+          <ChevronRight className="rotate-180" size={20} />
+        </button>
+        <CanvasWorkspace />
+      </div>
+    )
+  }
+
+  // Default: 'upload' mode (Main App)
 
 
   return (
@@ -830,7 +854,21 @@ function App() {
       {/* Sidebar ... */}
       <aside className={`${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} bg-oxford-blue text-white transition-all duration-300 ease-in-out flex flex-col overflow-hidden shrink-0`}>
         {/* ... Sidebar Content ... */}
-        <div className="p-4">
+        <div className="p-4 space-y-2">
+          <button
+            onClick={() => setAppMode('landing')}
+            className="w-full flex items-center gap-2 text-white/60 hover:text-white px-4 py-2 hover:bg-white/5 rounded-xl transition-colors text-sm font-medium"
+          >
+            <ChevronRight size={16} className="rotate-180" />
+            Back to Home
+          </button>
+          <button
+            onClick={() => setAppMode('selection')}
+            className="w-full flex items-center gap-2 text-white/60 hover:text-white px-4 py-2 hover:bg-white/5 rounded-xl transition-colors text-sm font-medium"
+          >
+            <Layout size={16} />
+            Switch Mode
+          </button>
           <button
             onClick={() => {
               setEssayText('');
@@ -875,7 +913,10 @@ function App() {
                 <Menu size={24} />
               </button>
               {!sidebarOpen && (
-                <div className="flex items-center gap-2 animate-fadeIn">
+                <div
+                  className="flex items-center gap-2 animate-fadeIn cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setAppMode('landing')}
+                >
                   <div className="w-8 h-8 bg-oxford-blue rounded-lg flex items-center justify-center text-paper shadow-lg shadow-oxford-blue/20">
                     <BookOpen size={18} />
                   </div>
@@ -1001,18 +1042,34 @@ function App() {
 
                     {/* Quick Prompts */}
                     <div className="flex flex-col gap-3 w-full max-w-sm">
-                      <button
-                        onClick={() => handleChatSubmit("Analisis semua paragraf dengan format: Gagasan Utama, Pengembangan Ide, dan Bukti Kalimat")}
-                        className="flex items-center gap-3 p-4 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue/60 group-hover:bg-bronze/10 group-hover:text-bronze transition-colors">
-                          <Sparkles size={16} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-oxford-blue text-sm group-hover:text-bronze transition-colors">Analisis Semua</p>
-                          <p className="text-xs text-oxford-blue/50">Dapatkan breakdown lengkap struktur dokumen</p>
-                        </div>
-                      </button>
+                      {(essayText || fileUrl) ? (
+                        // Case A: Document Uploaded -> Show "Analyze All"
+                        <button
+                          onClick={() => handleChatSubmit("Analyze all paragraphs with format: Main Idea, Idea Development, and Sentence Evidence")}
+                          className="flex items-center gap-3 p-4 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue/60 group-hover:bg-bronze/10 group-hover:text-bronze transition-colors">
+                            <Sparkles size={16} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-oxford-blue text-sm group-hover:text-bronze transition-colors">Analyze All</p>
+                            <p className="text-xs text-oxford-blue/50">Get a complete breakdown of the document structure</p>
+                          </div>
+                        </button>
+                      ) : (
+                        // Case B: No Document -> Show "Don't know where to start?"
+                        <button
+                          className="flex items-center gap-3 p-4 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left cursor-default"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue/60">
+                            <span className="font-serif font-bold italic">?</span>
+                          </div>
+                          <div>
+                            <p className="font-bold text-oxford-blue text-sm">Don't know where to start?</p>
+                            <p className="text-xs text-oxford-blue/50">Upload a document to unlock deep insights</p>
+                          </div>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ) : (
