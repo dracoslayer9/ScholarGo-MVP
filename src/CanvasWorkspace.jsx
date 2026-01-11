@@ -22,12 +22,11 @@ import { runRealAnalysis } from './services/analysis';
 import ChatMessagesList from './components/ChatMessagesList';
 import AnalysisResultView from './components/AnalysisResultView';
 
-const CanvasWorkspace = ({ onBack, onToggleSidebar }) => {
+const CanvasWorkspace = ({ onToggleSidebar }) => {
     // --- State ---
     // Editor State
     const [essayTitle, setEssayTitle] = useState('Untitled Essay');
     const [essayContent, setEssayContent] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
 
     // Chat State
     const [chatHistory, setChatHistory] = useState([]);
@@ -35,7 +34,6 @@ const CanvasWorkspace = ({ onBack, onToggleSidebar }) => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [selectedModel, setSelectedModel] = useState('Gemini 1.5 Flash'); // Default
     const [showModelMenu, setShowModelMenu] = useState(false);
-    const [fileName, setFileName] = useState(''); // For "Add Document" (mock)
 
     // Refs
     const textareaRef = useRef(null);
