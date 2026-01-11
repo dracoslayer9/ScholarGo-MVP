@@ -1,3 +1,4 @@
+/* global pdfjsLib, mammoth */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Upload,
@@ -30,7 +31,6 @@ import {
   Loader
 } from 'lucide-react';
 
-import { runAnalysis } from './services/analysis';
 import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/analysis';
 
 
@@ -209,7 +209,6 @@ function App() {
   const [essayText, setEssayText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
-  const [activeView, setActiveView] = useState('summary'); // Kept for backwards compatibility if needed, but unused for switching
 
   // New State for Reader Mode & Chat
   const [isAnalyzed, setIsAnalyzed] = useState(false);
@@ -244,22 +243,19 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
 
-  const [error, setError] = useState(null);
 
 
 
   const performAnalysis = async () => {
     if (!essayText.trim()) return;
     setIsAnalyzing(true);
-    setError(null);
     try {
       console.log(`Analyzing essay...`);
       const result = await analyzeEssay(essayText, selectedProvider, chatInput, contextText);
       setAnalysisResult(result);
       setIsAnalyzed(true);
     } catch (error) {
-      console.error("Analysis failed", error);
-      setError(error.message || "An unexpected error occurred.");
+      console.error("Narrative analysis failed", error);
     } finally {
       setIsAnalyzing(false);
     }
@@ -326,7 +322,6 @@ function App() {
 
   const handleChatSubmit = async (manualMessage = null, forceChat = false) => {
     // FIX: If manualMessage is an event object (from onClick), ignore it and use chatInput
-    const isEvent = manualMessage && typeof manualMessage === 'object' && manualMessage._reactName;
     const rawMessage = (manualMessage && typeof manualMessage === 'string') ? manualMessage : chatInput;
 
     if ((!rawMessage.trim() && !essayText.trim()) || isAnalyzing) return;
@@ -349,7 +344,6 @@ function App() {
     if (!isAnalysisCmd) {
       // --- CHAT MODE ---
       setIsAnalyzing(true);
-      setError(null);
 
       const userMsg = { role: 'user', content: messageToSend };
       // Optimistic Update
@@ -368,7 +362,6 @@ function App() {
 
       } catch (err) {
         console.error("Chat Failed:", err);
-        setError("Failed to get response.");
       } finally {
         setIsAnalyzing(false);
       }
@@ -389,7 +382,6 @@ function App() {
     setSelectionPopup({ ...selectionPopup, show: false });
 
     setIsAnalyzing(true);
-    setError(null);
 
     try {
       const userMsg = `Analyze this section:\n"${textToAnalyze.substring(0, 50)}..."`;
@@ -402,7 +394,6 @@ function App() {
 
     } catch (err) {
       console.error("Insight Failed", err);
-      setError("Failed to generate insight.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -468,43 +459,6 @@ function App() {
   }, []);
 
 
-  const handleSelectionChat = (e) => {
-    e.stopPropagation(); // Prevent clearing selection immediately
-    setContextText(selectionPopup.text);
-    if (chatInputRef.current) {
-      chatInputRef.current.focus();
-    }
-  };
-
-  const handleQuickAnalyze = (e) => {
-    e.stopPropagation();
-    const text = selectionPopup.text;
-    setContextText(text);
-    setSelectionPopup({ ...selectionPopup, show: false });
-
-    // Trigger analysis specifically for this section
-    // We set a specific instruction for this action
-    const instruction = "Analyze this specific section based on the role, main idea, and strength format.";
-
-    console.log("Quick analyzing section:", text);
-    // We can either set the chat input and submit, or call analyze directly.
-    // Setting chat input visualizes it for the user.
-    setChatInput(instruction);
-
-    // We need to wait for state update or call function with new values. 
-    // Since setState is async, we'll verify in a use effect or just call analyzeEssay directly here if we refactor performAnalysis to accept args.
-    // For now, let's update chat input and let user confirm or auto-submit logic if we had it.
-    // But user asked for "Analyze this section" action.
-    // Let's force a call:
-    setIsAnalyzing(true);
-    analyzeEssay(essayText, 'openai', instruction, text).then(result => {
-      setAnalysisResult(result);
-      setIsAnalyzed(true);
-      setIsAnalyzing(false);
-      setChatInput(''); // clear after
-      setContextText(null);
-    });
-  };
 
 
 
