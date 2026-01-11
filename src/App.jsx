@@ -26,106 +26,21 @@ import {
   Settings,
   LogOut,
   Globe,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Loader
 } from 'lucide-react';
 
 import { runAnalysis } from './services/analysis';
 import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/analysis';
 
 
+import AnalysisResultView from './components/AnalysisResultView';
+import ChatMessagesList from './components/ChatMessagesList';
+import LandingPage from './LandingPage';
+import SelectionPage from './SelectionPage';
+import CanvasWorkspace from './CanvasWorkspace';
+
 // --- Analysis Logic ---
-const AnalysisResultView = ({ result }) => {
-  if (!result) return null;
-  // If this is a dummy result for Chat/Research mode, do not render the Analysis Dashboard.
-  if (result.globalSummary === "Research / Chat Session Active" || result.globalSummary === "General Chat Session Started.") {
-    return null;
-  }
-  return (
-    <div className="space-y-8 animate-fadeIn pb-6 border-b border-oxford-blue/10">
-      {/* Header: Document Classification */}
-      <div className="p-6 border border-oxford-blue/10 bg-oxford-blue/5 rounded-xl">
-        {result.documentClassification ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue">
-                  {result.documentClassification.primaryType}
-                </h3>
-                {/* Evaluation Badge */}
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${result.documentClassification.confidence === 'High'
-                  ? 'bg-green-100 text-green-700 border-green-200'
-                  : 'bg-amber-100 text-amber-700 border-amber-200'
-                  }`}>
-                  {result.documentClassification.confidence} Confidence
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div>Analysis Result</div>
-        )}
-      </div>
-
-      {/* Global Summary */}
-      <div className="bg-gradient-to-br from-paper to-white p-6 rounded-xl border border-oxford-blue/10 shadow-sm">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-3 flex items-center gap-2">
-          <Award size={16} /> Global Summary
-        </h3>
-        <p className="text-oxford-blue/80 leading-relaxed font-serif text-lg break-words">
-          {result.globalSummary}
-        </p>
-      </div>
-
-      {/* Deep Analysis */}
-      {result.deepAnalysis && (
-        <div className="space-y-6 animate-fadeIn">
-          <div className="bg-oxford-blue/5 p-4 rounded-lg border border-oxford-blue/10">
-            <p className="text-oxford-blue font-serif italic text-center">"{result.deepAnalysis.overallAssessment}"</p>
-          </div>
-        </div>
-      )}
-
-      {/* Structural Analysis breakdown */}
-      <div>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-4">Structural Analysis</h3>
-        <div className="space-y-6">
-          {result.paragraphBreakdown.map((item, idx) => (
-            <div key={idx} className="bg-white rounded-xl border border-oxford-blue/5 shadow-sm p-6 hover:shadow-md transition-all group">
-              <div className="flex items-center mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest">{item.paragraph_number ? `Para ${item.paragraph_number}` : ''}</span>
-                  <h4 className="font-serif font-bold text-oxford-blue text-lg">{item.detected_subtitle || item.section_label || item.section}</h4>
-                </div>
-              </div>
-              {(item.analysis_current || item.purpose) && (
-                <div className="mb-4">
-                  <p className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest mb-1">Current Structure</p>
-                  <p className="text-sm font-medium text-oxford-blue/80">{item.analysis_current || item.purpose}</p>
-                </div>
-              )}
-              <div className="space-y-4">
-                {item.main_idea && (
-                  <div>
-                    <p className="text-[10px] font-bold text-oxford-blue/20 uppercase tracking-widest mb-1">Main Idea</p>
-                    <p className="text-sm md:text-base text-oxford-blue leading-relaxed font-medium">{item.main_idea}</p>
-                  </div>
-                )}
-                {item.evidence_quote && (
-                  <div className="pl-4 border-l-2 border-bronze/30">
-                    <p className="text-[10px] font-bold text-bronze/50 uppercase tracking-widest mb-1">
-                      Evidence {item.evidence_location && <span className="ml-2 text-oxford-blue/30 text-[9px] normal-case bg-oxford-blue/5 px-1.5 py-0.5 rounded">Re: {item.evidence_location}</span>}
-                    </p>
-                    <p className="text-sm text-oxford-blue/60 italic font-serif leading-relaxed">"{item.evidence_quote}"</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const analyzeEssay = async (text, model, instruction, context) => {
   try {
@@ -285,237 +200,6 @@ const PDFPage = ({ pdf, pageNum, scale }) => {
   );
 };
 
-const MessageContent = ({ content }) => {
-  // --- DETECT RESEARCH INSIGHT CARD ---
-  // Pattern: "Research Insight" followed by "1. **Validation Summary**"
-  // We check for the specific keys requested by the user.
-  const isResearchInsight = /Research Insight/i.test(content) && /1\.\s*\*\*Validation Summary\*\*/i.test(content);
-
-  if (isResearchInsight) {
-    const validation = content.match(/1\.\s*\*\*Validation Summary\*\*[:\s](.*?)(?=(2\.|$))/s)?.[1]?.trim();
-    const background = content.match(/2\.\s*\*\*Background Info\*\*[:\s](.*?)(?=(3\.|$))/s)?.[1]?.trim();
-    const references = content.match(/3\.\s*\*\*References\*\*[:\s](.*?)(?=$)/s)?.[1]?.trim();
-
-    if (validation) {
-      return (
-        <div className="bg-white border border-blue-200 rounded-xl shadow-sm overflow-hidden animate-fadeIn mb-4">
-          {/* Header: Validation Summary */}
-          <div className="bg-blue-50/50 p-4 border-b border-blue-100">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                <Globe size={14} />
-              </div>
-              <span className="font-serif font-bold text-oxford-blue text-sm">Research Insight</span>
-            </div>
-            <p className="font-bold text-oxford-blue text-md leading-relaxed">{validation}</p>
-          </div>
-
-          {/* Body: Background Info */}
-          <div className="p-4 space-y-2">
-            <p className="text-xs font-bold text-oxford-blue/40 uppercase tracking-wider mb-1">Background Context</p>
-            <div className="text-sm text-oxford-blue/80 leading-relaxed whitespace-pre-wrap pl-1">
-              {background}
-            </div>
-          </div>
-
-          {/* Footer: References */}
-          {references && (
-            <div className="bg-oxford-blue/5 p-3 border-t border-oxford-blue/10">
-              <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-wider mb-2 flex items-center gap-1">
-                <LinkIcon size={10} /> Validated Sources
-              </p>
-              <div className="text-xs text-blue-600 flex flex-col gap-1">
-                <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
-                  __html: references.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline decoration-blue-200 hover:text-blue-800">$1</a>')
-                }} />
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-  }
-
-  // --- DETECT INDONESIAN ANALYSIS FORMAT (Multi-Card Support) ---
-  const isIndonesianAnalysis = /1\.\s*\*\*Gagasan Utama\*\*/i.test(content) && /Paragraf\s+\d+/i.test(content);
-
-  if (isIndonesianAnalysis) {
-    // Split content by "Paragraf [Number]" to handle multiple cards
-    // This regex splits but captures the delimiter (Paragraf N) so we can reconstruct or ignore.
-    const blocks = content.split(/(?=Paragraf\s+\d+)/i).filter(block => block.trim().length > 0);
-
-    return (
-      <div className="flex flex-col gap-4 w-full animate-fadeIn">
-        {blocks.map((block, idx) => {
-          // Extract Header
-          const headerMatch = block.match(/Paragraf\s+(\d+)/i);
-          const paragraphNum = headerMatch ? headerMatch[1] : `?`;
-
-          // Extract Fields
-          const mainIdea = block.match(/1\.\s*\*\*Gagasan Utama\*\*[:\s]+(.*?)(?=(2\.|$))/s)?.[1]?.trim();
-          const development = block.match(/2\.\s*\**(?:Pengembangan Ide|Cara Penulis Menuangkan Ide)\*\*[:\s]+(.*?)(?=(3\.|$))/s)?.[1]?.trim();
-          const evidence = block.match(/3\.\s*\*\*Bukti Kalimat\*\*[:\s]+(.*?)(?=$)/s)?.[1]?.trim();
-
-          // Only render if we have at least the main idea
-          if (!mainIdea) return <div key={idx} className="whitespace-pre-wrap">{block}</div>;
-
-          return (
-            <div key={idx} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm mb-1 last:mb-0">
-              {/* Header */}
-              <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-3">
-                <div className="w-6 h-6 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue font-serif font-bold text-xs">
-                  {paragraphNum}
-                </div>
-                <span className="font-bold text-oxford-blue text-sm">Paragraf {paragraphNum}</span>
-              </div>
-
-              <div className="space-y-3">
-                {/* Gagasan Utama */}
-                <div>
-                  <p className="text-xs font-bold text-oxford-blue/60 mb-1 uppercase tracking-wider">Gagasan Utama</p>
-                  <p className="text-sm text-oxford-blue font-medium leading-relaxed">{mainIdea}</p>
-                </div>
-
-                {/* Pengembangan Ide */}
-                {development && (
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <p className="text-xs font-bold text-oxford-blue/60 mb-1 uppercase tracking-wider">Pengembangan Ide</p>
-                    <p className="text-sm text-oxford-blue leading-relaxed">{development}</p>
-                  </div>
-                )}
-
-                {/* Bukti Kalimat */}
-                {evidence && (
-                  <div>
-                    <p className="text-xs font-bold text-oxford-blue/60 mb-1 uppercase tracking-wider flex items-center gap-1">
-                      <CheckCircle size={10} /> Bukti Kalimat
-                    </p>
-                    <p className="text-sm text-oxford-blue/70 italic font-serif border-l-2 border-bronze/30 pl-3 leading-relaxed">
-                      {evidence.replace(/^"|"$/g, '')} {/* Remove surrounding quotes if captured */}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // --- LEGACY INSIGHT FORMAT (Context Menu) ---
-  const insightRegex = /1\.\s*\*\*Main Idea\*\*[:\s]/i;
-  // Fallthrough if it doesn't match the others
-  const isLegacy = insightRegex.test(content) && !isIndonesianAnalysis && !isResearchInsight;
-
-  if (isLegacy) {
-    const mainIdea = content.match(/1\.\s*\*\*Main Idea\*\*[:\s](.*?)(?=(2\.|$))/s)?.[1]?.trim() || "";
-    const approach = content.match(/2\.\s*\*\*Approach\*\*[:\s](.*?)(?=(3\.|$))/s)?.[1]?.trim() || "";
-    const implication = content.match(/3\.\s*\*\*Implication\*\*[:\s](.*?)(?=$)/s)?.[1]?.trim() || "";
-
-    if (mainIdea) {
-      return (
-        <div className="flex flex-col gap-3 min-w-[250px] bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-1">
-            <span className="text-bronze"><Sparkles size={16} /></span>
-            <span className="font-serif font-bold text-oxford-blue text-sm">Analysis Insight</span>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-oxford-blue/50 mb-1">Main Idea</p>
-              <p className="text-sm text-oxford-blue leading-normal">{mainIdea}</p>
-            </div>
-            <div className="bg-oxford-blue/5 p-3 rounded-lg border border-oxford-blue/5">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-oxford-blue/50 mb-1">Writer's Approach</p>
-              <p className="text-sm text-oxford-blue leading-normal">{approach}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-oxford-blue/50 mb-1">Implication</p>
-              <p className="text-sm text-oxford-blue italic text-oxford-blue/80">"{implication}"</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-  }
-
-  // Default Text: Simple Markdown Formatter (Bold Support)
-  // Default Text: Simple Markdown Formatter (Bold & Link Support)
-  const formatText = (text) => {
-    // Regex matches:
-    // 1. **bold**
-    // 2. [link text](url)
-    const regex = /(\*\*.*?\*\*|\[.*?\]\(.*?\))/g;
-    const parts = text.split(regex);
-
-    return parts.map((part, index) => {
-      // Bold Match
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index}>{part.slice(2, -2)}</strong>;
-      }
-      // Link Match
-      if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
-        const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
-        if (linkMatch) {
-          return (
-            <a
-              key={index}
-              href={linkMatch[2]}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline font-medium"
-            >
-              {linkMatch[1]}
-            </a>
-          );
-        }
-      }
-      // Plain Text
-      return part;
-    });
-  };
-
-  return <div className="whitespace-pre-wrap leading-relaxed">{formatText(content)}</div>;
-};
-
-// --- Landing Page Integration ---
-import LandingPage from './LandingPage';
-import SelectionPage from './SelectionPage';
-import CanvasWorkspace from './CanvasWorkspace';
-
-// Helper: Chat Messages List
-// Pure list component, specific styling for User vs AI
-const ChatMessagesList = ({ messages }) => {
-  return (
-    <div className="space-y-6">
-      {messages.map((msg, idx) => (
-        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-          <div className={`max-w-[95%] rounded-2xl shadow-sm overflow-hidden ${msg.role === 'user'
-            ? 'bg-gray-100 text-oxford-blue rounded-br-sm px-5 py-3'
-            : 'bg-white border border-oxford-blue/10 text-oxford-blue rounded-bl-sm'
-            }`}>
-            {msg.role === 'assistant' && (
-              <div className="h-1 w-full bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-            )}
-            <div className={msg.role === 'assistant' ? 'p-5' : ''}>
-              {/* Avatar/Header for AI */}
-              {msg.role === 'assistant' && (
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                    <Sparkles size={10} />
-                  </div>
-                  <span className="text-xs font-bold text-oxford-blue/60 uppercase tracking-wider">ScholarGo AI</span>
-                </div>
-              )}
-              <MessageContent content={msg.content} />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
 
 function App() {
   // App Mode: 'landing' | 'selection' | 'upload' | 'canvas'
@@ -532,6 +216,7 @@ function App() {
   const [chatHistory, setChatHistory] = useState([]); // New Chat History State
   const [fileUrl, setFileUrl] = useState(null);
   const [fileType, setFileType] = useState(null);
+  const [fileName, setFileName] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [selectedProvider, setSelectedProvider] = useState('openai'); // 'openai' or 'gemini'
   const [providerMenuOpen, setProviderMenuOpen] = useState(false);
@@ -587,6 +272,7 @@ function App() {
     const url = URL.createObjectURL(file);
     setFileUrl(url);
     setFileType(file.type);
+    setFileName(file.name);
     setIsAnalyzed(true);
 
     if (file.type === "text/plain") {
@@ -831,19 +517,6 @@ function App() {
     return <SelectionPage onSelect={(mode) => setAppMode(mode)} />;
   }
 
-  if (appMode === 'canvas') {
-    return (
-      <div className="relative">
-        <button
-          onClick={() => setAppMode('selection')}
-          className="absolute top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-sm border border-oxford-blue/10 hover:bg-oxford-blue/5 text-oxford-blue/60"
-        >
-          <ChevronRight className="rotate-180" size={20} />
-        </button>
-        <CanvasWorkspace />
-      </div>
-    )
-  }
 
   // Default: 'upload' mode (Main App)
 
@@ -902,236 +575,204 @@ function App() {
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
 
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-oxford-blue/10 shrink-0 z-10">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 -ml-2 text-oxford-blue/60 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded-lg transition-colors"
-              >
-                <Menu size={24} />
-              </button>
-              {!sidebarOpen && (
-                <div
-                  className="flex items-center gap-2 animate-fadeIn cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setAppMode('landing')}
-                >
-                  <div className="w-8 h-8 bg-oxford-blue rounded-lg flex items-center justify-center text-paper shadow-lg shadow-oxford-blue/20">
-                    <BookOpen size={18} />
-                  </div>
-                  <h1 className="text-xl font-serif font-bold tracking-tight text-oxford-blue">
-                    ScholarGo
-                  </h1>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Scrollable Main Content */}
-        <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-          <div className="max-w-7xl mx-auto h-full flex flex-col">
-
-            {/* Hero Section - Hide if we have analysis OR chat history */}
-            {(!analysisResult && chatHistory.length === 0) && (
-              <div className="text-center mb-12 max-w-3xl mx-auto animate-fadeIn pt-10">
-                <h1 className="text-4xl md:text-5xl font-serif font-bold text-oxford-blue mb-6 leading-tight">
-                  AI Scholarship Assistant for Winning Applications
-                </h1>
-                <p className="text-lg md:text-xl text-oxford-blue/70 leading-relaxed font-light">
-                  ScholarGo analyzes real awardee essays, portfolios, and study plans—transforming them into clear patterns, paragraph insights, and storytelling frameworks.
-                </p>
-              </div>
-            )}
-
-            <div className={`grid lg:grid-cols-[65%_35%] gap-8 ${isAnalyzed || chatHistory.length > 0 ? 'h-full' : 'h-[600px]'}`}>
-
-              {/* Left Column: Input OR Reader View */}
-              <div className="flex flex-col gap-4 h-full min-h-0">
-                <div className="flex items-center justify-between shrink-0">
-                  <h2 className="text-lg font-serif font-semibold flex items-center gap-2">
-                    <FileText className="text-bronze" size={20} />
-                    {isAnalyzed ? 'Document Reader' : 'Upload Document'}
-                  </h2>
-                  {isAnalyzed ? (
-                    <button
-                      onClick={() => {
-                        setIsAnalyzed(false);
-                        setFileUrl(null);
-                        setFileType(null);
-                        setEssayText('');
-                        setAnalysisResult(null);
-                        setContextText(null);
-                        setChatHistory([]);
-                      }}
-                      className="text-xs font-medium px-3 py-1 bg-oxford-blue/5 text-oxford-blue/60 rounded-full hover:bg-oxford-blue/10 transition-colors"
+        {appMode === 'canvas' ? (
+          <CanvasWorkspace
+            onBack={() => setAppMode('selection')}
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          />
+        ) : (
+          <>
+            {/* Header */}
+            <header className="bg-white/80 backdrop-blur-md border-b border-oxford-blue/10 shrink-0 z-10">
+              <div className="w-full px-6 h-16 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="p-2 -ml-2 text-oxford-blue/60 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded-lg transition-colors"
+                  >
+                    <Menu size={24} />
+                  </button>
+                  {!sidebarOpen && (
+                    <div
+                      className="flex items-center gap-2 animate-fadeIn cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setAppMode('landing')}
                     >
-                      Upload New
-                    </button>
-                  ) : (
-                    <span className="text-xs font-medium px-3 py-1 bg-oxford-blue/5 text-oxford-blue/60 rounded-full">
-                      {essayText.split(/\s+/).filter(w => w.length > 0).length} words
-                    </span>
+                      <div className="w-8 h-8 bg-bronze rounded-lg flex items-center justify-center text-paper shadow-lg shadow-bronze/20">
+                        <BookOpen size={18} />
+                      </div>
+                      <h1 className="text-xl font-serif font-bold tracking-tight text-oxford-blue">
+                        ScholarGo
+                      </h1>
+                    </div>
                   )}
                 </div>
+              </div>
+            </header>
 
-                <div className="flex-1 flex flex-col gap-4 relative min-h-0">
-                  {/* Document Display Area */}
-                  <div id="document-viewer-container" className="flex-1 bg-white rounded-xl border border-oxford-blue/10 shadow-sm overflow-hidden relative group">
+            {/* Scrollable Main Content Wrapper */}
+            <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+
+              {/* LEFT PANEL: Document Workspace */}
+              <div className="flex-1 bg-gray-50/50 flex flex-col relative min-w-0 overflow-y-auto custom-scrollbar scroll-smooth">
+                <div className="flex-1 w-full max-w-4xl mx-auto p-6 md:p-8 min-h-full">
+
+                  {/* Document Header (Meta Only - Simplified) */}
+                  {(isAnalyzed || essayText) && (
+                    <div className="mb-6 animate-fadeIn">
+                      <div className="flex items-center gap-3 text-sm text-oxford-blue/60">
+                        <span className="font-medium text-oxford-blue">{fileName || "Untitled Essay"}</span>
+                        <span className="text-oxford-blue/20">•</span>
+                        <span className="opacity-70">{essayText.split(/\s+/).filter(w => w.length > 0).length} words</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Document Canvas */}
+                  <div id="document-viewer-container" className="relative transition-all duration-300">
                     {isAnalyzed ? (
-                      <div className="w-full h-full relative overflow-hidden">
+                      <div className="w-full relative min-h-[500px]">
                         {fileType === 'application/pdf' ? (
-                          <PDFViewer key={fileUrl} url={fileUrl} />
+                          <div className="border border-oxford-blue/10 rounded-xl overflow-hidden shadow-sm bg-white">
+                            <PDFViewer key={fileUrl} url={fileUrl} />
+                          </div>
                         ) : fileType?.startsWith('image/') ? (
-                          /* Image Viewer: Fit Width & Auto-Rotate compatible */
-                          <div className="w-full h-full p-8 overflow-y-auto custom-scrollbar bg-oxford-blue/5 flex flex-col items-center">
+                          <div className="w-full flex flex-col items-center bg-white rounded-xl shadow-sm border border-oxford-blue/10 p-4">
                             <img
                               src={fileUrl}
                               alt="Document"
-                              className="w-full h-auto object-contain shadow-md rounded-md bg-white"
-                              style={{ imageOrientation: 'from-image' }} // Respect EXIF rotation
+                              className="w-full h-auto object-contain"
+                              style={{ imageOrientation: 'from-image' }}
                             />
                           </div>
                         ) : (
-                          <div className="w-full h-full p-8 overflow-y-auto custom-scrollbar font-serif text-lg leading-loose text-oxford-blue/90 whitespace-pre-wrap bg-white">
+                          /* Text Editor Look */
+                          <div
+                            className="prose prose-lg max-w-none font-serif text-oxford-blue/90 leading-loose outline-none whitespace-pre-wrap selection:bg-yellow-200/50"
+                            contentEditable={false} // Read only for now
+                          >
                             {essayText}
                           </div>
                         )}
                       </div>
                     ) : (
+                      /* Empty State / Upload Trigger */
                       <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full h-full flex flex-col items-center justify-center text-oxford-blue/40 p-8 text-center cursor-pointer hover:bg-oxford-blue/5 transition-colors"
+                        className="group border-2 border-dashed border-oxford-blue/10 rounded-xl p-12 flex flex-col items-center justify-center text-center cursor-pointer hover:border-bronze/30 hover:bg-bronze/5 transition-all min-h-[400px]"
                       >
-                        <div className="w-16 h-16 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-4">
-                          <Upload size={24} />
+                        <div className="w-16 h-16 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                          <Upload size={24} className="text-oxford-blue/40 group-hover:text-bronze" />
                         </div>
-                        <p className="font-medium">Upload a document to get started</p>
-                        <p className="text-sm mt-2 max-w-xs">Click here to upload your essay (PDF, DOCX, TXT)</p>
+                        <h3 className="text-xl font-medium text-oxford-blue mb-2">Upload your essay</h3>
+                        <p className="text-oxford-blue/50 max-w-sm mx-auto">
+                          Drag and drop or click to upload PDF, DOCX, or clear text.
+                        </p>
                       </div>
                     )}
                   </div>
                 </div>
+
+                {/* Floating Action for Empty State - if needed */}
               </div>
 
-              {/* Right Column: Unified Analysis & Chat Stream */}
-              <div className="bg-white rounded-2xl border border-oxford-blue/10 shadow-xl shadow-oxford-blue/5 overflow-hidden flex flex-col h-full min-h-0">
-                {error ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-red-600 animate-fadeIn">
-                    <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
-                      <AlertCircle size={40} />
-                    </div>
-                    <h3 className="text-xl font-serif font-medium mb-2">Analysis Error</h3>
-                    <p className="max-w-xs opacity-80 mb-6">{error}</p>
-                    <button
-                      onClick={() => setError(null)}
-                      className="px-6 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-lg transition-colors border border-red-200"
-                    >
-                      Try Again
+
+              {/* RIGHT PANEL: AI Assistant Sidebar */}
+              <div className="w-full lg:w-[480px] lg:h-full h-[500px] bg-white border-t lg:border-t-0 lg:border-l border-oxford-blue/10 flex flex-col shrink-0 z-20 shadow-xl shadow-oxford-blue/5">
+
+                {/* Sidebar Header */}
+                <div className="h-14 px-4 border-b border-oxford-blue/5 flex items-center justify-between shrink-0 bg-white/50 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 text-oxford-blue">
+                    <Sparkles size={16} className="text-bronze" />
+                    <span className="font-bold text-sm tracking-wide">AI Assistant</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="text-oxford-blue/40 hover:text-red-500 transition-colors">
+                      <X size={16} onClick={() => {/* Maybe toggle sidebar visibility context */ }} />
                     </button>
                   </div>
-                ) : (!analysisResult && chatHistory.length === 0) ? (
-                  // Empty State / Ready
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-oxford-blue/40 animate-fadeIn">
-                    <div className="w-24 h-24 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6">
-                      <Activity size={40} />
-                    </div>
-                    <h3 className="text-xl font-serif font-medium text-oxford-blue mb-2">Ready to Analyze</h3>
-                    <p className="max-w-xs mb-8">Paste your essay or ask a question to get started.</p>
+                </div>
 
-                    {/* Quick Prompts */}
-                    <div className="flex flex-col gap-3 w-full max-w-sm">
-                      {(essayText || fileUrl) ? (
-                        // Case A: Document Uploaded -> Show "Analyze All"
+                {/* Chat Stream */}
+                <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-6">
+                  {/* Empty State in Sidebar */}
+                  {(!analysisResult && chatHistory.length === 0) && (
+                    <div className="text-center py-10">
+                      <div className="w-12 h-12 bg-oxford-blue/5 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Bot size={20} className="text-oxford-blue/60" />
+                      </div>
+                      <p className="text-sm font-medium text-oxford-blue">I'm ready to analyze.</p>
+                      <p className="text-xs mt-1 text-oxford-blue/50 mb-6">Select text or type below.</p>
+
+                      {(essayText || fileUrl) && (
                         <button
                           onClick={() => handleChatSubmit("Analyze all paragraphs with format: Main Idea, Idea Development, and Sentence Evidence")}
-                          className="flex items-center gap-3 p-4 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left"
+                          className="w-full flex items-center gap-3 p-3 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left"
                         >
                           <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue/60 group-hover:bg-bronze/10 group-hover:text-bronze transition-colors">
                             <Sparkles size={16} />
                           </div>
                           <div>
-                            <p className="font-bold text-oxford-blue text-sm group-hover:text-bronze transition-colors">Analyze All</p>
-                            <p className="text-xs text-oxford-blue/50">Get a complete breakdown of the document structure</p>
-                          </div>
-                        </button>
-                      ) : (
-                        // Case B: No Document -> Show "Don't know where to start?"
-                        <button
-                          className="flex items-center gap-3 p-4 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left cursor-default"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue/60">
-                            <span className="font-serif font-bold italic">?</span>
-                          </div>
-                          <div>
-                            <p className="font-bold text-oxford-blue text-sm">Don't know where to start?</p>
-                            <p className="text-xs text-oxford-blue/50">Upload a document to unlock deep insights</p>
+                            <p className="font-bold text-oxford-blue text-xs group-hover:text-bronze transition-colors">Analyze All</p>
+                            <p className="text-[10px] text-oxford-blue/50">Full structure breakdown</p>
                           </div>
                         </button>
                       )}
                     </div>
-                  </div>
-                ) : (
-                  // UNIFIED VIEW: Analysis Dashboard + Chat History in ONE scrollable stream
-                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar relative">
-                    <div className="max-w-3xl mx-auto space-y-8">
-                      {/* 1. Analysis Result (if present) - Acts as the "First Message" / Context */}
-                      {analysisResult && (
-                        <AnalysisResultView result={analysisResult} />
-                      )}
+                  )}
 
-                      {/* 2. Chat History (Subsequent conversation) */}
-                      {chatHistory.length > 0 && (
-                        <ChatMessagesList messages={chatHistory} />
-                      )}
+                  {/* Analysis Result */}
+                  {analysisResult && (
+                    <AnalysisResultView result={analysisResult} />
+                  )}
 
-                      {/* Spacer & Scroll Anchor */}
-                      <div ref={messagesEndRef} className="h-4" />
+                  {/* Chat History */}
+                  {chatHistory.length > 0 && (
+                    <ChatMessagesList messages={chatHistory} />
+                  )}
+
+                  <div ref={messagesEndRef} className="h-2" />
+                </div>
+
+                {/* Input Area (Fixed Bottom - Gemini Style) */}
+                <div className="p-4 bg-white border-t border-oxford-blue/5">
+
+                  {/* Context Indicator (if selected) */}
+                  {contextText && (
+                    <div className="mb-2 px-3 py-2 bg-oxford-blue/5 rounded-lg flex items-center justify-between text-xs text-oxford-blue/70 border border-oxford-blue/5">
+                      <span className="truncate italic max-w-[280px]">"{contextText}"</span>
+                      <button onClick={() => setContextText(null)} className="hover:text-red-500"><X size={12} /></button>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div className="border-t border-oxford-blue/10 bg-white p-3 shrink-0 z-10">
-                  {/* Chat / Input Interface */}
-                  <div className="bg-paper rounded-2xl p-2 border border-oxford-blue/10 shadow-sm shrink-0 flex flex-col">
+                  {/* Unified Input Box */}
+                  <div className="bg-gray-50 border border-oxford-blue/10 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-bronze/10 focus-within:border-bronze/30 transition-all shadow-sm">
 
-                    {/* Context Indicator */}
-                    {contextText && (
-                      <div className="mx-2 mt-1 mb-1 px-3 py-1.5 bg-oxford-blue/10 rounded-lg flex items-center justify-between text-xs text-oxford-blue/80 border border-oxford-blue/5">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <span className="font-bold shrink-0">Selected:</span>
-                          <span className="truncate italic max-w-[200px] opacity-70">"{contextText}"</span>
-                        </div>
-                        <button onClick={() => setContextText(null)} className="hover:bg-oxford-blue/10 rounded p-0.5">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    )}
+                    <textarea
+                      ref={chatInputRef}
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleChatSubmit();
+                        }
+                      }}
+                      disabled={isAnalyzing}
+                      placeholder={isAnalyzing ? "ScholarGo is thinking..." : (contextText ? "Ask about selected text..." : "Ask ScholarGo...")}
+                      className="w-full bg-transparent border-none px-4 py-3 text-sm text-oxford-blue outline-none resize-none custom-scrollbar disabled:opacity-50 placeholder:text-oxford-blue/40"
+                      rows={1}
+                      style={{ minHeight: '60px', maxHeight: '200px' }}
+                    />
 
-                    {/* Chat History REMOVED from footer - now in main view */}
-
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2 px-2 pt-1">
-                        <input
-                          ref={chatInputRef}
-                          type="text"
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          placeholder={contextText ? "Enter instructions for the selected text..." : "Ask anything (e.g., 'Summarize key points')..."}
-                          className="flex-1 bg-transparent border-none focus:ring-0 text-oxford-blue placeholder:text-oxford-blue/40 text-sm py-2"
-                          onKeyDown={(e) => e.key === 'Enter' && handleChatSubmit()}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between px-1 pb-1 mt-1">
+                    {/* Internal Toolbar */}
+                    <div className="flex items-center justify-between px-2 pb-1 mt-1">
                       <div className="flex items-center gap-2">
+                        {/* Add Document Button */}
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-oxford-blue/5 text-oxford-blue/60 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-oxford-blue/10 text-oxford-blue/60 transition-colors text-xs font-medium"
                         >
-                          <Plus size={20} />
+                          <Plus size={14} /> Add Document
                         </button>
                         <input
                           type="file"
@@ -1140,38 +781,32 @@ function App() {
                           onChange={handleFileUpload}
                           accept=".pdf,.docx,.txt"
                         />
+
+                        {/* Model Switcher */}
                         <div className="relative">
                           <button
                             onClick={() => setProviderMenuOpen(!providerMenuOpen)}
-                            className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-oxford-blue/5 transition-colors group"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-oxford-blue/10 text-oxford-blue/60 transition-colors text-xs font-medium"
                           >
-                            <div className={`w-1.5 h-1.5 rounded-full ${selectedProvider === 'openai' ? 'bg-green-500' : 'bg-blue-500'}`} />
-                            <span className="text-[10px] font-bold text-oxford-blue/60 uppercase tracking-wider group-hover:text-oxford-blue transition-colors">
-                              {selectedProvider === 'openai' ? 'GPT-4o' : 'Gemini 1.5'}
-                            </span>
-                            <ChevronDown size={10} className="text-oxford-blue/40 group-hover:text-oxford-blue" />
+                            {selectedProvider === 'openai' ? 'GPT-4o' : 'Gemini 1.5'}
+                            <ChevronDown size={12} />
                           </button>
-
-                          {/* Dropdown Menu */}
                           {providerMenuOpen && (
                             <>
                               <div
                                 className="fixed inset-0 z-[100]"
                                 onClick={() => setProviderMenuOpen(false)}
                               />
-                              <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-xl border border-oxford-blue/10 overflow-hidden z-[101] animate-fadeIn py-1">
-                                <div className="px-3 py-2 text-xs font-bold text-oxford-blue/40 uppercase tracking-wider">
-                                  Model
-                                </div>
+                              <div className="absolute bottom-10 left-0 w-40 bg-white rounded-lg shadow-xl border border-oxford-blue/10 overflow-hidden z-[101] py-1">
                                 <button
                                   onClick={() => { setSelectedProvider('openai'); setProviderMenuOpen(false); }}
-                                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedProvider === 'openai' ? 'bg-black/5 font-medium text-oxford-blue' : 'text-oxford-blue/80 hover:bg-black/5'}`}
+                                  className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-black/5 ${selectedProvider === 'openai' ? 'font-bold' : ''}`}
                                 >
                                   OpenAI GPT-4o
                                 </button>
                                 <button
                                   onClick={() => { setSelectedProvider('gemini'); setProviderMenuOpen(false); }}
-                                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedProvider === 'gemini' ? 'bg-black/5 font-medium text-oxford-blue' : 'text-oxford-blue/80 hover:bg-black/5'}`}
+                                  className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-black/5 ${selectedProvider === 'gemini' ? 'font-bold' : ''}`}
                                 >
                                   Google Gemini 1.5
                                 </button>
@@ -1181,26 +816,29 @@ function App() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={handleChatSubmit}
-                          disabled={isAnalyzing || (!chatInput.trim() && !essayText.trim())}
-                          className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${chatInput.trim() || essayText.trim() ? 'bg-oxford-blue text-white shadow-md hover:bg-oxford-blue/90' : 'bg-oxford-blue/20 text-oxford-blue/40 cursor-not-allowed'}`}
-                        >
-                          {isAnalyzing ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <Send size={16} />
-                          )}
-                        </button>
-                      </div>
+                      {/* Send Button */}
+                      <button
+                        onClick={() => handleChatSubmit()}
+                        disabled={!chatInput.trim() && !essayText.trim() && !isAnalyzing}
+                        className="p-2 bg-bronze text-white rounded-lg hover:bg-bronze/90 transition-all disabled:opacity-30 disabled:bg-oxford-blue/50 flex items-center justify-center shadow-md shadow-bronze/20"
+                      >
+                        {isAnalyzing ? (
+                          <Loader size={16} className="animate-spin" />
+                        ) : (
+                          <Send size={16} />
+                        )}
+                      </button>
                     </div>
+
                   </div>
                 </div>
+
               </div>
-            </div>
-          </div>
-        </main>
+
+
+            </main>
+          </>
+        )}
       </div>
       {/* GLOBAL PORTAL: Selection Popup */}
       {selectionPopup.show && (
