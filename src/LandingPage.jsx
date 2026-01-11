@@ -23,7 +23,7 @@ const LandingPage = ({ onStart }) => {
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-oxford-blue/5">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-oxford-blue rounded-xl flex items-center justify-center text-white shadow-lg shadow-oxford-blue/20">
+                        <div className="w-10 h-10 bg-bronze rounded-xl flex items-center justify-center text-white shadow-lg shadow-bronze/20">
                             <BookOpen size={20} />
                         </div>
                         <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">ScholarGo</span>
@@ -37,43 +37,13 @@ const LandingPage = ({ onStart }) => {
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="flex flex-col items-center text-center">
 
-                        {/* Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-oxford-blue/10 shadow-sm mb-8 animate-fadeIn">
-                            <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
-                            <span className="text-xs font-bold uppercase tracking-wider text-oxford-blue/60">v1.0 Now Live</span>
-                        </div>
 
-                        {/* Main Visual: Paper Plane */}
-                        <div className="relative mb-12 group cursor-pointer animate-float">
-                            {/* Background Glow */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-all duration-700"></div>
 
-                            {/* Motion Lines (New) */}
-                            <svg className="absolute -left-20 top-10 w-40 h-20 z-0 opacity-50" viewBox="0 0 100 50">
-                                <path d="M0 25 Q 50 25 100 25" stroke="url(#gradient)" strokeWidth="2" fill="none" className="animate-dash" strokeDasharray="100" />
-                                <path d="M10 35 Q 60 35 90 35" stroke="url(#gradient)" strokeWidth="1" fill="none" className="animate-dash" strokeDasharray="80" style={{ animationDelay: '0.2s' }} />
-                                <path d="M20 15 Q 70 15 80 15" stroke="url(#gradient)" strokeWidth="1" fill="none" className="animate-dash" strokeDasharray="60" style={{ animationDelay: '0.5s' }} />
-                                <defs>
-                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stopColor="transparent" />
-                                        <stop offset="100%" stopColor="#3B82F6" />
-                                    </linearGradient>
-                                </defs>
-                            </svg>
+                        {/* Decorative Background Blob behind Text */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-bronze/10 rounded-full blur-[100px] z-0 pointer-events-none"></div>
 
-                            {/* 3D-ish Plane Container */}
-                            <div className="relative z-10 w-40 h-40 bg-gradient-to-br from-white to-blue-50 rounded-3xl border border-white/50 shadow-2xl shadow-blue-900/10 flex items-center justify-center transform rotate-[-5deg] group-hover:rotate-0 transition-all duration-500">
-                                <Send size={80} className="text-blue-600 transform -rotate-45 translate-x-1 translate-y-1" strokeWidth={1.5} />
-                            </div>
-
-                            {/* Decorative Elements */}
-                            <div className="absolute -right-12 top-0 w-16 h-16 bg-white rounded-2xl shadow-lg border border-oxford-blue/5 flex items-center justify-center animate-bounce-slow" style={{ animationDelay: '0.2s' }}>
-                                <Sparkles className="text-bronze" size={32} />
-                            </div>
-                            <div className="absolute -left-12 bottom-0 w-16 h-16 bg-white rounded-2xl shadow-lg border border-oxford-blue/5 flex items-center justify-center animate-bounce-slow" style={{ animationDelay: '0.5s' }}>
-                                <Brain className="text-oxford-blue" size={32} />
-                            </div>
-                        </div>
+                        {/* Spacer to push content down slightly since image is gone */}
+                        <div className="h-12"></div>
 
                         {/* Headline */}
                         <h1 className="text-5xl md:text-7xl font-serif font-bold text-oxford-blue mb-8 leading-[1.1] tracking-tight max-w-4xl">
@@ -89,16 +59,16 @@ const LandingPage = ({ onStart }) => {
                         {/* CTAs */}
                         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                             <button
+                                onClick={onStart}
+                                className="w-full sm:w-auto px-8 py-4 bg-bronze text-white rounded-xl font-bold hover:bg-bronze/90 transition-all hover:scale-105 shadow-xl shadow-bronze/20 flex items-center justify-center gap-2"
+                            >
+                                Start Now <span className="font-normal opacity-80 ml-1">– it's free</span>
+                            </button>
+                            <button
                                 onClick={scrollToFeatures}
                                 className="w-full sm:w-auto px-8 py-4 bg-white text-oxford-blue rounded-xl font-bold border border-oxford-blue/10 hover:bg-oxford-blue/5 transition-all flex items-center justify-center gap-2"
                             >
                                 Explore AI Features <ArrowDown size={20} />
-                            </button>
-                            <button
-                                onClick={onStart}
-                                className="w-full sm:w-auto px-8 py-4 bg-oxford-blue text-white rounded-xl font-bold hover:bg-oxford-blue/90 transition-all hover:scale-105 shadow-xl shadow-oxford-blue/20 flex items-center justify-center gap-2"
-                            >
-                                Start Now <ChevronRight size={20} />
                             </button>
                         </div>
 
