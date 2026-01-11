@@ -5,7 +5,7 @@ import * as Gemini from './gemini';
 export const runRealAnalysis = async (text, provider = "openai", instruction, context) => {
     console.log(`[Analysis] Using provider: ${provider}`);
     if (provider === 'gemini') {
-        return await Gemini.runRealAnalysis(text, "General Essay", instruction, context);
+        return await Gemini.runRealAnalysis(text, instruction, context);
     }
     // Default to OpenAI
     return await OpenAI.runRealAnalysis(text, "General Essay", instruction, context);
@@ -30,6 +30,6 @@ export const analyzeParagraphInsight = async (paragraphText, provider = "openai"
 };
 
 // Legacy Wrapper (if used elsewhere)
-export const runAnalysis = async (text, preferredModel = 'openai', type = "General Essay", instruction = null, context = null) => {
+export const runAnalysis = async (text, preferredModel = 'openai', instruction = null, context = null) => {
     return await runRealAnalysis(text, preferredModel, instruction, context);
 };
