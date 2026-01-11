@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 
 import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/analysis';
+import { supabase } from './lib/supabaseClient';
+import LoginPage from './LoginPage';
 
 
 import AnalysisResultView from './components/AnalysisResultView';
@@ -205,6 +207,10 @@ function App() {
   // App Mode: 'landing' | 'selection' | 'upload' | 'canvas'
   const [appMode, setAppMode] = useState('landing');
 
+  // Auth State
+  const [session, setSession] = useState(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+
   // App State
   const [essayText, setEssayText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -241,6 +247,38 @@ function App() {
 
   // Sidebar State
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // --- Auth Effect ---
+  useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsLoadingAuth(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+
+      // Auto-redirect logic: Only on explicit sign-in (e.g. OAuth redirect)
+      if (event === 'SIGNED_IN') {
+        setAppMode('selection');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [appMode]);
+
+  const handleStart = () => {
+    if (session) {
+      setAppMode('selection');
+    } else {
+      setAppMode('login');
+    }
+  };
 
 
 
@@ -463,12 +501,24 @@ function App() {
 
 
 
+  if (isLoadingAuth) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#F8FAFC]">
+        <Loader className="animate-spin text-oxford-blue/40" size={32} />
+      </div>
+    );
+  }
+
   if (appMode === 'landing') {
-    return <LandingPage onStart={() => setAppMode('selection')} />;
+    return <LandingPage onStart={handleStart} />;
+  }
+
+  if (appMode === 'login') {
+    return <LoginPage />;
   }
 
   if (appMode === 'selection') {
-    return <SelectionPage onSelect={(mode) => setAppMode(mode)} />;
+    return <SelectionPage onSelect={(mode) => setAppMode(mode)} user={session?.user} />;
   }
 
 
@@ -479,19 +529,20 @@ function App() {
     <div className="flex h-screen bg-paper overflow-hidden font-sans selection:bg-bronze/30 selection:text-oxford-blue">
 
       {/* Sidebar ... */}
-      <aside className={`${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} bg-oxford-blue text-white transition-all duration-300 ease-in-out flex flex-col overflow-hidden shrink-0`}>
+      {/* Sidebar ... */}
+      <aside className={`${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} bg-white border-r border-gray-200 text-oxford-blue transition-all duration-300 ease-in-out flex flex-col overflow-hidden shrink-0`}>
         {/* ... Sidebar Content ... */}
         <div className="p-4 space-y-2">
           <button
             onClick={() => setAppMode('landing')}
-            className="w-full flex items-center gap-2 text-white/60 hover:text-white px-4 py-2 hover:bg-white/5 rounded-xl transition-colors text-sm font-medium"
+            className="w-full flex items-center gap-2 text-oxford-blue/60 hover:text-oxford-blue px-4 py-2 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium"
           >
             <ChevronRight size={16} className="rotate-180" />
             Back to Home
           </button>
           <button
             onClick={() => setAppMode('selection')}
-            className="w-full flex items-center gap-2 text-white/60 hover:text-white px-4 py-2 hover:bg-white/5 rounded-xl transition-colors text-sm font-medium"
+            className="w-full flex items-center gap-2 text-oxford-blue/60 hover:text-oxford-blue px-4 py-2 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium"
           >
             <Layout size={16} />
             Switch Mode
@@ -505,23 +556,71 @@ function App() {
               setContextText(null);
               setChatHistory([]); // Clear chat too
             }}
-            className="w-full flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl transition-colors border border-white/5 shadow-sm"
+            className="w-full flex items-center gap-2 bg-white border border-oxford-blue/10 hover:border-bronze/30 hover:shadow-md text-oxford-blue px-4 py-3 rounded-xl transition-all shadow-sm group"
           >
-            <Plus size={20} />
+            <div className="w-5 h-5 rounded-full bg-oxford-blue/5 flex items-center justify-center group-hover:bg-bronze group-hover:text-white transition-colors">
+              <Plus size={14} />
+            </div>
             <span className="font-medium text-sm">New Chat</span>
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar"></div>
-        <div className="p-4 border-t border-white/10 bg-oxford-blue">
-          <button className="w-full flex items-center gap-3 px-2 py-2 text-left text-sm text-white/80 hover:bg-white/10 rounded-lg transition-colors">
+        <div className="p-4 border-t border-gray-100 bg-white relative">
+          {showUserMenu && (
+            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn z-50">
+              {/* Email Header */}
+              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                <p className="text-xs text-oxford-blue/60 truncate font-medium">
+                  {session?.user?.email}
+                </p>
+              </div>
+
+              {/* Menu Items */}
+              <div className="py-1">
+                <button className="w-full text-left px-4 py-2.5 text-sm text-oxford-blue hover:bg-gray-50 transition-colors">
+                  Upgrade your plan
+                </button>
+                <button className="w-full text-left px-4 py-2.5 text-sm text-oxford-blue hover:bg-gray-50 transition-colors flex items-center justify-between">
+                  Settings
+                  <span className="text-xs text-oxford-blue/40">⌘ ,</span>
+                </button>
+              </div>
+
+              <div className="h-px bg-gray-100 my-1" />
+
+              <div className="py-1">
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    setSession(null);
+                    setAppMode('landing');
+                    setShowUserMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+                >
+                  Log Out
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="w-full flex items-center gap-3 px-2 py-2 text-left text-sm text-oxford-blue hover:bg-gray-50 rounded-lg transition-colors relative"
+          >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
-              <span className="font-serif font-bold text-xs">JD</span>
+              <span className="font-serif font-bold text-xs">
+                {session?.user?.user_metadata?.full_name ?
+                  session.user.user_metadata.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                  : "SC"}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">John Doe</p>
-              <p className="text-xs text-white/40 truncate">Pro Plan</p>
+              <p className="font-bold truncate text-oxford-blue">
+                {session?.user?.user_metadata?.full_name || "Scholar"}
+              </p>
+              <p className="text-xs text-oxford-blue/40 truncate">Free Plan</p>
             </div>
-            <Settings size={16} className="text-white/40" />
           </button>
         </div>
       </aside>
@@ -617,7 +716,7 @@ function App() {
                         <div className="w-16 h-16 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                           <Upload size={24} className="text-oxford-blue/40 group-hover:text-bronze" />
                         </div>
-                        <h3 className="text-xl font-medium text-oxford-blue mb-2">Upload your essay</h3>
+                        <h3 className="text-xl font-medium text-oxford-blue mb-2">Upload document</h3>
                         <p className="text-oxford-blue/50 max-w-sm mx-auto">
                           Drag and drop or click to upload PDF, DOCX, or clear text.
                         </p>

@@ -18,9 +18,8 @@ import {
     ChevronLeft,
     Menu
 } from 'lucide-react';
-import { runRealAnalysis } from './services/analysis';
+import { sendChatMessage } from './services/analysis';
 import ChatMessagesList from './components/ChatMessagesList';
-import AnalysisResultView from './components/AnalysisResultView';
 
 const CanvasWorkspace = ({ onToggleSidebar }) => {
     // --- State ---
@@ -32,7 +31,7 @@ const CanvasWorkspace = ({ onToggleSidebar }) => {
     const [chatHistory, setChatHistory] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [selectedModel, setSelectedModel] = useState('Gemini 1.5 Flash'); // Default
+    const [selectedModel, setSelectedModel] = useState('GPT-4o'); // Default
     const [showModelMenu, setShowModelMenu] = useState(false);
 
     // Refs
@@ -78,31 +77,32 @@ const CanvasWorkspace = ({ onToggleSidebar }) => {
         setIsAnalyzing(true);
 
         try {
-            // Call Analysis Service
-            // We use 'runRealAnalysis' which handles both chat and analysis
-            // We pass the essay content as 'context' or 'text' depending on intent
-            // Here, we treat the essay as the primary text to analyze if the user asks for it.
-
-            const result = await runRealAnalysis(
-                context, // The essay is the "text" being analyzed usually
-                'gemini', // Provider (hardcoded to gemini/internal preference for now)
-                userMessage, // Instruction/Query
-                null // Context (can be null if text is passed as first arg)
+            // Call Chat Service (using sendChatMessage to leverage Master Framework)
+            // sendChatMessage(message, history, documentContent, provider)
+            const aiResponse = await sendChatMessage(
+                userMessage,
+                chatHistory, // Pass history for context
+                context,     // The essay content
+                'openai'     // Provider
             );
-
-            // Access the text response.
-            // runRealAnalysis returns an object with globalSummary, etc.
-            // If it's a chat response, it might be in globalSummary or a specific field.
-            // For now, let's assume globalSummary is the main response.
-
-            const aiResponse = result.globalSummary || "I've analyzed your text.";
 
             setChatHistory(prev => [...prev, {
                 role: 'assistant',
-                content: aiResponse,
-                // We can also attach the full result object if we want to show the dashboard
-                analysisResult: result
+                content: aiResponse
             }]);
+
+            // AUTO-OUTLINE FEATURE
+            // If the user's essay is empty, and the AI provides an outline (detected by headers),
+            // we automatically copy the headers to the writing box.
+            if (!essayContent.trim()) {
+                const lines = aiResponse.split('\n');
+                const headers = lines.filter(line => line.trim().startsWith('###') || line.trim().startsWith('**Phase'));
+
+                if (headers.length >= 3) { // Heuristic: valid outline usually has multiple phases
+                    const outlineText = headers.map(h => h.replace(/^###\s*|\*\*/g, '').replace(/:|\*/g, '').trim()).join('\n\n') + '\n\n';
+                    setEssayContent(outlineText);
+                }
+            }
 
         } catch (error) {
             console.error("Chat Error:", error);

@@ -2,13 +2,21 @@
 import React from 'react';
 import { Upload, Layout, ArrowRight } from 'lucide-react';
 
-const SelectionPage = ({ onSelect }) => {
+const SelectionPage = ({ onSelect, user }) => {
+    // Get name from Google metadata or default to "Scholar"
+    const name = user?.user_metadata?.full_name?.split(' ')[0] || "Scholar";
+
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-sans flex items-center justify-center p-6 animate-fadeIn">
             <div className="max-w-4xl w-full">
-                <h1 className="text-3xl md:text-4xl font-serif font-bold text-center text-oxford-blue mb-12">
-                    What do you want to learn?
-                </h1>
+                <div className="text-center mb-12">
+                    <p className="text-lg text-oxford-blue/60 font-medium mb-2">
+                        Hi, {name}
+                    </p>
+                    <h1 className="text-4xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 pb-2">
+                        How can I assist you today?
+                    </h1>
+                </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Upload Option */}
