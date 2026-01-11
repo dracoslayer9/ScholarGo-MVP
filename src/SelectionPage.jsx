@@ -16,7 +16,7 @@ const SelectionPage = ({ onSelect }) => {
                         onClick={() => onSelect('upload')}
                         className="group relative bg-white border border-oxford-blue/10 rounded-2xl p-8 text-left hover:shadow-xl transition-all duration-300 hover:border-bronze/30 hover:-translate-y-1"
                     >
-                        <div className="w-12 h-12 bg-oxford-blue/5 rounded-xl flex items-center justify-center text-oxford-blue mb-6 group-hover:bg-oxford-blue group-hover:text-white transition-colors">
+                        <div className="w-12 h-12 bg-oxford-blue/5 rounded-xl flex items-center justify-center text-oxford-blue mb-6 group-hover:bg-bronze group-hover:text-white transition-colors">
                             <Upload size={24} />
                         </div>
                         <h3 className="text-xl font-bold text-oxford-blue mb-2">Upload</h3>
@@ -33,7 +33,7 @@ const SelectionPage = ({ onSelect }) => {
                         onClick={() => onSelect('canvas')}
                         className="group relative bg-white border border-oxford-blue/10 rounded-2xl p-8 text-left hover:shadow-xl transition-all duration-300 hover:border-bronze/30 hover:-translate-y-1"
                     >
-                        <div className="w-12 h-12 bg-oxford-blue/5 rounded-xl flex items-center justify-center text-oxford-blue mb-6 group-hover:bg-oxford-blue group-hover:text-white transition-colors">
+                        <div className="w-12 h-12 bg-oxford-blue/5 rounded-xl flex items-center justify-center text-oxford-blue mb-6 group-hover:bg-bronze group-hover:text-white transition-colors">
                             <Layout size={24} />
                         </div>
                         <h3 className="text-xl font-bold text-oxford-blue mb-2">Canvas</h3>
