@@ -1,3 +1,6 @@
+/* eslint-env node */
+/* global process */
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -113,7 +116,7 @@ export default async function handler(req, res) {
     // Try to parse locally to ensure validity before sending back, though user code handles string too
     try {
       JSON.parse(content);
-    } catch (e) {
+    } catch {
       console.error("Generated content is not valid JSON:", content);
       // We still send it back as result string, client handles parsing or fallback
     }
