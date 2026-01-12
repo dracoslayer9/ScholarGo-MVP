@@ -40,6 +40,7 @@ import AnalysisResultView from './components/AnalysisResultView';
 import ChatMessagesList from './components/ChatMessagesList';
 import LandingPage from './LandingPage';
 import SelectionPage from './SelectionPage';
+import PrivacyPolicy from './PrivacyPolicy';
 import CanvasWorkspace from './CanvasWorkspace';
 
 // --- Analysis Logic ---
@@ -510,7 +511,7 @@ function App() {
   }
 
   if (appMode === 'landing') {
-    return <LandingPage onStart={handleStart} />;
+    return <LandingPage onStart={handleStart} onPrivacy={() => setAppMode('privacy')} />;
   }
 
   if (appMode === 'login') {
@@ -519,6 +520,10 @@ function App() {
 
   if (appMode === 'selection') {
     return <SelectionPage onSelect={(mode) => setAppMode(mode)} user={session?.user} />;
+  }
+
+  if (appMode === 'privacy') {
+    return <PrivacyPolicy onBack={() => setAppMode('landing')} />;
   }
 
 
