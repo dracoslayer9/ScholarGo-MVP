@@ -58,7 +58,7 @@ const LandingPage = ({ onStart, onPrivacy }) => {
                         {/* App Screenshot */}
                         <div className="mt-16 w-full max-w-5xl mx-auto relative z-10 group flex justify-center">
                             <img
-                                src="/hero-app-screenshot-v2.png"
+                                src="/hero-app-screenshot.jpeg"
                                 alt="ScholarGo Interface"
                                 className="relative z-10 rounded-xl border border-oxford-blue/10 w-auto max-w-full h-auto shadow-sm"
                             />
