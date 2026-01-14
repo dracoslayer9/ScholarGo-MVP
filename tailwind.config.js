@@ -25,10 +25,20 @@ export default {
           '0%': { strokeDashoffset: '100' },
           '100%': { strokeDashoffset: '0' },
         },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         float: 'float 6s ease-in-out infinite',
         dash: 'dash 1.5s linear infinite',
+        fadeIn: 'fadeIn 0.2s ease-out forwards',
+        slideIn: 'slideIn 0.3s ease-out forwards',
       },
     },
 
