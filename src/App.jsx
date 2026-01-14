@@ -42,12 +42,13 @@ import LandingPage from './LandingPage';
 import SelectionPage from './SelectionPage';
 import PrivacyPolicy from './PrivacyPolicy';
 import CanvasWorkspace from './CanvasWorkspace';
+import SettingsModal from './components/SettingsModal';
 
 // --- Analysis Logic ---
 
-const analyzeEssay = async (text, model, instruction, context) => {
+const analyzeEssay = async (text, model, instruction, context, signal) => {
   try {
-    const realResult = await runRealAnalysis(text, model, instruction, context); // Direct usage
+    const realResult = await runRealAnalysis(text, model, instruction, context, signal); // Direct usage
     if (!realResult) {
       throw new Error("Analysis failed to return results");
     }
@@ -128,7 +129,7 @@ const PDFViewer = ({ url }) => {
   return (
     <div
       ref={containerRef}
-      className="flex flex-col items-center gap-6 bg-oxford-blue/5 p-8 overflow-y-auto w-full h-full custom-scrollbar"
+      className="flex flex-col items-center gap-6 bg-white p-8 overflow-y-auto w-full h-full custom-scrollbar"
     >
       {pages.map(pageNum => (
         <PDFPage key={pageNum} pdf={pdf} pageNum={pageNum} scale={scale} />
@@ -191,7 +192,7 @@ const PDFPage = ({ pdf, pageNum, scale }) => {
 
   return (
     <div
-      className="relative shadow-xl ring-1 ring-black/5 bg-white transition-shadow hover:shadow-2xl selection:bg-yellow-400 selection:text-transparent"
+      className="relative bg-white selection:bg-yellow-400 selection:text-transparent"
       style={{ width: 'fit-content', height: 'fit-content' }}
     >
       <canvas ref={canvasRef} className="block" />
@@ -206,7 +207,12 @@ const PDFPage = ({ pdf, pageNum, scale }) => {
 
 function App() {
   // App Mode: 'landing' | 'selection' | 'upload' | 'canvas'
-  const [appMode, setAppMode] = useState('landing');
+  const [appMode, setAppMode] = useState(() => localStorage.getItem('scholarGo_appMode') || 'landing');
+
+  // Persist App Mode
+  useEffect(() => {
+    localStorage.setItem('scholarGo_appMode', appMode);
+  }, [appMode]);
 
   // Auth State
   const [session, setSession] = useState(null);
@@ -229,6 +235,7 @@ function App() {
   /* Removed selectedModel state as we're enforcing server-side logic now */
   const fileInputRef = useRef(null);
   const chatInputRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   // Scroll Ref for Unified View
   const messagesEndRef = useRef(null);
@@ -249,6 +256,7 @@ function App() {
   // Sidebar State
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // --- Auth Effect ---
   useEffect(() => {
@@ -264,14 +272,23 @@ function App() {
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
 
-      // Auto-redirect logic: Only on explicit sign-in (e.g. OAuth redirect)
+      // Auto-redirect logic: Only redirect if currently on login page
       if (event === 'SIGNED_IN') {
-        setAppMode('selection');
+        setAppMode((prevMode) => {
+          if (prevMode === 'login') {
+            return 'selection';
+          }
+          return prevMode;
+        });
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setAppMode('landing');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [appMode]);
+  }, []);
 
   const handleStart = () => {
     if (session) {
@@ -287,16 +304,26 @@ function App() {
 
   const performAnalysis = async () => {
     if (!essayText.trim()) return;
+
+    // Create AbortController
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsAnalyzing(true);
     try {
       console.log(`Analyzing essay...`);
-      const result = await analyzeEssay(essayText, selectedProvider, chatInput, contextText);
+      const result = await analyzeEssay(essayText, selectedProvider, chatInput, contextText, controller.signal);
       setAnalysisResult(result);
       setIsAnalyzed(true);
     } catch (error) {
-      console.error("Narrative analysis failed", error);
+      if (error.name === 'AbortError') {
+        console.log('Analysis aborted');
+      } else {
+        console.error("Narrative analysis failed", error);
+      }
     } finally {
       setIsAnalyzing(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -382,6 +409,10 @@ function App() {
 
     if (!isAnalysisCmd) {
       // --- CHAT MODE ---
+      // Create AbortController
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setIsAnalyzing(true);
 
       const userMsg = { role: 'user', content: messageToSend };
@@ -396,13 +427,19 @@ function App() {
           setIsAnalyzed(true);
         }
 
-        const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedProvider);
+        const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedProvider, controller.signal);
         setChatHistory(prev => [...prev, { role: "assistant", content: aiResponse }]);
 
       } catch (err) {
-        console.error("Chat Failed:", err);
+        if (err.name === 'AbortError') {
+          console.log('Chat aborted');
+          // setChatHistory(prev => [...prev, { role: "assistant", content: "[Request cancelled]" }]); // Optional
+        } else {
+          console.error("Chat Failed:", err);
+        }
       } finally {
         setIsAnalyzing(false);
+        abortControllerRef.current = null;
       }
       return;
     }
@@ -515,7 +552,7 @@ function App() {
   }
 
   if (appMode === 'login') {
-    return <LoginPage />;
+    return <LoginPage onBack={() => setAppMode('landing')} />;
   }
 
   if (appMode === 'selection') {
@@ -535,7 +572,8 @@ function App() {
 
       {/* Sidebar ... */}
       {/* Sidebar ... */}
-      <aside className={`${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} bg-white border-r border-gray-200 text-oxford-blue transition-all duration-300 ease-in-out flex flex-col overflow-hidden shrink-0`}>
+      {/* Sidebar ... */}
+      <aside className={`${sidebarOpen ? 'w-64 translate-x-0 overflow-visible' : 'w-0 -translate-x-full overflow-hidden'} bg-white border-r border-gray-200 text-oxford-blue transition-all duration-300 ease-in-out flex flex-col shrink-0 z-20`}>
         {/* ... Sidebar Content ... */}
         <div className="p-4 space-y-2">
           <button
@@ -572,7 +610,7 @@ function App() {
         <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar"></div>
         <div className="p-4 border-t border-gray-100 bg-white relative">
           {showUserMenu && (
-            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn z-50">
+            <div className="fixed bottom-20 left-4 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn z-50">
               {/* Email Header */}
               <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                 <p className="text-xs text-oxford-blue/60 truncate font-medium">
@@ -585,7 +623,10 @@ function App() {
                 <button className="w-full text-left px-4 py-2.5 text-sm text-oxford-blue hover:bg-gray-50 transition-colors">
                   Upgrade your plan
                 </button>
-                <button className="w-full text-left px-4 py-2.5 text-sm text-oxford-blue hover:bg-gray-50 transition-colors flex items-center justify-between">
+                <button
+                  onClick={() => { setShowSettings(true); setShowUserMenu(false); }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-oxford-blue hover:bg-gray-50 transition-colors flex items-center justify-between"
+                >
                   Settings
                   <span className="text-xs text-oxford-blue/40">⌘ ,</span>
                 </button>
@@ -671,12 +712,12 @@ function App() {
             <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
 
               {/* LEFT PANEL: Document Workspace */}
-              <div className="flex-1 bg-gray-50/50 flex flex-col relative min-w-0 overflow-y-auto custom-scrollbar scroll-smooth">
-                <div className="flex-1 w-full max-w-4xl mx-auto p-6 md:p-8 min-h-full">
+              <div className="flex-1 bg-white flex flex-col relative min-w-0 overflow-y-auto custom-scrollbar scroll-smooth">
+                <div className="flex-1 w-full max-w-4xl mx-auto px-12 py-8 min-h-full flex flex-col">
 
                   {/* Document Header (Meta Only - Simplified) */}
                   {(isAnalyzed || essayText) && (
-                    <div className="mb-6 animate-fadeIn">
+                    <div className="mb-6 animate-fadeIn shrink-0">
                       <div className="flex items-center gap-3 text-sm text-oxford-blue/60">
                         <span className="font-medium text-oxford-blue">{fileName || "Untitled Essay"}</span>
                         <span className="text-oxford-blue/20">•</span>
@@ -686,15 +727,15 @@ function App() {
                   )}
 
                   {/* Document Canvas */}
-                  <div id="document-viewer-container" className="relative transition-all duration-300">
+                  <div id="document-viewer-container" className="relative transition-all duration-300 flex-1">
                     {isAnalyzed ? (
-                      <div className="w-full relative min-h-[500px]">
+                      <div className="w-full relative min-h-[80vh]">
                         {fileType === 'application/pdf' ? (
-                          <div className="border border-oxford-blue/10 rounded-xl overflow-hidden shadow-sm bg-white">
+                          <div className="w-full overflow-hidden">
                             <PDFViewer key={fileUrl} url={fileUrl} />
                           </div>
                         ) : fileType?.startsWith('image/') ? (
-                          <div className="w-full flex flex-col items-center bg-white rounded-xl shadow-sm border border-oxford-blue/10 p-4">
+                          <div className="w-full flex flex-col items-center p-4">
                             <img
                               src={fileUrl}
                               alt="Document"
@@ -703,28 +744,31 @@ function App() {
                             />
                           </div>
                         ) : (
-                          /* Text Editor Look */
+                          /* Text Editor Look - Matching CanvasWorkspace */
                           <div
-                            className="prose prose-lg max-w-none font-serif text-oxford-blue/90 leading-loose outline-none whitespace-pre-wrap selection:bg-yellow-200/50"
-                            contentEditable={false} // Read only for now
+                            className="w-full min-h-[80vh] outline-none text-lg leading-loose font-serif text-oxford-blue whitespace-pre-wrap break-words selection:bg-yellow-200/50"
+                            contentEditable={false} // Read only
                           >
                             {essayText}
                           </div>
                         )}
                       </div>
                     ) : (
-                      /* Empty State / Upload Trigger */
+                      /* Empty State / Upload Trigger - Matching Canvas aesthetic */
                       <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="group border-2 border-dashed border-oxford-blue/10 rounded-xl p-12 flex flex-col items-center justify-center text-center cursor-pointer hover:border-bronze/30 hover:bg-bronze/5 transition-all min-h-[400px]"
+                        className="group w-full h-full min-h-[80vh] flex flex-col items-center justify-center text-center cursor-pointer transition-all"
                       >
-                        <div className="w-16 h-16 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                          <Upload size={24} className="text-oxford-blue/40 group-hover:text-bronze" />
+                        <div className="rounded-2xl p-12 hover:bg-oxford-blue/0 transition-all group-hover:scale-[1.01]">
+                          <div className="w-16 h-16 bg-oxford-blue/5 rounded-full flex items-center justify-center mb-6 mx-auto group-hover:bg-bronze group-hover:text-white transition-colors">
+                            <Upload size={24} className="text-oxford-blue/40 group-hover:text-white transition-colors" />
+                          </div>
+                          <h3 className="text-xl font-serif font-bold text-oxford-blue mb-3">Upload your document</h3>
+                          <p className="text-oxford-blue/50 max-w-sm mx-auto font-serif text-lg leading-relaxed">
+                            Click to browse PDF, DOCX, or text files.<br />
+                            <span className="text-sm opacity-60 font-sans">We'll analyze it instantly.</span>
+                          </p>
                         </div>
-                        <h3 className="text-xl font-medium text-oxford-blue mb-2">Upload document</h3>
-                        <p className="text-oxford-blue/50 max-w-sm mx-auto">
-                          Drag and drop or click to upload PDF, DOCX, or clear text.
-                        </p>
                       </div>
                     )}
                   </div>
@@ -735,7 +779,7 @@ function App() {
 
 
               {/* RIGHT PANEL: AI Assistant Sidebar */}
-              <div className="w-full lg:w-[480px] lg:h-full h-[500px] bg-white border-t lg:border-t-0 lg:border-l border-oxford-blue/10 flex flex-col shrink-0 z-20 shadow-xl shadow-oxford-blue/5">
+              <div className="w-full lg:w-[480px] lg:h-full h-[500px] bg-white border-t lg:border-t-0 border-oxford-blue/10 flex flex-col shrink-0 z-20 shadow-xl shadow-oxford-blue/5">
 
                 {/* Sidebar Header */}
                 <div className="h-14 px-4 border-b border-oxford-blue/5 flex items-center justify-between shrink-0 bg-white/50 backdrop-blur-sm">
@@ -876,12 +920,14 @@ function App() {
 
                       {/* Send Button */}
                       <button
-                        onClick={() => handleChatSubmit()}
+                        onClick={() => isAnalyzing ? abortControllerRef.current?.abort() : handleChatSubmit()}
                         disabled={!chatInput.trim() && !essayText.trim() && !isAnalyzing}
-                        className="p-2 bg-bronze text-white rounded-lg hover:bg-bronze/90 transition-all disabled:opacity-30 disabled:bg-oxford-blue/50 flex items-center justify-center shadow-md shadow-bronze/20"
+                        className={`p-2 rounded-lg transition-all flex items-center justify-center ${isAnalyzing
+                          ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          : "bg-bronze text-white hover:bg-bronze/90 shadow-md shadow-bronze/20 disabled:opacity-30 disabled:bg-oxford-blue/50"}`}
                       >
                         {isAnalyzing ? (
-                          <Loader size={16} className="animate-spin" />
+                          <div className="w-3 h-3 bg-current rounded-sm" />
                         ) : (
                           <Send size={16} />
                         )}
@@ -898,6 +944,24 @@ function App() {
           </>
         )}
       </div>
+      {/* GLOBAL PORTAL: Settings Modal */}
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        user={session?.user}
+        onSignOut={async () => {
+          await supabase.auth.signOut();
+          setSession(null);
+          setAppMode('landing');
+          setShowSettings(false);
+          setShowUserMenu(false);
+        }}
+        onOpenPrivacy={() => {
+          // Placeholder or actual logic for Privacy Policy
+          console.log("Open Privacy Policy");
+        }}
+      />
+
       {/* GLOBAL PORTAL: Selection Popup */}
       {selectionPopup.show && (
         <div

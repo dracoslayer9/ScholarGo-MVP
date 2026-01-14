@@ -23,9 +23,13 @@ const parseJSON = (text) => {
 export const runRealAnalysis = async (
     text,
     instruction = null,
-    context = null
+    context = null,
+    signal = null
 ) => {
     try {
+        if (signal?.aborted) {
+            throw new Error("Aborted");
+        }
         console.log("Running Gemini Analysis...");
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -118,9 +122,13 @@ export const runRealAnalysis = async (
 export const sendChatMessage = async (
     message,
     history = [],
-    documentContent = ""
+    documentContent = "",
+    signal = null
 ) => {
     try {
+        if (signal?.aborted) {
+            throw new Error("Aborted");
+        }
         console.log("Running Gemini Chat...");
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -162,6 +170,16 @@ export const sendChatMessage = async (
         - If the user asks for feedback, refer to the "Phase" they are in.
         - Be direct, professional, yet encouraging.
         - If they provide text, identify which Phase it belongs to and score it against the Pillars.
+
+        **SPECIAL INSTRUCTION: OUTLINE GENERATION**:
+        If the user asks for an outline, structure, or "kerangka" (especially for scholarships like LPDP), you MUST generate it using the **4 Phases** of the Master Framework defined above.
+        **Format your response using Markdown headers**:
+        ## Phase 1: [Phase Name]
+        ...
+        ## Phase 2: [Phase Name]
+        ...
+        (and so on).
+        Do not deviate from this structure for outlines.
 
         **Document Content**:
         "${documentContent}"

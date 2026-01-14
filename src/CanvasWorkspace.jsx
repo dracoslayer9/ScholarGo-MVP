@@ -62,11 +62,19 @@ const CanvasWorkspace = ({ onToggleSidebar }) => {
 
     // --- Handlers ---
 
+    const abortControllerRef = useRef(null);
+
+    const stopAnalysis = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            // Optional: setIsAnalyzing(false); // handleChatSubmit catch block handles this
+        }
+    };
+
     const handleChatSubmit = async () => {
         if ((!chatInput.trim() && !essayContent.trim()) || isAnalyzing) return;
 
         const userMessage = chatInput.trim() || "Analyze this essay";
-
         // precise context: The essay content
         const context = essayContent;
 
@@ -76,14 +84,19 @@ const CanvasWorkspace = ({ onToggleSidebar }) => {
         setChatInput('');
         setIsAnalyzing(true);
 
+        // Create AbortController
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
             // Call Chat Service (using sendChatMessage to leverage Master Framework)
-            // sendChatMessage(message, history, documentContent, provider)
+            // sendChatMessage(message, history, documentContent, provider, signal)
             const aiResponse = await sendChatMessage(
                 userMessage,
                 chatHistory, // Pass history for context
                 context,     // The essay content
-                'openai'     // Provider
+                'openai',     // Provider
+                controller.signal // Signal
             );
 
             setChatHistory(prev => [...prev, {
@@ -92,23 +105,42 @@ const CanvasWorkspace = ({ onToggleSidebar }) => {
             }]);
 
             // AUTO-OUTLINE FEATURE
-            // If the user's essay is empty, and the AI provides an outline (detected by headers),
-            // we automatically copy the headers to the writing box.
+            // Trigger if:
+            // 1. Essay is empty
+            // 2. AI provides ANY headers (indicating structure)
+            // 3. User specifically asked for it (weak check) OR response is clearly an outline (strong check)
             if (!essayContent.trim()) {
                 const lines = aiResponse.split('\n');
-                const headers = lines.filter(line => line.trim().startsWith('###') || line.trim().startsWith('**Phase'));
+                const headers = lines.filter(line => line.trim().startsWith('#') || line.trim().startsWith('**Phase'));
 
-                if (headers.length >= 3) { // Heuristic: valid outline usually has multiple phases
-                    const outlineText = headers.map(h => h.replace(/^###\s*|\*\*/g, '').replace(/:|\*/g, '').trim()).join('\n\n') + '\n\n';
+                // Lower threshold if user asked for "outline", "structure", "kerangka"
+                const userIntent = userMessage.toLowerCase().includes('outline') ||
+                    userMessage.toLowerCase().includes('structure') ||
+                    userMessage.toLowerCase().includes('kerangka');
+
+                if (headers.length >= (userIntent ? 1 : 3)) {
+                    const outlineText = headers.map(h => {
+                        let line = h.trim();
+                        // Ensure "tagar" (hashtags) for visual distinction as requested
+                        if (!line.startsWith('#')) {
+                            return `### ${line}`;
+                        }
+                        return line;
+                    }).join('\n\n') + '\n\n';
                     setEssayContent(outlineText);
                 }
             }
 
         } catch (error) {
-            console.error("Chat Error:", error);
-            setChatHistory(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error processing your request." }]);
+            if (error.name === 'AbortError') {
+                console.log("Request cancelled by user");
+            } else {
+                console.error("Chat Error:", error);
+                setChatHistory(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error processing your request." }]);
+            }
         } finally {
             setIsAnalyzing(false);
+            abortControllerRef.current = null;
         }
     };
 
@@ -157,14 +189,56 @@ const CanvasWorkspace = ({ onToggleSidebar }) => {
                 </div>
 
                 {/* Editor Area */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
-                    <div className="max-w-4xl mx-auto min-h-full px-12 py-8">
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-white relative">
+                    <div className="max-w-4xl mx-auto min-h-full px-12 py-8 relative">
+
+                        {/* 1. BACKDROP LAYER: Renders the visual markdown */}
+                        <div
+                            className="absolute inset-0 px-12 py-8 pointer-events-none whitespace-pre-wrap break-words font-serif text-lg leading-relaxed text-oxford-blue z-0"
+                            aria-hidden="true"
+                        >
+                            {essayContent.split('\n').map((line, i) => {
+                                // Empty line check
+                                if (line === '') return <br key={i} />;
+
+                                // 1. Header Detection
+                                let className = "block min-h-[1.5em]"; // Default block
+                                let content = line;
+
+                                if (line.startsWith('### ')) {
+                                    className = "block font-bold text-lg text-black"; // Unified size, Black as requested
+                                    content = line;
+                                } else if (line.startsWith('## ')) {
+                                    className = "block font-bold text-lg text-oxford-blue";
+                                } else if (line.startsWith('# ')) {
+                                    className = "block font-bold text-lg text-oxford-blue underline decoration-bronze/30 underline-offset-4";
+                                }
+
+                                // 2. Bold Parsing: **text**
+                                const parts = content.split(/(\*\*.*?\*\*)/g);
+                                return (
+                                    <div key={i} className={className}>
+                                        {parts.map((part, j) => {
+                                            if (part.startsWith('**') && part.endsWith('**')) {
+                                                return <span key={j} className="font-bold">{part.slice(2, -2)}</span>;
+                                            }
+                                            return <span key={j}>{part}</span>;
+                                        })}
+                                    </div>
+                                );
+                            })}
+                            {/* Trailing newline support */}
+                            {essayContent.endsWith('\n') && <br />}
+                        </div>
+
+                        {/* 2. FOREGROUND LAYER: The actual input */}
+                        {/* Text is transparent, Caret is visible. Matches backdrop metrics exactly. */}
                         <textarea
                             ref={textareaRef}
                             value={essayContent}
                             onChange={(e) => setEssayContent(e.target.value)}
                             placeholder="Start writing or paste your essay here..."
-                            className="w-full min-h-[80vh] resize-none border-none focus:ring-0 text-lg leading-loose text-oxford-blue font-serif bg-transparent placeholder-oxford-blue/20 p-0"
+                            className="relative z-10 w-full min-h-[80vh] resize-none border-none focus:ring-0 outline-none text-lg leading-relaxed font-serif bg-transparent text-transparent selection:text-transparent selection:bg-blue-200 caret-oxford-blue placeholder-oxford-blue/20 p-0 whitespace-pre-wrap break-words"
                             spellCheck={false}
                         />
                     </div>
@@ -208,83 +282,83 @@ const CanvasWorkspace = ({ onToggleSidebar }) => {
                         <div className="flex justify-start animate-fadeIn">
                             <div className="bg-white border border-oxford-blue/10 text-oxford-blue rounded-2xl rounded-bl-sm p-4 shadow-sm flex items-center gap-3">
                                 <Loader size={16} className="text-bronze animate-spin" />
-                                <span className="text-sm font-medium text-oxford-blue/60">Analyzing your text...</span>
+                                <span className="text-sm font-medium text-oxford-blue/60">Thinking...</span>
                             </div>
                         </div>
                     )}
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Area (Gemini Style) */}
-                <div className="p-4 bg-white shrink-0">
-                    <div className="relative bg-gray-50 hover:bg-white border border-transparent hover:border-oxford-blue/10 rounded-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-bronze/5 focus-within:border-bronze/20 focus-within:bg-white shadow-sm hover:shadow-md">
+                {/* Input Area (Unified Style) */}
+                <div className="p-4 bg-white shrink-0 border-t border-oxford-blue/5">
+                    <div className="bg-gray-50 border border-oxford-blue/10 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-bronze/10 focus-within:border-bronze/30 transition-all shadow-sm">
                         <textarea
                             ref={chatInputRef}
                             value={chatInput}
                             onChange={(e) => setChatInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder={isAnalyzing ? "ScholarGo is thinking..." : "Ask me anything..."}
-                            className="w-full bg-transparent border-none px-4 pt-4 pb-12 focus:ring-0 text-oxford-blue placeholder-oxford-blue/40 resize-none max-h-40 min-h-[60px] cursor-text"
+                            placeholder={isAnalyzing ? "Thinking..." : "Ask me anything..."}
+                            className="w-full bg-transparent border-none px-4 py-3 text-sm text-oxford-blue outline-none resize-none custom-scrollbar disabled:opacity-50 placeholder-oxford-blue/40"
                             rows={1}
+                            style={{ minHeight: '60px', maxHeight: '200px' }}
                             disabled={isAnalyzing}
                         />
 
-                        {/* Bottom Controls */}
-                        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                        {/* Internal Toolbar */}
+                        <div className="flex items-center justify-between px-2 pb-1 mt-1">
                             <div className="flex items-center gap-2">
-                                {/* Add Document Button (Mock) */}
-                                <button className="p-1.5 px-3 rounded-lg bg-oxford-blue/5 text-oxford-blue/60 hover:bg-oxford-blue/10 hover:text-oxford-blue transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
-                                    <Plus size={12} />
+                                {/* Add Document Button */}
+                                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-oxford-blue/10 text-oxford-blue/60 transition-colors text-xs font-medium">
+                                    <Plus size={14} />
                                     <span className="hidden sm:inline">Add Document</span>
                                 </button>
 
-                                {/* Model Switcher (Viz Only) */}
+                                {/* Model Switcher */}
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowModelMenu(!showModelMenu)}
-                                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-oxford-blue/5 text-[10px] font-bold text-oxford-blue/60 transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-oxford-blue/10 text-oxford-blue/60 transition-colors text-xs font-medium"
                                     >
-                                        <Sparkles size={10} className="text-bronze" />
                                         <span>{selectedModel}</span>
-                                        <ChevronDown size={10} />
+                                        <ChevronDown size={12} />
                                     </button>
-
-                                    {/* Dropdown */}
                                     {showModelMenu && (
-                                        <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-oxford-blue/10 rounded-xl shadow-xl overflow-hidden z-50 animate-fadeIn">
-                                            {['Gemini 1.5 Flash', 'Gemini 1.5 Pro', 'GPT-4o'].map(model => (
-                                                <button
-                                                    key={model}
-                                                    onClick={() => { setSelectedModel(model); setShowModelMenu(false); }}
-                                                    className={`w-full text-left px-4 py-3 text-xs font-bold hover:bg-oxford-blue/5 transition-colors flex items-center justify-between ${selectedModel === model ? 'text-bronze bg-bronze/5' : 'text-oxford-blue/80'}`}
-                                                >
-                                                    {model}
-                                                    {selectedModel === model && <CheckSquare size={12} />}
-                                                </button>
-                                            ))}
+                                        <div className="absolute bottom-full left-0 mb-2 w-40 bg-white rounded-xl shadow-xl border border-gray-100 py-1 overflow-hidden z-20 animate-fadeIn">
+                                            <button
+                                                onClick={() => { setSelectedModel('GPT-4o'); setShowModelMenu(false); }}
+                                                className={`w-full text-left px-3 py-1.5 text-xs transition-colors hover:bg-gray-50 flex flex-col ${selectedModel === 'GPT-4o' ? 'font-bold text-oxford-blue' : 'font-medium text-oxford-blue/60'}`}
+                                            >
+                                                OpenAI GPT-4o
+                                            </button>
+                                            <button
+                                                onClick={() => { setSelectedModel('Gemini 1.5'); setShowModelMenu(false); }}
+                                                className={`w-full text-left px-3 py-1.5 text-xs transition-colors hover:bg-gray-50 flex flex-col ${selectedModel === 'Gemini 1.5' ? 'font-bold text-oxford-blue' : 'font-medium text-oxford-blue/60'}`}
+                                            >
+                                                Google Gemini 1.5
+                                            </button>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Send Button */}
+                            {/* Send / Stop Button */}
                             <button
-                                onClick={handleChatSubmit}
-                                disabled={!chatInput.trim() && !essayContent.trim() && !isAnalyzing}
-                                className="p-2 bg-bronze text-white rounded-lg hover:bg-bronze/90 transition-all disabled:opacity-30 disabled:bg-oxford-blue/50 flex items-center justify-center shadow-md shadow-bronze/20"
+                                onClick={isAnalyzing ? stopAnalysis : handleChatSubmit}
+                                disabled={!chatInput.trim() && !isAnalyzing}
+                                className={`p-2 rounded-xl shadow-lg transition-all ${isAnalyzing
+                                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
+                                    : 'bg-bronze hover:bg-bronze/90 text-white shadow-bronze/20 disabled:opacity-50 disabled:shadow-none'
+                                    }`}
                             >
                                 {isAnalyzing ? (
-                                    <Loader size={16} className="animate-spin" />
+                                    <div className="w-5 h-5 flex items-center justify-center">
+                                        <div className="w-2.5 h-2.5 bg-white rounded-[2px]" />
+                                    </div>
                                 ) : (
-                                    <Send size={16} />
+                                    <Send size={18} />
                                 )}
                             </button>
                         </div>
-                    </div>
-                    <div className="text-center mt-3">
-                        <p className="text-[10px] text-oxford-blue/30 font-medium">
-                            AI can make mistakes. Please review generated results.
-                        </p>
                     </div>
                 </div>
             </div>

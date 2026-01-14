@@ -12,7 +12,7 @@ import {
 const LandingPage = ({ onStart, onPrivacy }) => {
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] font-sans text-oxford-blue overflow-x-hidden selection:bg-bronze/20">
+        <div className="min-h-screen bg-white font-sans text-oxford-blue overflow-x-hidden selection:bg-bronze/20">
 
             {/* Navbar (Minimal) */}
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-oxford-blue/5">
@@ -28,34 +28,54 @@ const LandingPage = ({ onStart, onPrivacy }) => {
             </nav>
 
             {/* Hero Section */}
-            <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6 overflow-hidden">
+            <section className="relative pt-32 pb-12 lg:pt-48 lg:pb-20 px-6 overflow-hidden">
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="flex flex-col items-center text-center">
 
 
 
-                        {/* Spacer to push content down slightly since image is gone */}
-                        <div className="h-12"></div>
-
                         {/* Headline */}
-                        <h1 className="text-5xl md:text-7xl font-serif font-bold text-oxford-blue mb-8 leading-[1.1] tracking-tight max-w-4xl">
+                        <h1 className="text-5xl md:text-7xl font-serif font-medium text-oxford-blue mb-8 leading-[1.1] tracking-tight max-w-4xl">
                             AI for Winning <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Scholarships</span>
                         </h1>
 
                         {/* Subtitle */}
-                        <p className="text-xl md:text-2xl text-oxford-blue/60 mb-12 max-w-2xl leading-relaxed font-light">
+                        <p className="text-lg md:text-xl text-oxford-blue/80 mb-12 max-w-2xl leading-relaxed font-normal">
                             A specialized workspace designed to dissect scholarship frameworks and build your winning narrative with ease.
                         </p>
 
                         {/* CTAs */}
-                        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto relative z-20">
                             <button
                                 onClick={onStart}
-                                className="w-full sm:w-auto px-8 py-4 bg-bronze text-white rounded-xl font-bold hover:bg-bronze/90 transition-all hover:scale-105 shadow-xl shadow-bronze/20 flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-6 py-3 bg-bronze text-white rounded-xl font-bold hover:brightness-90 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg shadow-bronze/20"
                             >
                                 Start Now <span className="font-normal opacity-80 ml-1">– it's free</span>
                             </button>
+                        </div>
+
+                        {/* App Screenshot */}
+                        <div className="mt-16 w-full max-w-5xl mx-auto relative z-10 group flex justify-center">
+                            <img
+                                src="/hero-app-screenshot-v2.png"
+                                alt="ScholarGo Interface"
+                                className="relative z-10 rounded-xl border border-oxford-blue/10 w-auto max-w-full h-auto shadow-sm"
+                            />
+                            {/* Bottom Fade Overlay - Reduced & White */}
+                            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white via-white/50 to-transparent z-20" />
+                        </div>
+
+                        {/* Social Proof / Trust */}
+                        <div className="mt-8 md:mt-10 text-center relative z-20">
+                            <h3 className="text-sm font-medium text-oxford-blue/40 mb-6">Your partner in chasing scholarship dreams.</h3>
+                            <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-700 ease-in-out">
+                                <span className="text-xl font-serif font-bold cursor-default">Fulbright</span>
+                                <span className="text-xl font-serif font-bold cursor-default">Chevening</span>
+                                <span className="text-xl font-serif font-bold cursor-default">AAS</span>
+                                <span className="text-xl font-serif font-bold cursor-default">LPDP</span>
+                                <span className="text-xl font-serif font-bold cursor-default">GKS</span>
+                            </div>
                         </div>
 
                     </div>
@@ -63,19 +83,19 @@ const LandingPage = ({ onStart, onPrivacy }) => {
             </section>
 
             {/* Features Section */}
-            <section id="features" className="py-24 px-6 bg-white border-t border-oxford-blue/5">
+            <section id="features" className="pt-12 pb-24 px-6 bg-[#F8FAFC] border-t border-oxford-blue/5">
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center mb-16">
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold tracking-wider text-sm uppercase mb-3 block">
                             Powerful Features
                         </span>
-                        <h2 className="text-3xl md:text-4xl font-serif font-bold text-oxford-blue mb-4">Analyze Deeper. Write Smarter.</h2>
-                        <p className="text-lg text-oxford-blue/60 max-w-2xl mx-auto">Master the winning framework with AI-powered structural insights and an interactive laboratory for your scholarship narrative.</p>
+                        <h2 className="text-3xl md:text-4xl font-serif font-medium text-oxford-blue mb-4">Analyze Deeper. Write Smarter.</h2>
+                        <p className="text-base text-oxford-blue/80 max-w-2xl mx-auto">Master the winning framework with AI-powered structural insights and an interactive laboratory for your scholarship narrative.</p>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
                         {/* Feature 1 */}
-                        <div className="p-10 rounded-2xl bg-[#F8FAFC] border border-oxford-blue/5 hover:border-blue-500/20 transition-all group">
+                        <div className="p-10 rounded-2xl bg-white border border-oxford-blue/5 hover:border-blue-500/20 transition-all group">
                             <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-blue-500/10">
                                 <Brain size={28} />
                             </div>
@@ -86,7 +106,7 @@ const LandingPage = ({ onStart, onPrivacy }) => {
                         </div>
 
                         {/* Feature 2 */}
-                        <div className="p-10 rounded-2xl bg-[#F8FAFC] border border-oxford-blue/5 hover:border-bronze/20 transition-all group">
+                        <div className="p-10 rounded-2xl bg-white border border-oxford-blue/5 hover:border-bronze/20 transition-all group">
                             <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-bronze mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-bronze/10">
                                 <BookOpen size={28} />
                             </div>
@@ -99,19 +119,7 @@ const LandingPage = ({ onStart, onPrivacy }) => {
                 </div>
             </section>
 
-            {/* Social Proof / Trust */}
-            <section className="py-20 px-6">
-                <div className="max-w-4xl mx-auto text-center">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-8">Trusted by Applicants Targeting</h3>
-                    <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-                        <span className="text-2xl font-serif font-bold">Fulbright</span>
-                        <span className="text-2xl font-serif font-bold">Chevening</span>
-                        <span className="text-2xl font-serif font-bold">AAS</span>
-                        <span className="text-2xl font-serif font-bold">LPDP</span>
-                        <span className="text-2xl font-serif font-bold">GKS</span>
-                    </div>
-                </div>
-            </section>
+
 
             {/* Footer */}
             <footer className="py-8 bg-white border-t border-oxford-blue/5 text-center text-sm text-oxford-blue/40">

@@ -4,7 +4,8 @@ export const runRealAnalysis = async (
     text,
     type = "General Essay",
     instruction = null,
-    context = null
+    context = null,
+    signal = null // Add signal param
 ) => {
     // FALLBACK: Client-Side Execution for Local Development
     // This runs if we are in DEV mode AND we have a VITE_OPENAI_API_KEY.
@@ -101,7 +102,7 @@ export const runRealAnalysis = async (
                 messages: [{ role: "user", content: prompt }],
                 response_format: { type: "json_object" },
                 temperature: 0.7,
-            });
+            }, { signal }); // Pass signal
 
 
             const content = completion.choices[0].message.content;
@@ -119,6 +120,7 @@ export const runRealAnalysis = async (
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, type, instruction, context }),
+        signal // Pass signal
     });
 
     const data = await response.json();
@@ -148,7 +150,8 @@ export const runRealAnalysis = async (
 export const sendChatMessage = async (
     message,
     history = [],
-    documentContent = ""
+    documentContent = "",
+    signal = null // Add signal param
 ) => {
     // FALLBACK: Client-Side Execution for Local Development
     if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY) {
@@ -198,6 +201,16 @@ export const sendChatMessage = async (
             - Be direct, professional, yet encouraging.
             - If they provide text, identify which Phase it belongs to and score it against the Pillars.
 
+            **SPECIAL INSTRUCTION: OUTLINE GENERATION**:
+            If the user asks for an outline, structure, or "kerangka" (especially for scholarships like LPDP), you MUST generate it using the **4 Phases** of the Master Framework defined above.
+            **Format your response using Markdown headers**:
+            ## Phase 1: [Phase Name]
+            ...
+            ## Phase 2: [Phase Name]
+            ...
+            (and so on).
+            Do not deviate from this structure for outlines.
+
             **Document Content**:
             "${documentContent}"
             `;
@@ -236,7 +249,7 @@ export const sendChatMessage = async (
                 model: "gpt-4o",
                 messages: messages,
                 temperature: 0.7,
-            });
+            }, { signal }); // Pass signal
 
             return completion.choices[0].message.content;
 
@@ -251,6 +264,7 @@ export const sendChatMessage = async (
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, history, documentContent }),
+        signal // Pass signal
     });
 
     const data = await response.json();
