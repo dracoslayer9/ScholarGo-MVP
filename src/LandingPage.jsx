@@ -9,7 +9,7 @@ import {
     Youtube
 } from 'lucide-react';
 
-const LandingPage = ({ onStart, onPrivacy }) => {
+const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
 
     return (
         <div className="min-h-screen bg-white font-sans text-oxford-blue overflow-x-hidden selection:bg-bronze/20">
@@ -56,11 +56,11 @@ const LandingPage = ({ onStart, onPrivacy }) => {
                         </div>
 
                         {/* App Screenshot */}
-                        <div className="mt-16 w-full max-w-5xl mx-auto relative z-10 group flex justify-center">
+                        <div className="mt-16 w-full max-w-4xl mx-auto relative z-10 group flex justify-center">
                             <img
-                                src="/hero-app-screenshot.jpeg"
+                                src="/hero-app-screenshot-v3.png"
                                 alt="ScholarGo Interface"
-                                className="relative z-10 rounded-xl border border-oxford-blue/10 w-auto max-w-full h-auto shadow-sm"
+                                className="relative z-10 rounded-xl border border-oxford-blue/10 w-auto max-w-full h-auto"
                             />
                             {/* Bottom Fade Overlay - Reduced & White */}
                             <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white via-white/50 to-transparent z-20" />
@@ -133,9 +133,12 @@ const LandingPage = ({ onStart, onPrivacy }) => {
                         </svg>
                     </a>
                 </div>
-                <div className="mb-4">
+                <div className="mb-4 flex justify-center gap-4">
                     <button onClick={onPrivacy} className="text-xs text-oxford-blue/40 hover:text-oxford-blue underline decoration-oxford-blue/20 underline-offset-4 transition-all">
                         Privacy Policy
+                    </button>
+                    <button onClick={onTerms} className="text-xs text-oxford-blue/40 hover:text-oxford-blue underline decoration-oxford-blue/20 underline-offset-4 transition-all">
+                        Terms of Service
                     </button>
                 </div>
                 <p>© 2026 ScholarGo. All rights reserved.</p>

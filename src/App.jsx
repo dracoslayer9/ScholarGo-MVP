@@ -33,7 +33,10 @@ import {
 
 import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/analysis';
 import { supabase } from './lib/supabaseClient';
+import { createChat, getUserChats, getChatMessages, saveMessage } from './services/chatService'; // NEW IMPORT
+
 import LoginPage from './LoginPage';
+
 
 
 import AnalysisResultView from './components/AnalysisResultView';
@@ -41,8 +44,12 @@ import ChatMessagesList from './components/ChatMessagesList';
 import LandingPage from './LandingPage';
 import SelectionPage from './SelectionPage';
 import PrivacyPolicy from './PrivacyPolicy';
+import TermsOfService from './TermsOfService';
 import CanvasWorkspace from './CanvasWorkspace';
 import SettingsModal from './components/SettingsModal';
+// ... (lines 48-670 unchanged) ... 
+// Jumping to render logic below ... 
+
 
 // --- Analysis Logic ---
 
@@ -78,6 +85,7 @@ const PDFViewer = ({ url }) => {
     const loadPdf = async () => {
       if (!url) return;
       try {
+        if (!window.pdfjsLib) return;
         const loadingTask = window.pdfjsLib.getDocument(url);
         const loadedPdf = await loadingTask.promise;
         setPdf(loadedPdf);
@@ -102,8 +110,6 @@ const PDFViewer = ({ url }) => {
         const viewport = page.getViewport({ scale: 1.0 });
 
         // Calculate strictly to fit width (-64px for p-8 padding)
-        // If the page is "misaligned" (Landscape but typically documents are portrait), 
-        // fitting to width ensures it is legible.
         const availableWidth = containerWidth - 64;
         const fitWidthScale = availableWidth / viewport.width;
 
@@ -204,7 +210,6 @@ const PDFPage = ({ pdf, pageNum, scale }) => {
   );
 };
 
-
 function App() {
   // App Mode: 'landing' | 'selection' | 'upload' | 'canvas'
   const [appMode, setAppMode] = useState(() => localStorage.getItem('scholarGo_appMode') || 'landing');
@@ -232,7 +237,12 @@ function App() {
   const [chatInput, setChatInput] = useState('');
   const [selectedProvider, setSelectedProvider] = useState('openai'); // 'openai' or 'gemini'
   const [providerMenuOpen, setProviderMenuOpen] = useState(false);
-  /* Removed selectedModel state as we're enforcing server-side logic now */
+
+  // --- SUPABASE CHAT STATE ---
+  const [savedChats, setSavedChats] = useState([]); // List of {id, title}
+  const [currentChatId, setCurrentChatId] = useState(null); // Active DB Session ID
+  // ---------------------------
+
   const fileInputRef = useRef(null);
   const chatInputRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -258,12 +268,16 @@ function App() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  // --- Auth Effect ---
+  // --- Auth Effect & Chat Loading ---
   useEffect(() => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsLoadingAuth(false);
+      // Load chats if session exists
+      if (session?.user) {
+        loadUserChats(session.user.id);
+      }
     });
 
     // Listen for auth changes
@@ -274,6 +288,8 @@ function App() {
 
       // Auto-redirect logic: Only redirect if currently on login page
       if (event === 'SIGNED_IN') {
+        if (session?.user) loadUserChats(session.user.id);
+
         setAppMode((prevMode) => {
           if (prevMode === 'login') {
             return 'selection';
@@ -284,17 +300,92 @@ function App() {
 
       if (event === 'SIGNED_OUT') {
         setAppMode('landing');
+        setSavedChats([]);
+        setCurrentChatId(null);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  const loadUserChats = async (userId) => {
+    try {
+      const chats = await getUserChats(userId);
+      setSavedChats(chats || []);
+    } catch (err) {
+      console.error("Failed to load chats:", err);
+    }
+  };
+
   const handleStart = () => {
     if (session) {
       setAppMode('selection');
     } else {
       setAppMode('login');
+    }
+  };
+
+
+  // --- NEW CHAT HANDLER (DB SYNC) ---
+  const handleNewChat = async () => {
+    console.log("Creating New Chat...");
+    // 1. Reset UI State
+    setEssayText('');
+    setAnalysisResult(null);
+    setIsAnalyzed(false);
+    setFileUrl(null);
+    setContextText(null);
+    setChatHistory([]);
+
+    // 2. Create DB Session if Logged In
+    if (session?.user) {
+      try {
+        const newChat = await createChat(session.user.id, "New Chat");
+        console.log("New Chat Created (DB):", newChat);
+
+        if (newChat) {
+          setCurrentChatId(newChat.id);
+          // Explicitly update savedChats with a new reference to trigger re-render
+          setSavedChats(prev => {
+            const newList = [newChat, ...prev];
+            console.log("Updated Chat List:", newList);
+            return newList;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to create new chat session:", err);
+        alert("Failed to create new chat session. Check if 'chat_sessions' table exists in Supabase.");
+      }
+    } else {
+      console.log("Guest Mode: New Chat (Local Only)");
+      setCurrentChatId(null);
+    }
+  };
+
+  // --- LOAD CHAT HANDLER ---
+  const handleLoadChat = async (chatId) => {
+    console.log("Loading Chat ID:", chatId);
+    try {
+      // 1. Fetch messages
+      const messages = await getChatMessages(chatId);
+      console.log("Loaded Messages:", messages?.length);
+
+      // 2. Map DB messages to UI format
+      const history = (messages || []).map(m => ({ role: m.role, content: m.content }));
+
+      // 3. Set State
+      setChatHistory(history);
+      setCurrentChatId(chatId);
+
+      // Clear analysis context for clean switch
+      setEssayText('');
+      setAnalysisResult(null);
+      setIsAnalyzed(false); // Maybe true if we want to show chat view immediately?
+      // Actually, if we load simple chat history, we should probably be in a "Chat View" mode.
+      // For now, staying in 'upload' mode (default) but with history visible is fine.
+
+    } catch (err) {
+      console.error("Failed to load chat:", err);
     }
   };
 
@@ -333,20 +424,28 @@ function App() {
 
     const url = URL.createObjectURL(file);
     setFileUrl(url);
-    setFileType(file.type);
+
+    // Normalize file type based on extension if MIME type is missing or generic
+    let detectedType = file.type;
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith('.pdf')) detectedType = 'application/pdf';
+    else if (lowerName.endsWith('.docx')) detectedType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    setFileType(detectedType);
     setFileName(file.name);
     setIsAnalyzed(true);
 
-    if (file.type === "text/plain") {
+    if (detectedType === "text/plain" || lowerName.endsWith('.txt')) {
       const reader = new FileReader();
       reader.onload = (event) => setEssayText(event.target.result);
       reader.readAsText(file);
     }
-    else if (file.type === "application/pdf") {
+    else if (detectedType === "application/pdf") {
       const reader = new FileReader();
       reader.onload = async (event) => {
         try {
-          const loadingTask = pdfjsLib.getDocument(event.target.result);
+          if (!window.pdfjsLib) throw new Error("PDF Library not loaded");
+          const loadingTask = window.pdfjsLib.getDocument(event.target.result);
           const pdf = await loadingTask.promise;
           let fullText = '';
 
@@ -365,12 +464,13 @@ function App() {
       };
       reader.readAsArrayBuffer(file);
     }
-    else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.endsWith(".docx")) {
+    else if (detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx")) {
       const reader = new FileReader();
       reader.onload = async (event) => {
         try {
+          if (!window.mammoth) throw new Error("Mammoth Library not loaded");
           const arrayBuffer = event.target.result;
-          const result = await mammoth.extractRawText({ arrayBuffer });
+          const result = await window.mammoth.extractRawText({ arrayBuffer });
           console.log("DOCX Parsed:", result.value.substring(0, 100) + "...");
           setEssayText(result.value);
         } catch (err) {
@@ -381,8 +481,11 @@ function App() {
       reader.readAsArrayBuffer(file);
     }
     else {
-      setEssayText('');
-      console.warn("Unsupported file type for text extraction:", file.type);
+      // Fallback: If it's an image, we don't extract text
+      if (!detectedType.startsWith('image/')) {
+        setEssayText('');
+        console.warn("Unsupported file type for text extraction:", detectedType);
+      }
     }
   };
 
@@ -414,11 +517,15 @@ function App() {
       abortControllerRef.current = controller;
 
       setIsAnalyzing(true);
-
       const userMsg = { role: 'user', content: messageToSend };
       // Optimistic Update
       const newHistory = [...chatHistory, userMsg];
       setChatHistory(newHistory);
+
+      // SAVE TO DB (User Message)
+      if (currentChatId) {
+        saveMessage(currentChatId, 'user', messageToSend).catch(err => console.error("Save Msg Error:", err));
+      }
 
       try {
         // If no analysis result yet, set a dummy one to ensure UI unlocks
@@ -429,6 +536,11 @@ function App() {
 
         const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedProvider, controller.signal);
         setChatHistory(prev => [...prev, { role: "assistant", content: aiResponse }]);
+
+        // SAVE TO DB (AI Message)
+        if (currentChatId) {
+          saveMessage(currentChatId, 'assistant', aiResponse).catch(err => console.error("Save Msg Error:", err));
+        }
 
       } catch (err) {
         if (err.name === 'AbortError') {
@@ -532,11 +644,7 @@ function App() {
 
     window.addEventListener('mouseup', handleGlobalMouseUp);
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, []);
-
-
-
-
+  }, [currentChatId]); // Added dep
 
 
   if (isLoadingAuth) {
@@ -548,7 +656,7 @@ function App() {
   }
 
   if (appMode === 'landing') {
-    return <LandingPage onStart={handleStart} onPrivacy={() => setAppMode('privacy')} />;
+    return <LandingPage onStart={handleStart} onPrivacy={() => setAppMode('privacy')} onTerms={() => setAppMode('terms')} />;
   }
 
   if (appMode === 'login') {
@@ -561,6 +669,10 @@ function App() {
 
   if (appMode === 'privacy') {
     return <PrivacyPolicy onBack={() => setAppMode('landing')} />;
+  }
+
+  if (appMode === 'terms') {
+    return <TermsOfService onBack={() => setAppMode('landing')} />;
   }
 
 
@@ -591,14 +703,7 @@ function App() {
             Switch Mode
           </button>
           <button
-            onClick={() => {
-              setEssayText('');
-              setAnalysisResult(null);
-              setIsAnalyzed(false);
-              setFileUrl(null);
-              setContextText(null);
-              setChatHistory([]); // Clear chat too
-            }}
+            onClick={handleNewChat} // UPDATED to use DB Handler
             className="w-full flex items-center gap-2 bg-white border border-oxford-blue/10 hover:border-bronze/30 hover:shadow-md text-oxford-blue px-4 py-3 rounded-xl transition-all shadow-sm group"
           >
             <div className="w-5 h-5 rounded-full bg-oxford-blue/5 flex items-center justify-center group-hover:bg-bronze group-hover:text-white transition-colors">
@@ -607,7 +712,24 @@ function App() {
             <span className="font-medium text-sm">New Chat</span>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar"></div>
+
+        {/* Chat History List */}
+        <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar space-y-1">
+          {savedChats.map(chat => (
+            <button
+              key={chat.id}
+              onClick={() => handleLoadChat(chat.id)}
+              className={`w-full text-left px-4 py-3 rounded-xl transition-colors text-sm flex items-center gap-3 ${currentChatId === chat.id
+                ? 'bg-oxford-blue/5 text-oxford-blue font-medium'
+                : 'text-oxford-blue/60 hover:bg-gray-50'
+                }`}
+            >
+              <MessageSquare size={16} className="shrink-0 opacity-50" />
+              <span className="truncate">{chat.title || "Untitled Chat"}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="p-4 border-t border-gray-100 bg-white relative">
           {showUserMenu && (
             <div className="fixed bottom-20 left-4 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn z-50">
@@ -749,7 +871,7 @@ function App() {
                             className="w-full min-h-[80vh] outline-none text-lg leading-loose font-serif text-oxford-blue whitespace-pre-wrap break-words selection:bg-yellow-200/50"
                             contentEditable={false} // Read only
                           >
-                            {essayText}
+                            {essayText || <span className="text-oxford-blue/50 italic">Reading document...</span>}
                           </div>
                         )}
                       </div>
