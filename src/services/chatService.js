@@ -10,7 +10,7 @@ export const createChat = async (userId, title = "New Chat") => {
     try {
         const { data, error } = await supabase
             .from('chat_sessions')
-            .insert([{ user_id: userId, title: title }])
+            .insert([{ user_id: userId, title: title, payload: {} }])
             .select()
             .single();
 
@@ -48,12 +48,17 @@ export const getUserChats = async (userId) => {
  * @param {string} chatId 
  * @returns {Promise<Array>} - List of message objects.
  */
+/**
+ * Fetches all messages for a specific chat session.
+ * @param {string} chatId 
+ * @returns {Promise<Array>} - List of message objects.
+ */
 export const getChatMessages = async (chatId) => {
     try {
         const { data, error } = await supabase
             .from('chat_messages')
             .select('*')
-            .eq('chat_id', chatId)
+            .eq('session_id', chatId) // FIX: Changed from chat_id to session_id
             .order('created_at', { ascending: true });
 
         if (error) throw error;
@@ -75,7 +80,7 @@ export const saveMessage = async (chatId, role, content) => {
     try {
         const { data, error } = await supabase
             .from('chat_messages')
-            .insert([{ chat_id: chatId, role, content }])
+            .insert([{ session_id: chatId, role, content }]) // FIX: Changed from chat_id to session_id
             .select()
             .single();
 
@@ -105,5 +110,32 @@ export const updateChatTitle = async (chatId, title) => {
         if (error) throw error;
     } catch (error) {
         console.error("Error updating chat title:", error);
+    }
+};
+
+/**
+ * Deletes a chat session and its messages (via cascade).
+ * @param {string} chatId 
+ */
+export const deleteChat = async (chatId) => {
+    try {
+        // 1. Delete messages first (Manual Cascade)
+        const { error: msgError } = await supabase
+            .from('chat_messages')
+            .delete()
+            .eq('session_id', chatId);
+
+        if (msgError) throw msgError;
+
+        // 2. Delete the session
+        const { error } = await supabase
+            .from('chat_sessions')
+            .delete()
+            .eq('id', chatId);
+
+        if (error) throw error;
+    } catch (error) {
+        console.error("Error deleting chat:", error);
+        throw error;
     }
 };
