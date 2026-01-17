@@ -1,5 +1,6 @@
 /* global pdfjsLib, mammoth */
 import React, { useState, useEffect, useRef } from 'react';
+import posthog from 'posthog-js';
 import {
   Upload,
   FileText,
@@ -218,6 +219,10 @@ function App() {
   // Persist App Mode
   useEffect(() => {
     localStorage.setItem('scholarGo_appMode', appMode);
+    // Track Page View
+    posthog.capture('$pageview', {
+      app_mode: appMode // detailed tracking
+    });
   }, [appMode]);
 
   // Auth State
