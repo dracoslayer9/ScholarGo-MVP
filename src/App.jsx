@@ -374,6 +374,8 @@ function App() {
   // --- NEW CHAT HANDLER (DB SYNC) ---
   const handleNewChat = async () => {
     console.log("Creating New Chat...");
+    posthog.capture('new_chat_clicked');
+
     // 1. Reset UI State
     setEssayText('');
     setAnalysisResult(null);
@@ -476,6 +478,8 @@ function App() {
     if (lowerName.endsWith('.pdf')) detectedType = 'application/pdf';
     else if (lowerName.endsWith('.docx')) detectedType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
+    posthog.capture('file_uploaded', { file_type: detectedType }); // Track Upload
+
     setFileType(detectedType);
     setFileName(file.name);
     setIsAnalyzed(true);
@@ -544,6 +548,8 @@ function App() {
     const messageToSend = rawMessage.trim();
     setChatInput(''); // Clear input
 
+    posthog.capture('chat_message_sent', { length: messageToSend.length }); // Track Message
+
     // DETERMINE MODE: Analysis vs Chat
     // We treat it as Chat if:
     // 1. Analysis already exists (Follow-up)
@@ -610,6 +616,8 @@ function App() {
 
     // --- ANALYSIS MODE ---
     console.log("Starting Initial Analysis...");
+    posthog.capture('analysis_started', { provider: selectedProvider });
+
     setContextText(null); // Clear context for global analysis unless specified
     if (essayText.trim()) {
       performAnalysis();
