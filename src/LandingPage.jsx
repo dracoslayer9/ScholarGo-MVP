@@ -63,10 +63,14 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
 
                         {/* App Screenshot */}
                         <div className="mt-16 w-full max-w-4xl mx-auto relative z-10 group flex justify-center">
-                            <img
-                                src="/hero-app-screenshot-v3.png"
-                                alt="ScholarGo Interface"
-                                className="relative z-10 rounded-xl border border-oxford-blue/10 w-auto max-w-full h-auto"
+                            <video
+                                src="/hero-app-demo.MOV"
+                                poster="/hero-app-screenshot copy.png"
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="relative z-10 rounded-xl border border-oxford-blue/10 w-full shadow-2xl"
                             />
                             {/* Bottom Fade Overlay - Reduced & White */}
                             <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white via-white/50 to-transparent z-20" />
