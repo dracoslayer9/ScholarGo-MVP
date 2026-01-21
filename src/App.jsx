@@ -363,17 +363,14 @@ function App() {
   };
 
   const handleStart = () => {
-    if (session) {
-      setAppMode('selection');
-    } else {
-      setAppMode('login');
-    }
+    // Lazy Auth: Always go to selection, check auth later on action
+    setAppMode('selection');
   };
 
 
   // --- NEW CHAT HANDLER (DB SYNC) ---
   const handleNewChat = async () => {
-    console.log("Creating New Chat...");
+    console.log("Resetting to New Chat (Local)...");
     posthog.capture('new_chat_clicked');
 
     // 1. Reset UI State
@@ -384,29 +381,8 @@ function App() {
     setContextText(null);
     setChatHistory([]);
 
-    // 2. Create DB Session if Logged In
-    if (session?.user) {
-      try {
-        const newChat = await createChat(session.user.id, "New Chat");
-        console.log("New Chat Created (DB):", newChat);
-
-        if (newChat) {
-          setCurrentChatId(newChat.id);
-          // Explicitly update savedChats with a new reference to trigger re-render
-          setSavedChats(prev => {
-            const newList = [newChat, ...prev];
-            console.log("Updated Chat List:", newList);
-            return newList;
-          });
-        }
-      } catch (err) {
-        console.error("Failed to create new chat session:", err);
-        alert(`Error Creating Chat: ${err.message || JSON.stringify(err)}`);
-      }
-    } else {
-      console.log("Guest Mode: New Chat (Local Only)");
-      setCurrentChatId(null);
-    }
+    // 2. Clear Active Chat ID (Lazy Creation: Will be created on first message)
+    setCurrentChatId(null);
   };
 
   // --- LOAD CHAT HANDLER ---
@@ -544,6 +520,12 @@ function App() {
 
     if ((!rawMessage.trim() && !essayText.trim()) || isAnalyzing) return;
 
+    // CHECK AUTH: Enforce login if guest tries to send/analyze
+    if (!session) {
+      setAppMode('login');
+      return;
+    }
+
     // Determine message to send
     const messageToSend = rawMessage.trim();
     setChatInput(''); // Clear input
@@ -574,14 +556,29 @@ function App() {
       setChatHistory(newHistory);
 
       // SAVE TO DB (User Message)
-      if (currentChatId) {
-        saveMessage(currentChatId, 'user', messageToSend).catch(err => console.error("Save Msg Error:", err));
+      // SAVE TO DB (User Message) - Lazy Create Logic
+      let activeChatId = currentChatId;
+
+      if (!activeChatId && session?.user) {
+        try {
+          // Create Session for first message
+          const newChat = await createChat(session.user.id, "New Chat");
+          activeChatId = newChat.id;
+          setCurrentChatId(activeChatId);
+          setSavedChats(prev => [newChat, ...prev]);
+        } catch (err) {
+          console.error("Failed to lazy-create chat:", err);
+        }
+      }
+
+      if (activeChatId) {
+        saveMessage(activeChatId, 'user', messageToSend).catch(err => console.error("Save Msg Error:", err));
 
         // AUTO-TITLE: If first message, generate "3 kata utama unik"
         if (chatHistory.length === 0) {
           const smartTitle = generateSmartTitle(messageToSend);
-          updateChatTitle(currentChatId, smartTitle);
-          setSavedChats(prev => prev.map(c => c.id === currentChatId ? { ...c, title: smartTitle } : c));
+          updateChatTitle(activeChatId, smartTitle);
+          setSavedChats(prev => prev.map(c => c.id === activeChatId ? { ...c, title: smartTitle } : c));
         }
       }
 
@@ -596,8 +593,8 @@ function App() {
         setChatHistory(prev => [...prev, { role: "assistant", content: aiResponse }]);
 
         // SAVE TO DB (AI Message)
-        if (currentChatId) {
-          saveMessage(currentChatId, 'assistant', aiResponse).catch(err => console.error("Save Msg Error:", err));
+        if (activeChatId) {
+          saveMessage(activeChatId, 'assistant', aiResponse).catch(err => console.error("Save Msg Error:", err));
         }
 
       } catch (err) {
@@ -898,12 +895,19 @@ function App() {
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
 
-        {appMode === 'canvas' ? (
+        {appMode === 'canvas' && (
           <CanvasWorkspace
-            onBack={() => setAppMode('selection')}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            onRequireAuth={() => {
+              if (!session) {
+                setAppMode('login');
+                return true; // Auth required
+              }
+              return false;
+            }}
           />
-        ) : (
+        )}
+        {appMode !== 'canvas' && (
           <>
             {/* Header */}
             <header className="bg-white/80 backdrop-blur-md border-b border-oxford-blue/10 shrink-0 z-10">
