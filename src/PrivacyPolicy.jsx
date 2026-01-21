@@ -10,66 +10,66 @@ const PrivacyPolicy = ({ onBack }) => {
                     className="flex items-center gap-2 text-oxford-blue/60 hover:text-oxford-blue transition-colors mb-12 font-medium"
                 >
                     <ArrowLeft size={20} />
-                    Back
+                    Kembali
                 </button>
 
-                <h1 className="text-4xl font-serif font-bold text-oxford-blue mb-4">Privacy Policy for ScholarGo</h1>
-                <p className="text-oxford-blue/60 mb-12">Effective Date: January 12, 2026</p>
+                <h1 className="text-4xl font-serif font-bold text-oxford-blue mb-4">Kebijakan Privasi ScholarGo</h1>
+                <p className="text-oxford-blue/60 mb-12">Effective Date: 12 Januari 2026</p>
 
                 <div className="space-y-12">
                     <section>
-                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">1. Introduction</h2>
+                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">1. Intro</h2>
                         <p className="text-oxford-blue/80 leading-relaxed">
-                            Welcome to ScholarGo. We respect your privacy and are committed to protecting your personal data. This policy explains how we handle your information when you use our Analysis and Canvas features.
+                            Selamat datang di ScholarGo. Kami sangat menghargai privasi dan punya komitmen penuh buat jagain data personal kamu. Kebijakan ini jelasin gimana cara kami mengelola informasi kamu saat lagi asik pake fitur Analysis dan Canvas kami.
                         </p>
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">2. Data We Collect</h2>
+                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">2. Data yang Kami kumpulin:</h2>
                         <p className="text-oxford-blue/80 leading-relaxed mb-4">
-                            We only collect information necessary to provide our scholarship essay services:
+                            Kami cuma ambil data yang emang perlu banget buat maksimalin layanan esai beasiswa kamu:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-oxford-blue/80 leading-relaxed">
-                            <li><strong>Identity Data:</strong> Name and email address provided by Google Authentication.</li>
-                            <li><strong>Content Data:</strong> Essays and drafts you type into the Interactive Writing Canvas.</li>
-                            <li><strong>Technical Data:</strong> IP address and browser type for security and performance monitoring via Supabase and Vercel.</li>
+                            <li><strong>Data Identitas:</strong> Nama dan email yang pengguna kasih via Google Authentication.</li>
+                            <li><strong>Data Konten:</strong> Esai dan draf yang kamu ketik di Interactive Writing Canvas.</li>
+                            <li><strong>Data Teknis:</strong> Alamat IP dan tipe browser buat monitoring keamanan dan performa lewat Supabase dan Vercel.</li>
                         </ul>
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">3. How We Use Your Data</h2>
+                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">3. Gimana Cara Kami Pakai Data Pengguna?</h2>
                         <p className="text-oxford-blue/80 leading-relaxed mb-4">
-                            We use your data to:
+                            Data kami gunain buat:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-oxford-blue/80 leading-relaxed">
-                            <li>Provide AI-powered structural analysis and narrative alignment.</li>
-                            <li>Save your progress in the writing laboratory.</li>
-                            <li>Maintain the security of your account.</li>
+                            <li>Kasih structural analysis berbasis AI dan narrative alignment yang presisi.</li>
+                            <li>Simpan semua progres kamu di laboratorium interaktif biar nggak hilang.</li>
+                            <li>Jagain keamanan akun kamu biar tetap aman.</li>
                         </ul>
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">4. Data Storage and Security</h2>
+                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">4. Penyimpanan & Keamanan Data</h2>
                         <p className="text-oxford-blue/80 leading-relaxed">
-                            All user data is stored securely using Supabase (PostgreSQL) with industry-standard encryption. We do not sell your personal data to third parties.
+                            Semua data user disimpan secara aman di Supabase (PostgreSQL) dengan enkripsi standar industri. Kami nggak jualan data personal kamu ke pihak ketiga mana pun.
                         </p>
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">5. Your Rights</h2>
+                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">5. Hak sebagai User</h2>
                         <p className="text-oxford-blue/80 leading-relaxed mb-4">
-                            You have the right to:
+                            kamu punya hak penuh buat:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-oxford-blue/80 leading-relaxed">
-                            <li>Access the personal data we hold about you.</li>
-                            <li>Request the deletion of your account and all associated essay data.</li>
+                            <li>Akses data personal yang kami simpan.</li>
+                            <li>Minta penghapusan akun beserta seluruh data esai terkait kapan saja.</li>
                         </ul>
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">6. Contact Us</h2>
+                        <h2 className="text-2xl font-bold text-oxford-blue mb-4">6. Hubungi Kami</h2>
                         <p className="text-oxford-blue/80 leading-relaxed">
-                            If you have questions about this policy, please contact us at the support email provided in your Google Cloud Console.
+                            Kalau ada pertanyaan soal kebijakan ini, kamu bisa langsung hubungi kami lewat email support yang terdaftar di Google Cloud Console atau teamscholargo@gmail.com.
                         </p>
                     </section>
                 </div>
