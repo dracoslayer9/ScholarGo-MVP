@@ -21,7 +21,7 @@ import {
 import { sendChatMessage } from './services/analysis';
 import ChatMessagesList from './components/ChatMessagesList';
 
-const CanvasWorkspace = ({ onToggleSidebar }) => {
+const CanvasWorkspace = ({ onToggleSidebar, onRequireAuth }) => {
     // --- State ---
     // Editor State
     const [essayTitle, setEssayTitle] = useState('Untitled Essay');
@@ -72,6 +72,9 @@ const CanvasWorkspace = ({ onToggleSidebar }) => {
     };
 
     const handleChatSubmit = async () => {
+        // Auth Check
+        if (onRequireAuth && onRequireAuth()) return;
+
         if ((!chatInput.trim() && !essayContent.trim()) || isAnalyzing) return;
 
         const userMessage = chatInput.trim() || "Analyze this essay";
