@@ -36,13 +36,13 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
 
                         {/* Headline */}
                         <h1 className="text-5xl md:text-7xl font-serif font-medium text-oxford-blue mb-8 leading-[1.1] tracking-tight max-w-4xl">
-                            AI for Winning <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Scholarships</span>
+                            AI Asisten <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Beasiswa</span>
                         </h1>
 
                         {/* Subtitle */}
                         <p className="text-lg md:text-xl text-oxford-blue/80 mb-12 max-w-2xl leading-relaxed font-normal">
-                            A specialized workspace designed to dissect scholarship frameworks and build your winning narrative with ease.
+                            Bantu bedah struktur esai pemenang dan susun narasi aplikasi autentik yang siap tembus beasiswa impian kamu
                         </p>
 
                         {/* CTAs */}
@@ -51,7 +51,13 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
                                 onClick={onStart}
                                 className="w-full sm:w-auto px-6 py-3 bg-bronze text-white rounded-xl font-bold hover:brightness-90 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg shadow-bronze/20"
                             >
-                                Start Now <span className="font-normal opacity-80 ml-1">– it's free</span>
+                                Langsung coba
+                            </button>
+                            <button
+                                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                                className="w-full sm:w-auto px-6 py-3 bg-white border border-oxford-blue/10 text-oxford-blue rounded-xl font-bold hover:bg-gray-50 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-sm"
+                            >
+                                Lihat Fitur
                             </button>
                         </div>
 
@@ -68,7 +74,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
 
                         {/* Social Proof / Trust */}
                         <div className="mt-8 md:mt-10 text-center relative z-20">
-                            <h3 className="text-sm font-medium text-oxford-blue/40 mb-6">Your partner in chasing scholarship dreams.</h3>
+                            <h3 className="text-sm font-medium text-oxford-blue/40 mb-6">Partner andalan raih beasiswa impian.</h3>
                             <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-700 ease-in-out">
                                 <span className="text-xl font-serif font-bold cursor-default">Fulbright</span>
                                 <span className="text-xl font-serif font-bold cursor-default">Chevening</span>
@@ -87,10 +93,10 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center mb-16">
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold tracking-wider text-sm uppercase mb-3 block">
-                            Powerful Features
+                            FITUR UNGGULAN
                         </span>
-                        <h2 className="text-3xl md:text-4xl font-serif font-medium text-oxford-blue mb-4">Analyze Deeper. Write Smarter.</h2>
-                        <p className="text-base text-oxford-blue/80 max-w-2xl mx-auto">Master the winning framework with AI-powered structural insights and an interactive laboratory for your scholarship narrative.</p>
+                        <h2 className="text-3xl md:text-4xl font-serif font-medium text-oxford-blue mb-4">Analisis Mendalam. Esai <span className="italic">Level-up</span>.</h2>
+                        <p className="text-base text-oxford-blue/80 max-w-2xl mx-auto">Bedah aplikasi dan susun esai di laboratorium interaktif.</p>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
@@ -99,9 +105,9 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
                             <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-blue-500/10">
                                 <Brain size={28} />
                             </div>
-                            <h3 className="text-2xl font-bold text-oxford-blue mb-4">AI-Powered Deep Analysis</h3>
+                            <h3 className="text-2xl font-bold text-oxford-blue mb-4">Analisis Esai Ala Awardee</h3>
                             <p className="text-oxford-blue/60 leading-relaxed text-lg">
-                                Instantly dissect essay structure with gold-standard awardee benchmarks and scholarship narrative alignment analysis.
+                                Secara cepat bedah pola esai penerima beasiswa global dengan AI.
                             </p>
                         </div>
 
@@ -110,9 +116,9 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
                             <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-bronze mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-bronze/10">
                                 <BookOpen size={28} />
                             </div>
-                            <h3 className="text-2xl font-bold text-oxford-blue mb-4">Interactive Writing Canvas</h3>
+                            <h3 className="text-2xl font-bold text-oxford-blue mb-4">Canvas Menulis Interaktif</h3>
                             <p className="text-oxford-blue/60 leading-relaxed text-lg">
-                                Write drafts with real-time interactive guidance to strengthen arguments and winning narrative patterns.
+                                Tulis draf secara real-time dengan panduan interaktif agar esai kamu sesuai dengan pemenang beasiswa.
                             </p>
                         </div>
                     </div>
@@ -135,10 +141,10 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
                 </div>
                 <div className="mb-4 flex justify-center gap-4">
                     <button onClick={onPrivacy} className="text-xs text-oxford-blue/40 hover:text-oxford-blue underline decoration-oxford-blue/20 underline-offset-4 transition-all">
-                        Privacy Policy
+                        Kebijakan Privasi
                     </button>
                     <button onClick={onTerms} className="text-xs text-oxford-blue/40 hover:text-oxford-blue underline decoration-oxford-blue/20 underline-offset-4 transition-all">
-                        Terms of Service
+                        Ketentuan Layanan
                     </button>
                 </div>
                 <p>© 2026 ScholarGo. All rights reserved.</p>
