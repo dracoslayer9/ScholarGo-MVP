@@ -70,10 +70,10 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
                                 loop
                                 muted
                                 playsInline
-                                className="relative z-10 rounded-xl border border-oxford-blue/10 w-full shadow-2xl"
+                                className="relative z-10 rounded-xl border border-oxford-blue/10 w-full shadow-sm"
                             />
-                            {/* Bottom Fade Overlay - Reduced & White */}
-                            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white via-white/50 to-transparent z-20" />
+                            {/* Bottom Fade Overlay - Smooth Transition */}
+                            <div className="absolute -bottom-1 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/20 to-transparent z-20 pointer-events-none" />
                         </div>
 
                         {/* Social Proof / Trust */}
