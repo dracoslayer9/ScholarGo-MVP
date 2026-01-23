@@ -9,7 +9,7 @@ import {
     Youtube
 } from 'lucide-react';
 
-const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
+const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
 
     return (
         <div className="min-h-screen bg-white font-sans text-oxford-blue overflow-x-hidden selection:bg-bronze/20">
@@ -23,7 +23,13 @@ const LandingPage = ({ onStart, onPrivacy, onTerms }) => {
                         </div>
                         <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">ScholarGo</span>
                     </div>
-                    {/* Right side empty as requested */}
+
+                    <button
+                        onClick={onLogin}
+                        className="px-5 py-2 text-sm font-bold text-oxford-blue hover:text-bronze transition-colors"
+                    >
+                        Masuk
+                    </button>
                 </div>
             </nav>
 
