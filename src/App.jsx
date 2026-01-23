@@ -713,7 +713,7 @@ function App() {
   }
 
   if (appMode === 'landing') {
-    return <LandingPage onStart={handleStart} onPrivacy={() => setAppMode('privacy')} onTerms={() => setAppMode('terms')} />;
+    return <LandingPage onStart={handleStart} onPrivacy={() => setAppMode('privacy')} onTerms={() => setAppMode('terms')} onLogin={() => setAppMode('login')} />;
   }
 
   if (appMode === 'login') {
