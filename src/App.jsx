@@ -15,7 +15,9 @@ import {
   Menu,
   Settings,
   Loader,
-  Trash2
+  Trash2,
+  Globe,
+  BookOpen
 } from 'lucide-react';
 
 import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/analysis';
