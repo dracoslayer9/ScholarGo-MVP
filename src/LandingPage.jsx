@@ -67,6 +67,10 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
                             </button>
                         </div>
 
+                        <p className="mt-6 text-sm font-medium text-oxford-blue/60 animate-fadeIn">
+                            50+ pejuang beasiswa sudah gabung!
+                        </p>
+
                         {/* App Screenshot */}
                         <div className="mt-16 w-full max-w-4xl mx-auto relative z-10 group flex justify-center">
                             <video
