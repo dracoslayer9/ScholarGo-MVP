@@ -414,6 +414,7 @@ function App() {
         console.log('Analysis aborted');
       } else {
         console.error("Narrative analysis failed", error);
+        alert(`Analysis Failed: ${error.message}`);
       }
     } finally {
       setIsAnalyzing(false);
@@ -584,6 +585,7 @@ function App() {
           // setChatHistory(prev => [...prev, { role: "assistant", content: "[Request cancelled]" }]); // Optional
         } else {
           console.error("Chat Failed:", err);
+          alert(`Chat Failed: ${err.message}`);
         }
       } finally {
         setIsAnalyzing(false);
@@ -620,6 +622,7 @@ function App() {
 
     } catch (err) {
       console.error("Insight Failed", err);
+      alert(`Insight Failed: ${err.message}`);
     } finally {
       setIsAnalyzing(false);
     }

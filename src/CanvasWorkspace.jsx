@@ -163,7 +163,8 @@ const CanvasWorkspace = ({ onToggleSidebar, onRequireAuth, user }) => {
                 console.log("Request cancelled by user");
             } else {
                 console.error("Chat Error:", error);
-                setChatHistory(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error processing your request." }]);
+                setChatHistory(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
+                alert(`Chat Failed: ${error.message}`);
             }
         } finally {
             setIsAnalyzing(false);
