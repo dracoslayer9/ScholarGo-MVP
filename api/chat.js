@@ -58,6 +58,7 @@ export default async function handler(req, res) {
         - **Validation**: Check if they pass the "Specificity Test" (Can anyone else write this?).
 
         **Interaction Mode**:
+        - **LANGUAGE**: DETECT the language of the user's input and document. **ALWAYS REPLY IN THE SAME LANGUAGE** as the user's input/document.
         - If the user asks for feedback, refer to the "Phase" they are in.
         - Be direct, professional, yet encouraging.
         - If they provide text, identify which Phase it belongs to and score it against the Pillars.

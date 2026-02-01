@@ -198,6 +198,47 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
         }
     };
 
+    // Manual Save Handler
+    const handleSaveChat = async () => {
+        if (!user || chatHistory.length === 0) return;
+
+        try {
+            let activeChatId = currentChatId;
+
+            // If no active session, create one explicitly
+            if (!activeChatId) {
+                const title = essayTitle.trim() || "Untitled Canvas Session";
+                const newChat = await createChat(user.id, `Canvas: ${title}`);
+                activeChatId = newChat.id;
+                setCurrentChatId(activeChatId);
+            }
+
+            // Save messages that haven't been saved? 
+            // actually chatService.saveMessage is individual. 
+            // But if we want to "snapshot" the whole thing or ensure validation:
+            // For now, simpler approach: The messages are saved one-by-one during chat. 
+            // So "Save" here might be more about updating the Title or ensuring the Essay Content is saved (if we had a DB field for it).
+            // Request says: "pastikan datanya tersimpan menjadi history chat khusus fitur canvas"
+
+            // Since we already lazy-create chat on first message (lines 102-114), 
+            // the chat might already be saved. 
+            // If the user hasn't sent a message yet, but wants to save "work" (the essay), we don't have a backend for essay text yet (only chats).
+            // So we will focus on ensuring the CHAT SESSION exists and has the correct title.
+
+            if (activeChatId) {
+                // Update title to match current essay title
+                const currentTitle = essayTitle.trim() || "Untitled Canvas Essay";
+                await updateChatTitle(activeChatId, `Canvas: ${currentTitle}`);
+                alert("Canvas Session Saved!");
+            }
+
+        } catch (error) {
+            console.error("Save Error:", error);
+            alert("Failed to save session.");
+        }
+    };
+
+
     // Word Count
     const wordCount = essayContent.trim() ? essayContent.trim().split(/\s+/).length : 0;
 
@@ -316,7 +357,11 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button className="p-2 text-oxford-blue/40 hover:text-bronze transition-colors">
+                        <button
+                            onClick={handleSaveChat}
+                            className="p-2 text-oxford-blue/40 hover:text-bronze transition-colors"
+                            title="Save Session"
+                        >
                             <Save size={18} />
                         </button>
                     </div>

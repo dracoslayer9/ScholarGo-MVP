@@ -727,20 +727,31 @@ function App() {
 
   if (appMode === 'canvas') {
     return (
-      <CanvasWorkspace
-        onSwitchMode={() => setAppMode('selection')}
-        onBack={() => setAppMode('landing')}
-        onRequireAuth={() => {
-          if (!session) {
-            setAppMode('login');
-            return true;
-          }
-          return false;
-        }}
-        user={session?.user}
-        onSignOut={handleSignOut}
-        onOpenSettings={() => setShowSettings(true)}
-      />
+      <>
+        <CanvasWorkspace
+          onSwitchMode={() => setAppMode('selection')}
+          onBack={() => setAppMode('landing')}
+          onRequireAuth={() => {
+            if (!session) {
+              setAppMode('login');
+              return true;
+            }
+            return false;
+          }}
+          user={session?.user}
+          onSignOut={handleSignOut}
+          onOpenSettings={() => setShowSettings(true)}
+        />
+        <SettingsModal
+          open={showSettings}
+          onClose={() => setShowSettings(false)}
+          user={session?.user}
+          onSignOut={handleSignOut}
+          onOpenPrivacy={() => {
+            console.log("Open Privacy Policy");
+          }}
+        />
+      </>
     );
   }
 

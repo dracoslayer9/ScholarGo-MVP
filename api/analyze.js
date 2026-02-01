@@ -30,6 +30,13 @@ export default async function handler(req, res) {
     const textWithLines = (text || '').split('\n').map((line, i) => `Line ${i + 1}: ${line}`).join('\n');
 
     let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
+    
+    **LANGUAGE INSTRUCTION**:
+    DETECT the language of the provided document. You MUST provide your analysis and response in the **SAME LANGUAGE** as the document. 
+    - If the document is in **Indonesian**, reply in **Indonesian**.
+    - If the document is in **English**, reply in **English**.
+    - Do not mix languages unless necessary for terminology.
+
 
     **TWO-PHASE PROTOCOL**:
     
