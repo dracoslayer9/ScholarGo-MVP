@@ -720,7 +720,8 @@ function App() {
   if (appMode === 'canvas') {
     return (
       <CanvasWorkspace
-        onToggleSidebar={() => setAppMode('selection')}
+        onSwitchMode={() => setAppMode('selection')}
+        onBack={() => setAppMode('landing')}
         onRequireAuth={() => {
           if (!session) {
             setAppMode('login');
