@@ -238,6 +238,19 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
         }
     };
 
+    const handleNewChat = () => {
+        // 1. Reset Chat State
+        setChatHistory([]);
+        setChatInput('');
+        setCurrentChatId(null);
+
+        // 2. Feedback
+        // Since we explicitly preserve the essay content (user request), 
+        // the screen might look "unchanged" if chat was already empty.
+        // We provide a subtle confirmation.
+        alert("New chat session started. Your essay is preserved.");
+    };
+
 
     // Word Count
     const wordCount = essayContent.trim() ? essayContent.trim().split(/\s+/).length : 0;
@@ -265,11 +278,7 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
 
                     <div className="pt-4 pb-2">
                         <button
-                            onClick={() => {
-                                // Keep essay content and title, just reset chat
-                                setChatHistory([]);
-                                setCurrentChatId(null);
-                            }}
+                            onClick={handleNewChat}
                             className="w-full flex items-center gap-3 bg-white border border-oxford-blue/10 hover:border-bronze/50 text-oxford-blue px-4 py-3 rounded-xl transition-all shadow-sm hover:shadow-md group"
                         >
                             <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center group-hover:bg-bronze/10 group-hover:text-bronze transition-colors">
