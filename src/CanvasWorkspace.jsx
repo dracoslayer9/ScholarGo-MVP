@@ -200,7 +200,7 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
 
     // Manual Save Handler
     const handleSaveChat = async () => {
-        if (!user || chatHistory.length === 0) return;
+        if (!user) return; // Allow saving even if chatHistory is empty (to save session title)
 
         try {
             let activeChatId = currentChatId;
@@ -266,8 +266,7 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                     <div className="pt-4 pb-2">
                         <button
                             onClick={() => {
-                                setEssayContent('');
-                                setEssayTitle('Untitled Essay');
+                                // Keep essay content and title, just reset chat
                                 setChatHistory([]);
                                 setCurrentChatId(null);
                             }}
