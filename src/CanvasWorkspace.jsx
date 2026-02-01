@@ -10,16 +10,30 @@ import {
     Menu,
     ChevronLeft,
     Layout,
-    Plus
+    Plus,
+    Command
 } from 'lucide-react';
 import { sendChatMessage } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle } from './services/chatService';
 import { generateSmartTitle } from './utils/chatUtils';
 import ChatMessagesList from './components/ChatMessagesList';
 
-const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user }) => {
+const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut, onOpenSettings }) => {
     // --- State ---
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const userMenuRef = useRef(null);
+
+    // Close menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+                setIsUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Editor State
     const [essayTitle, setEssayTitle] = useState('Untitled Essay');
@@ -229,8 +243,41 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user }) => {
                 <div className="flex-1" />
 
                 {/* User Profile */}
-                <div className="p-4 border-t border-oxford-blue/5">
-                    <div className="flex items-center gap-3 px-2 py-2">
+                <div className="p-4 border-t border-oxford-blue/5 relative" ref={userMenuRef}>
+                    {/* User Menu Popup */}
+                    {isUserMenuOpen && (
+                        <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl border border-oxford-blue/10 overflow-hidden animate-fadeIn flex flex-col z-50">
+                            <button className="text-left px-4 py-3 hover:bg-oxford-blue/5 text-sm font-medium text-oxford-blue transition-colors">
+                                Upgrade your plan
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsUserMenuOpen(false);
+                                    if (onOpenSettings) onOpenSettings();
+                                }}
+                                className="text-left px-4 py-3 hover:bg-oxford-blue/5 text-sm font-medium text-oxford-blue transition-colors flex justify-between items-center"
+                            >
+                                Settings
+                                <span className="text-xs text-oxford-blue/40 flex items-center gap-1">
+                                    <Command size={10} /> ,
+                                </span>
+                            </button>
+                            <div className="h-px bg-oxford-blue/10 my-0"></div>
+                            <button
+                                onClick={() => {
+                                    if (onSignOut) onSignOut();
+                                }}
+                                className="text-left px-4 py-3 hover:bg-red-50 text-sm font-bold text-red-500 transition-colors"
+                            >
+                                Log Out
+                            </button>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                        className="w-full flex items-center gap-3 px-2 py-2 hover:bg-oxford-blue/5 rounded-xl transition-colors text-left"
+                    >
                         <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-500/20">
                             {user?.email?.[0].toUpperCase() || 'S'}
                         </div>
@@ -240,7 +287,7 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user }) => {
                             </p>
                             <p className="text-xs text-oxford-blue/40 truncate">Free Plan</p>
                         </div>
-                    </div>
+                    </button>
                 </div>
             </aside>
 

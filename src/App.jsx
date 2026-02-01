@@ -263,6 +263,14 @@ function App() {
 
   // Chat Renaming State
   const [editingChatId, setEditingChatId] = useState(null);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setAppMode('landing');
+    setShowSettings(false);
+    setShowUserMenu(false);
+  };
   const [editingTitle, setEditingTitle] = useState("");
 
 
@@ -730,6 +738,8 @@ function App() {
           return false;
         }}
         user={session?.user}
+        onSignOut={handleSignOut}
+        onOpenSettings={() => setShowSettings(true)}
       />
     );
   }
@@ -1150,13 +1160,7 @@ function App() {
         open={showSettings}
         onClose={() => setShowSettings(false)}
         user={session?.user}
-        onSignOut={async () => {
-          await supabase.auth.signOut();
-          setSession(null);
-          setAppMode('landing');
-          setShowSettings(false);
-          setShowUserMenu(false);
-        }}
+        onSignOut={handleSignOut}
         onOpenPrivacy={() => {
           // Placeholder or actual logic for Privacy Policy
           console.log("Open Privacy Policy");
