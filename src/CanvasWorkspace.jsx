@@ -7,10 +7,14 @@ import {
     Loader,
     Bot,
     Sparkles,
-    Menu
+    Menu,
+    Plus,
+    MessageSquare,
+    Trash2,
+    X
 } from 'lucide-react';
 import { sendChatMessage } from './services/analysis';
-import { createChat, saveMessage, updateChatTitle } from './services/chatService';
+import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, deleteChat } from './services/chatService';
 import { generateSmartTitle } from './utils/chatUtils';
 import ChatMessagesList from './components/ChatMessagesList';
 
@@ -26,6 +30,56 @@ const CanvasWorkspace = ({ onToggleSidebar, onRequireAuth, user }) => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const [currentChatId, setCurrentChatId] = useState(null); // Canvas Chat Persistence
+
+    // Sidebar State
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [savedChats, setSavedChats] = useState([]);
+
+    // Fetch Canvas Chats on Load
+    useEffect(() => {
+        if (user) {
+            loadSavedChats();
+        }
+    }, [user]);
+
+    const loadSavedChats = async () => {
+        const chats = await getUserChats(user.id);
+        // FILTER: Only show chats that start with "Canvas:"
+        const canvasChats = chats.filter(c => c.title && c.title.startsWith("Canvas:"));
+        setSavedChats(canvasChats);
+    };
+
+    const handleLoadChat = async (chatId) => {
+        try {
+            const messages = await getChatMessages(chatId);
+            // Transform to UI format
+            const history = messages.map(m => ({ role: m.role, content: m.content }));
+            setChatHistory(history);
+            setCurrentChatId(chatId);
+            setSidebarOpen(false); // Close sidebar on selection
+        } catch (err) {
+            console.error("Failed to load chat", err);
+        }
+    };
+
+    const handleNewChat = () => {
+        setChatHistory([]);
+        setCurrentChatId(null);
+        setEssayContent(''); // Optional: clear essay too? Maybe ask user. For now, clear it for fresh start.
+        setEssayTitle('Untitled Essay');
+        setSidebarOpen(false);
+    };
+
+    const handleDeleteChat = async (e, chatId) => {
+        e.stopPropagation();
+        if (confirm('Are you sure you want to delete this chat?')) {
+            await deleteChat(chatId);
+            setSavedChats(prev => prev.filter(c => c.id !== chatId));
+            if (currentChatId === chatId) {
+                handleNewChat();
+            }
+        }
+    };
 
     // Refs
     const textareaRef = useRef(null);
@@ -185,14 +239,72 @@ const CanvasWorkspace = ({ onToggleSidebar, onRequireAuth, user }) => {
     return (
         <div className="flex h-screen bg-[#F8FAFC] overflow-hidden animate-fadeIn">
 
+            {/* INTERNAL SIDEBAR (Canvas Context) */}
+            <aside className={`${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} bg-white border-r border-gray-200 text-oxford-blue transition-all duration-300 ease-in-out flex flex-col shrink-0 overflow-hidden z-30`}>
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                    <span className="font-bold text-lg font-serif">Canvas History</span>
+                    <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-400">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="p-4">
+                    <button
+                        onClick={handleNewChat}
+                        className="w-full flex items-center gap-2 bg-bronze text-white px-4 py-3 rounded-xl hover:bg-bronze/90 transition-all font-medium shadow-lg shadow-bronze/20"
+                    >
+                        <Plus size={18} />
+                        New Canvas
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-3 space-y-2 pb-4">
+                    {savedChats.length === 0 ? (
+                        <div className="text-center py-10 text-gray-400 text-sm">
+                            No saved canvases yet.
+                        </div>
+                    ) : (
+                        savedChats.map(chat => (
+                            <div
+                                key={chat.id}
+                                onClick={() => handleLoadChat(chat.id)}
+                                className={`group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${currentChatId === chat.id ? 'bg-oxford-blue/5 text-oxford-blue font-medium' : 'hover:bg-gray-50 text-gray-600'}`}
+                            >
+                                <MessageSquare size={16} className={currentChatId === chat.id ? 'text-bronze' : 'text-gray-400'} />
+                                <div className="flex-1 truncate text-sm">
+                                    {chat.title.replace('Canvas: ', '')}
+                                </div>
+                                <button
+                                    onClick={(e) => handleDeleteChat(e, chat.id)}
+                                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-all"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Back to Home / Main App */}
+                <div className="p-4 border-t border-gray-100">
+                    <button
+                        onClick={onToggleSidebar} // Use the prop to go back to selection
+                        className="w-full flex items-center gap-2 text-gray-500 hover:text-oxford-blue px-4 py-2 hover:bg-gray-50 rounded-xl transition-colors text-sm"
+                    >
+                        <Menu size={16} />
+                        Back to Selection
+                    </button>
+                </div>
+            </aside>
+
             {/* LEFT PANEL: WRITING CANVAS */}
-            <div className="flex-1 flex flex-col border-r border-oxford-blue/10 h-full">
+            <div className="flex-1 flex flex-col border-r border-oxford-blue/10 h-full relative z-10">
                 {/* Header */}
                 <div className="h-16 border-b border-oxford-blue/10 flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm shrink-0">
                     <div className="flex items-center gap-4 flex-1">
                         {/* Toggle Sidebar */}
                         <button
-                            onClick={onToggleSidebar}
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
                             className="p-2 -ml-2 rounded-lg text-oxford-blue/40 hover:text-bronze hover:bg-oxford-blue/5 transition-colors"
                         >
                             <Menu size={20} />

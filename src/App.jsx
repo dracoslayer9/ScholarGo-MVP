@@ -336,7 +336,8 @@ function App() {
   const loadUserChats = async (userId) => {
     try {
       const chats = await getUserChats(userId);
-      setSavedChats(chats || []);
+      // Filter OUT Canvas chats from the main app history
+      setSavedChats((chats || []).filter(c => !c.title || !c.title.startsWith("Canvas:")));
     } catch (err) {
       console.error("Failed to load chats:", err);
     }
