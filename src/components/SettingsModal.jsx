@@ -73,20 +73,20 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                         {/* Profile Tab */}
                         {activeTab === 'profile' && (
                             <div className="space-y-6 animate-fadeIn">
-                                <h3 className="text-lg font-bold text-oxford-blue border-b border-gray-100 pb-4">Profil Pengguna</h3>
+                                <h3 className="text-lg font-bold text-oxford-blue border-b border-gray-100 pb-2">Profil Pengguna</h3>
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-oxford-blue/40 uppercase mb-2 tracking-wider">Full Name</label>
-                                        <div className="w-full p-3 bg-[#F8FAFC] border border-transparent rounded-xl text-oxford-blue font-medium shadow-sm">
+                                        <label className="block text-xs font-medium text-oxford-blue/40 uppercase mb-1">Full Name</label>
+                                        <div className="w-full p-3 bg-gray-50 border border-transparent rounded-xl text-oxford-blue font-medium">
                                             {user?.user_metadata?.full_name || "Scholar"}
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-oxford-blue/40 uppercase mb-2 tracking-wider">Email Address</label>
-                                        <div className="w-full p-3 bg-[#F8FAFC] border border-transparent rounded-xl text-oxford-blue font-medium flex items-center gap-3 shadow-sm">
-                                            <Mail size={18} className="text-oxford-blue/40" />
+                                        <label className="block text-xs font-medium text-oxford-blue/40 uppercase mb-1">Email Address</label>
+                                        <div className="w-full p-3 bg-gray-50 border border-transparent rounded-xl text-oxford-blue font-medium flex items-center gap-2">
+                                            <Mail size={16} className="text-oxford-blue/40" />
                                             {user?.email}
                                         </div>
                                     </div>
