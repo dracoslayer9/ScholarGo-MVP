@@ -309,6 +309,7 @@ function App() {
       setIsLoadingAuth(false);
       // Load chats if session exists
       if (session?.user) {
+        posthog.identify(session.user.id, { email: session.user.email });
         loadUserChats(session.user.id);
       }
     });
@@ -321,7 +322,10 @@ function App() {
 
       // Auto-redirect logic: Only redirect if currently on login page
       if (event === 'SIGNED_IN') {
-        if (session?.user) loadUserChats(session.user.id);
+        if (session?.user) {
+          posthog.identify(session.user.id, { email: session.user.email });
+          loadUserChats(session.user.id);
+        }
 
         setAppMode((prevMode) => {
           if (prevMode === 'login') {
@@ -332,6 +336,7 @@ function App() {
       }
 
       if (event === 'SIGNED_OUT') {
+        posthog.reset();
         setAppMode('landing');
         setSavedChats([]);
         setCurrentChatId(null);
