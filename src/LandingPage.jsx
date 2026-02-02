@@ -69,7 +69,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
 
                         <div className="mt-8 flex items-center justify-center gap-3 animate-fadeIn">
                             <span className="text-3xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                                50+
+                                100+
                             </span>
                             <span className="text-oxford-blue/60 font-medium">
                                 pejuang beasiswa sudah gabung!
