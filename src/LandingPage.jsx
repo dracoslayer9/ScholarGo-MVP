@@ -144,7 +144,85 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
                 </div>
             </section>
 
+            {/* Reviews Section */}
+            <section className="py-16 px-6 bg-white overflow-hidden">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-10">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold tracking-wider text-sm uppercase mb-2 block">
+                            KATA MEREKA
+                        </span>
+                        <h2 className="text-2xl md:text-3xl font-serif font-medium text-oxford-blue">
+                            Cerita Pejuang Beasiswa
+                        </h2>
+                    </div>
 
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {/* Review 1 */}
+                        <div className="p-6 rounded-2xl bg-white border border-oxford-blue/5 shadow-xl shadow-oxford-blue/5 hover:scale-[1.02] transition-transform duration-300">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                                    RM
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-oxford-blue text-sm">Riza Mafiroh</h4>
+                                </div>
+                                <div className="ml-auto text-red-500">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 opacity-90">
+                                        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <p className="text-oxford-blue/80 leading-relaxed font-medium text-sm">
+                                "...I will use this platform again once i find difficult"
+                            </p>
+                        </div>
+
+                        {/* Review 2 */}
+                        <div className="p-6 rounded-2xl bg-white border border-oxford-blue/5 shadow-xl shadow-oxford-blue/5 hover:scale-[1.02] transition-transform duration-300">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+                                    AD
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-oxford-blue text-sm">Afra Asmici Dian</h4>
+                                </div>
+                                <div className="ml-auto text-red-500">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 opacity-90">
+                                        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <p className="text-oxford-blue/80 leading-relaxed text-sm">
+                                "Terima kasih web ini sudah membantu saya dalam penulisan esai"
+                            </p>
+                        </div>
+
+                        {/* Review 3 */}
+                        <div className="p-6 rounded-2xl bg-white border border-oxford-blue/5 shadow-xl shadow-oxford-blue/5 hover:scale-[1.02] transition-transform duration-300">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                                    S
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-oxford-blue text-sm">Sooyaaa</h4>
+                                </div>
+                                <div className="ml-auto text-black">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 opacity-80">
+                                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <p className="text-oxford-blue/80 leading-relaxed text-sm">
+                                "Sangat membantu buat saran dan masukan review-nya"
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+
+
+            </section>
 
             {/* Footer */}
             <footer className="py-8 bg-white border-t border-oxford-blue/5 text-center text-sm text-oxford-blue/40">
