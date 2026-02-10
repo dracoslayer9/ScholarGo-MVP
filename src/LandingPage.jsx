@@ -160,26 +160,6 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
                         {/* Review 1 */}
                         <div className="p-6 rounded-2xl bg-white border border-oxford-blue/5 shadow-xl shadow-oxford-blue/5 hover:scale-[1.02] transition-transform duration-300">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                                    RM
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-oxford-blue text-sm">Riza Mafiroh</h4>
-                                </div>
-                                <div className="ml-auto text-red-500">
-                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 opacity-90">
-                                        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
-                                    </svg>
-                                </div>
-                            </div>
-                            <p className="text-oxford-blue/80 leading-relaxed font-medium text-sm">
-                                "...I will use this platform again once i find difficult"
-                            </p>
-                        </div>
-
-                        {/* Review 2 */}
-                        <div className="p-6 rounded-2xl bg-white border border-oxford-blue/5 shadow-xl shadow-oxford-blue/5 hover:scale-[1.02] transition-transform duration-300">
-                            <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
                                     AD
                                 </div>
@@ -194,6 +174,26 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
                             </div>
                             <p className="text-oxford-blue/80 leading-relaxed text-sm">
                                 "Terima kasih web ini sudah membantu saya dalam penulisan esai"
+                            </p>
+                        </div>
+
+                        {/* Review 2 */}
+                        <div className="p-6 rounded-2xl bg-white border border-oxford-blue/5 shadow-xl shadow-oxford-blue/5 hover:scale-[1.02] transition-transform duration-300">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                                    RM
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-oxford-blue text-sm">Riza Mafiroh</h4>
+                                </div>
+                                <div className="ml-auto text-red-500">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 opacity-90">
+                                        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <p className="text-oxford-blue/80 leading-relaxed font-medium text-sm">
+                                "...I will use this platform again once i find difficult"
                             </p>
                         </div>
 
