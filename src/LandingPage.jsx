@@ -200,9 +200,11 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
                         {/* Review 3 */}
                         <div className="p-6 rounded-2xl bg-white border border-oxford-blue/5 shadow-xl shadow-oxford-blue/5 hover:scale-[1.02] transition-transform duration-300">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
-                                    S
-                                </div>
+                                <img
+                                    src="/sooyaaa-review.jpg"
+                                    alt="Sooyaaa"
+                                    className="w-10 h-10 rounded-full object-cover border border-oxford-blue/10"
+                                />
                                 <div>
                                     <h4 className="font-bold text-oxford-blue text-sm">Sooyaaa</h4>
                                 </div>
