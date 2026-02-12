@@ -36,18 +36,18 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
     const getProgress = (current, max) => isPlus ? 100 : Math.min((current / max) * 100, 100);
 
     return (
-        <div className={minimal ? "px-6 py-3 space-y-3" : "p-4 space-y-4"}>
+        <div className={minimal ? "px-6 py-4 space-y-2" : "p-4 space-y-4"}>
             {!minimal && <h3 className="text-xs font-bold text-oxford-blue/40 uppercase tracking-wider">Free Plan Usage</h3>}
 
             {/* PDF Analysis */}
             {visible.includes('pdf_analysis') && (
                 <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-oxford-blue font-medium items-end">
+                    <div className={minimal ? "flex justify-between items-center text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
                         <div className="flex items-center gap-1.5">
                             {!minimal && <FileText size={14} className="text-blue-500" />}
-                            <span className={minimal ? "opacity-90 font-bold" : "opacity-70"}>PDF Analysis</span>
+                            <span className={minimal ? "" : "opacity-70"}>PDF Analysis</span>
                         </div>
-                        <span className="font-bold text-sm">{formatLimit(usage.usage_pdf_analysis, limits.pdf_analysis)}</span>
+                        <span className={minimal ? "" : "font-bold text-sm"}>{formatLimit(usage.usage_pdf_analysis, limits.pdf_analysis)}</span>
                     </div>
                     {!isPlus && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
@@ -63,12 +63,12 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
             {/* Chat Messages */}
             {visible.includes('chat') && (
                 <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-oxford-blue font-medium items-end">
+                    <div className={minimal ? "flex justify-between items-center text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
                         <div className="flex items-center gap-1.5">
                             {!minimal && <MessageSquare size={14} className="text-indigo-500" />}
-                            <span className={minimal ? "opacity-90 font-bold" : "opacity-70"}>Chat Messages</span>
+                            <span className={minimal ? "" : "opacity-70"}>Chat Messages</span>
                         </div>
-                        <span className="font-bold text-sm">{formatLimit(usage.usage_chat, limits.chat)}</span>
+                        <span className={minimal ? "" : "font-bold text-sm"}>{formatLimit(usage.usage_chat, limits.chat)}</span>
                     </div>
                     {!isPlus && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
@@ -84,12 +84,12 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
             {/* Deep Review */}
             {visible.includes('deep_review') && (
                 <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-oxford-blue font-medium items-end">
+                    <div className={minimal ? "flex justify-between items-center text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
                         <div className="flex items-center gap-1.5">
                             {!minimal && <Sparkles size={14} className="text-bronze" />}
-                            <span className={minimal ? "opacity-90 font-bold" : "opacity-70"}>Deep Review</span>
+                            <span className={minimal ? "" : "opacity-70"}>Deep Review</span>
                         </div>
-                        <span className="font-bold text-sm">{formatLimit(usage.usage_deep_review, limits.deep_review)}</span>
+                        <span className={minimal ? "" : "font-bold text-sm"}>{formatLimit(usage.usage_deep_review, limits.deep_review)}</span>
                     </div>
                     {!isPlus && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
