@@ -1378,6 +1378,13 @@ function App() {
         </div>
       )}
 
+      {/* Upgrade Modal for Analysis Mode */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        featureName={upgradeFeature}
+      />
+
     </div>
   );
 }
