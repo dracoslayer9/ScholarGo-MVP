@@ -1059,17 +1059,7 @@ function App() {
                     <Menu size={24} />
                   </button>
                   {!sidebarOpen && (
-                    <div
-                      className="flex items-center gap-2 animate-fadeIn cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => setAppMode('landing')}
-                    >
-                      <div className="w-8 h-8 bg-bronze rounded-lg flex items-center justify-center text-paper shadow-lg shadow-bronze/20">
-                        <BookOpen size={18} />
-                      </div>
-                      <h1 className="text-xl font-serif font-bold tracking-tight text-oxford-blue">
-                        ScholarGo
-                      </h1>
-                    </div>
+                    <div className="w-8 h-8"></div> /* Spacer or empty */
                   )}
                 </div>
               </div>
