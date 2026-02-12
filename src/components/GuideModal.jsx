@@ -105,47 +105,7 @@ const GuideModal = ({ isOpen, onClose }) => {
                         </div>
                     </section>
 
-                    <div className="h-px bg-gray-100 w-full"></div>
 
-                    {/* Section 3: Filosofi */}
-                    <section className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
-                        <div className="flex items-baseline gap-3 mb-4">
-                            <h3 className="text-xl font-serif font-bold text-oxford-blue">Filosofi ScholarGo</h3>
-                            <span className="text-bronze text-sm font-bold tracking-wide">Authenticity First ✨</span>
-                        </div>
-
-                        <div className="space-y-6">
-                            <p className="text-oxford-blue/80 text-sm leading-relaxed italic border-l-2 border-bronze/30 pl-4">
-                                "Kami memiliki prinsip bahwa AI tidak bisa menggantikan pengalaman hidupmu.
-                                ScholarGo dirancang sebagai <span className="font-bold text-oxford-blue">AI-Co-Pilot, bukan joki</span>.
-                                Cerita dan 'nyawa' esai tetap datang dari pikiranmu sendiri."
-                            </p>
-
-                            <div>
-                                <h4 className="text-sm font-bold text-oxford-blue mb-3 uppercase tracking-wider text-[10px] text-oxford-blue/40">Misi Kami</h4>
-                                <div className="grid sm:grid-cols-3 gap-4">
-                                    <div>
-                                        <div className="font-bold text-oxford-blue text-sm mb-1">Jujur</div>
-                                        <div className="text-xs text-oxford-blue/60">Berdasarkan pengalaman nyata yang kamu miliki.</div>
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-oxford-blue text-sm mb-1">Strategis</div>
-                                        <div className="text-xs text-oxford-blue/60">Tersusun dengan logika yang diinginkan pemberi beasiswa.</div>
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-oxford-blue text-sm mb-1">Memikat</div>
-                                        <div className="text-xs text-oxford-blue/60">Diksi tepat untuk menonjolkan potensi kepemimpinan.</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="text-center pt-2">
-                                <p className="text-xs text-oxford-blue/40">
-                                    "Panelis beasiswa mencari manusia dengan visi, bukan robot dengan kata-kata sempurna."
-                                </p>
-                            </div>
-                        </div>
-                    </section>
 
                 </div>
 

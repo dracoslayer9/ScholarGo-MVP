@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabaseClient';
 export const PLAN_LIMITS = {
     free: {
         pdf_analysis: 3,
-        chat: 5,
-        deep_review: 1
+        chat: 20,
+        deep_review: 3
     },
     plus: {
         pdf_analysis: 9999, // Unlimited
