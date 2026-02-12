@@ -70,7 +70,7 @@ const PricingPage = ({ onBack, onLogin }) => {
 
                             <div className="space-y-4">
                                 <FeatureItem text="3 Analisis Dokumen PDF" />
-                                <FeatureItem text="20 Chat AI Assistant" />
+                                <FeatureItem text="5 Chat AI Assistant" />
                                 <FeatureItem text="3 Deep Review (Insight)" />
                                 <FeatureItem text="Akses Fitur Dasar" />
                             </div>

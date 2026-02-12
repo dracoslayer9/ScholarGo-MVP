@@ -17,7 +17,7 @@ const GuideModal = ({ isOpen, onClose }) => {
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                     <div>
-                        <h2 className="text-2xl font-serif font-bold text-oxford-blue">Panduan & Filosofi</h2>
+                        <h2 className="text-2xl font-serif font-bold text-oxford-blue">Panduan</h2>
                         <p className="text-sm text-oxford-blue/60 mt-1">Cara memaksimalkan ScholarGo untuk hasil terbaik</p>
                     </div>
                     <button
