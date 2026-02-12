@@ -971,12 +971,7 @@ function App() {
 
               <div className="h-px bg-oxford-blue/10 my-0"></div>
 
-              {/* Email Header */}
-              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
-                <p className="text-xs text-oxford-blue/60 truncate font-medium">
-                  {session?.user?.email}
-                </p>
-              </div>
+              {/* Email Header Removed */}
 
               {/* Menu Items */}
               <div className="py-1">
