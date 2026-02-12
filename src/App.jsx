@@ -980,7 +980,14 @@ function App() {
 
               {/* Menu Items */}
               <div className="py-1">
-                <button className="w-full text-left px-4 py-2.5 text-sm text-oxford-blue hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => {
+                    setUpgradeFeature(null);
+                    setShowUpgradeModal(true);
+                    setShowUserMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-oxford-blue hover:bg-gray-50 transition-colors"
+                >
                   Upgrade your plan
                 </button>
                 <button

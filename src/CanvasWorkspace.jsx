@@ -322,7 +322,14 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
 
                             <div className="h-px bg-oxford-blue/10 my-0"></div>
 
-                            <button className="text-left px-4 py-3 hover:bg-oxford-blue/5 text-sm font-medium text-oxford-blue transition-colors">
+                            <button
+                                onClick={() => {
+                                    setIsUserMenuOpen(false);
+                                    setUpgradeFeature(null); // General view
+                                    setShowUpgradeModal(true);
+                                }}
+                                className="text-left px-4 py-3 hover:bg-oxford-blue/5 text-sm font-medium text-oxford-blue transition-colors"
+                            >
                                 Upgrade your plan
                             </button>
                             <button
