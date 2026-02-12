@@ -49,7 +49,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
                         </div>
                         <span className="font-bold text-sm">{formatLimit(usage.usage_pdf_analysis, limits.pdf_analysis)}</span>
                     </div>
-                    {!isPlus && (
+                    {!isPlus && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${usage.usage_pdf_analysis >= limits.pdf_analysis ? 'bg-red-500' : 'bg-blue-500'}`}
@@ -70,7 +70,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
                         </div>
                         <span className="font-bold text-sm">{formatLimit(usage.usage_chat, limits.chat)}</span>
                     </div>
-                    {!isPlus && (
+                    {!isPlus && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${usage.usage_chat >= limits.chat ? 'bg-red-500' : 'bg-indigo-500'}`}
@@ -91,7 +91,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
                         </div>
                         <span className="font-bold text-sm">{formatLimit(usage.usage_deep_review, limits.deep_review)}</span>
                     </div>
-                    {!isPlus && (
+                    {!isPlus && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${usage.usage_deep_review >= limits.deep_review ? 'bg-red-500' : 'bg-bronze'}`}
