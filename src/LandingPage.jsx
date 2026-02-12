@@ -8,8 +8,10 @@ import {
     CheckCircle,
     Youtube
 } from 'lucide-react';
+import GuideModal from './components/GuideModal';
 
-const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
+const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
+    const [showGuide, setShowGuide] = React.useState(false);
 
     return (
         <div className="min-h-screen bg-white font-sans text-oxford-blue overflow-x-hidden selection:bg-bronze/20">
@@ -17,19 +19,39 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
             {/* Navbar (Minimal) */}
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-oxford-blue/5">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    {/* Left: Logo */}
+                    <div className="flex-1 flex items-center justify-start gap-3">
                         <div className="w-10 h-10 bg-bronze rounded-xl flex items-center justify-center text-white shadow-lg shadow-bronze/20">
                             <BookOpen size={20} />
                         </div>
                         <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">ScholarGo</span>
                     </div>
 
-                    <button
-                        onClick={onLogin}
-                        className="px-5 py-2 text-sm font-bold text-oxford-blue hover:text-bronze transition-colors"
-                    >
-                        Masuk
-                    </button>
+                    {/* Center: Navigation */}
+                    <div className="hidden md:flex items-center justify-center gap-2">
+                        <button
+                            onClick={onPricing}
+                            className="px-4 py-2 text-sm font-medium text-oxford-blue/80 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded-xl transition-all"
+                        >
+                            Paket
+                        </button>
+                        <button
+                            onClick={() => setShowGuide(true)}
+                            className="px-4 py-2 text-sm font-medium text-oxford-blue/80 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded-xl transition-all"
+                        >
+                            Panduan
+                        </button>
+                    </div>
+
+                    {/* Right: Login */}
+                    <div className="flex-1 flex items-center justify-end gap-6">
+                        <button
+                            onClick={onLogin}
+                            className="px-5 py-2 text-sm font-bold text-oxford-blue hover:text-bronze transition-colors"
+                        >
+                            Masuk
+                        </button>
+                    </div>
                 </div>
             </nav>
 
@@ -37,8 +59,6 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
             <section className="relative pt-32 pb-12 lg:pt-48 lg:pb-20 px-6 overflow-hidden">
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="flex flex-col items-center text-center">
-
-
 
                         {/* Headline */}
                         <h1 className="text-5xl md:text-7xl font-serif font-medium text-oxford-blue mb-8 leading-[1.1] tracking-tight max-w-4xl">
@@ -69,7 +89,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
 
                         <div className="mt-8 flex items-center justify-center gap-3 animate-fadeIn">
                             <span className="text-3xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                                100+
+                                200+
                             </span>
                             <span className="text-oxford-blue/60 font-medium">
                                 pejuang beasiswa sudah gabung!
@@ -145,7 +165,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
             </section>
 
             {/* Reviews Section */}
-            <section className="py-16 px-6 bg-white overflow-hidden">
+            <section className="py-16 px-6 bg-white overflow-hidden border-t border-oxford-blue/5">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-10">
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold tracking-wider text-sm uppercase mb-2 block">
@@ -248,6 +268,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin }) => {
                 </div>
                 <p>© 2026 ScholarGo. All rights reserved.</p>
             </footer>
+            <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
         </div>
     );
 };

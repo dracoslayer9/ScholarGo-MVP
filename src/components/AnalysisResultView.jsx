@@ -57,38 +57,45 @@ const AnalysisResultView = ({ result }) => {
             <div>
                 <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-4">Structural Analysis</h3>
                 <div className="space-y-6">
-                    {result.paragraphBreakdown.map((item, idx) => (
-                        <div key={idx} className="bg-white rounded-xl border border-oxford-blue/5 shadow-sm p-6 hover:shadow-md transition-all group">
-                            <div className="flex items-center mb-3">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest">{item.paragraph_number ? `Para ${item.paragraph_number}` : ''}</span>
-                                    <h4 className="font-serif font-bold text-oxford-blue text-lg">{item.detected_subtitle || item.section_label || item.section}</h4>
+                    {Array.isArray(result.paragraphBreakdown) ? (
+                        result.paragraphBreakdown.map((item, idx) => (
+                            <div key={idx} className="bg-white rounded-xl border border-oxford-blue/5 shadow-sm p-6 hover:shadow-md transition-all group">
+                                <div className="flex items-center mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest">{item.paragraph_number ? `Para ${item.paragraph_number}` : ''}</span>
+                                        <h4 className="font-serif font-bold text-oxford-blue text-lg">{item.detected_subtitle || item.section_label || item.section}</h4>
+                                    </div>
                                 </div>
-                            </div>
-                            {(item.analysis_current || item.purpose) && (
-                                <div className="mb-4">
-                                    <p className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest mb-1">Current Structure</p>
-                                    <p className="text-sm font-medium text-oxford-blue/80">{item.analysis_current || item.purpose}</p>
-                                </div>
-                            )}
-                            <div className="space-y-4">
-                                {item.main_idea && (
-                                    <div>
-                                        <p className="text-[10px] font-bold text-oxford-blue/20 uppercase tracking-widest mb-1">Main Idea</p>
-                                        <p className="text-sm md:text-base text-oxford-blue leading-relaxed font-medium">{item.main_idea}</p>
+                                {(item.analysis_current || item.purpose) && (
+                                    <div className="mb-4">
+                                        <p className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest mb-1">Current Structure</p>
+                                        <p className="text-sm font-medium text-oxford-blue/80">{item.analysis_current || item.purpose}</p>
                                     </div>
                                 )}
-                                {item.evidence_quote && (
-                                    <div className="pl-4 border-l-2 border-bronze/30">
-                                        <p className="text-[10px] font-bold text-bronze/50 uppercase tracking-widest mb-1">
-                                            Evidence {item.evidence_location && <span className="ml-2 text-oxford-blue/30 text-[9px] normal-case bg-oxford-blue/5 px-1.5 py-0.5 rounded">Re: {item.evidence_location}</span>}
-                                        </p>
-                                        <p className="text-sm text-oxford-blue/60 italic font-serif leading-relaxed">"{item.evidence_quote}"</p>
-                                    </div>
-                                )}
+                                <div className="space-y-4">
+                                    {item.main_idea && (
+                                        <div>
+                                            <p className="text-[10px] font-bold text-oxford-blue/20 uppercase tracking-widest mb-1">Main Idea</p>
+                                            <p className="text-sm md:text-base text-oxford-blue leading-relaxed font-medium">{item.main_idea}</p>
+                                        </div>
+                                    )}
+                                    {item.evidence_quote && (
+                                        <div className="pl-4 border-l-2 border-bronze/30">
+                                            <p className="text-[10px] font-bold text-bronze/50 uppercase tracking-widest mb-1">
+                                                Evidence {item.evidence_location && <span className="ml-2 text-oxford-blue/30 text-[9px] normal-case bg-oxford-blue/5 px-1.5 py-0.5 rounded">Re: {item.evidence_location}</span>}
+                                            </p>
+                                            <p className="text-sm text-oxford-blue/60 italic font-serif leading-relaxed">"{item.evidence_quote}"</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg">
+                            <p>Analysis structure is incomplete or malformed.</p>
+                            <pre className="text-xs mt-2 overflow-auto max-h-40">{JSON.stringify(result.paragraphBreakdown, null, 2)}</pre>
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
         </div>

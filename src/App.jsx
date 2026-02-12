@@ -37,6 +37,10 @@ import PrivacyPolicy from './PrivacyPolicy';
 import TermsOfService from './TermsOfService';
 import CanvasWorkspace from './CanvasWorkspace';
 import SettingsModal from './components/SettingsModal';
+import UpgradeModal from './components/UpgradeModal';
+import QuotaDisplay from './components/QuotaDisplay';
+import PricingPage from './PricingPage';
+import { checkUsageQuota, incrementUsage } from './services/subscriptionService';
 // ... (lines 48-670 unchanged) ... 
 // Jumping to render logic below ... 
 
@@ -239,6 +243,7 @@ function App() {
   const fileInputRef = useRef(null);
   const chatInputRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const userMenuRef = useRef(null);
 
   // Scroll Ref for Unified View
   const messagesEndRef = useRef(null);
@@ -260,6 +265,10 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Subscription State
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState('');
 
   // Chat Renaming State
   const [editingChatId, setEditingChatId] = useState(null);
@@ -304,6 +313,12 @@ function App() {
   // --- Auth Effect & Chat Loading ---
   useEffect(() => {
     // Check active session
+    if (!supabase) {
+      console.error("Supabase client not authorized or configured.");
+      setIsLoadingAuth(false); // Stop loading so we don't get stuck on spinner
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsLoadingAuth(false);
@@ -312,12 +327,13 @@ function App() {
         posthog.identify(session.user.id, { email: session.user.email });
         loadUserChats(session.user.id);
       }
+    }).catch(err => {
+      console.error("Session check failed:", err);
+      setIsLoadingAuth(false);
     });
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase?.auth ? supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
 
       // Auto-redirect logic: Only redirect if currently on login page
@@ -341,9 +357,13 @@ function App() {
         setSavedChats([]);
         setCurrentChatId(null);
       }
-    });
+    }) : { data: { subscription: { unsubscribe: () => { } } } };
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const loadUserChats = async (userId) => {
@@ -410,7 +430,7 @@ function App() {
 
 
 
-  const performAnalysis = async () => {
+  const performAnalysis = async (instructionOverride = null) => {
     if (!essayText.trim()) return;
 
     // Create AbortController
@@ -420,7 +440,8 @@ function App() {
     setIsAnalyzing(true);
     try {
       console.log(`Analyzing essay...`);
-      const result = await analyzeEssay(essayText, selectedProvider, chatInput, contextText, controller.signal);
+      const instruction = instructionOverride || chatInput;
+      const result = await analyzeEssay(essayText, selectedProvider, instruction, contextText, controller.signal);
       setAnalysisResult(result);
       setIsAnalyzed(true);
     } catch (error) {
@@ -436,9 +457,25 @@ function App() {
     }
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // CHECK QUOTA: PDF Analysis
+    if (session?.user) {
+      const { allowed } = await checkUsageQuota(session.user.id, 'pdf_analysis');
+      if (!allowed) {
+        setUpgradeFeature('PDF Analysis');
+        setShowUpgradeModal(true);
+        // Reset file input
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+      // Increment only after successful processing (done inside specific blocks or here if confident)
+      // We'll increment here for simplicity of "Attempt" or move it to success
+      // Non-blocking increment to ensure UI updates
+      incrementUsage(session.user.id, 'pdf_analysis').catch(err => console.error("Increment failed", err));
+    }
 
     const url = URL.createObjectURL(file);
     setFileUrl(url);
@@ -546,6 +583,21 @@ function App() {
 
       setIsAnalyzing(true);
       const userMsg = { role: 'user', content: messageToSend };
+
+      // CHECK QUOTA: Chat
+      if (session?.user) {
+        const { allowed } = await checkUsageQuota(session.user.id, 'chat');
+        if (!allowed) {
+          setUpgradeFeature('Chat Messages');
+          setShowUpgradeModal(true);
+          setIsAnalyzing(false); // Reset loading state
+          abortControllerRef.current = null;
+          return;
+        }
+        // Non-blocking increment
+        incrementUsage(session.user.id, 'chat').catch(err => console.error("Increment failed", err));
+      }
+
       // Optimistic Update
       const newHistory = [...chatHistory, userMsg];
       setChatHistory(newHistory);
@@ -582,7 +634,10 @@ function App() {
         // If no analysis result yet, set a dummy one to ensure UI unlocks
         if (!analysisResult) {
           setAnalysisResult({ globalSummary: "Research / Chat Session Active", paragraphBreakdown: [] });
-          setIsAnalyzed(true);
+          // Only switch to document view if we actually have content
+          if (essayText || fileUrl) {
+            setIsAnalyzed(true);
+          }
         }
 
         const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedProvider, controller.signal);
@@ -612,6 +667,21 @@ function App() {
     console.log("Starting Initial Analysis...");
     posthog.capture('analysis_started', { provider: selectedProvider });
 
+    // CHECK QUOTA: PDF Analysis (using pdf_analysis quota for General Analysis too, or creating a new one? 
+    // Plan says "3 PDF Analysis". If this is text analysis, maybe it shares? 
+    // Let's assume functionality "Analysis" maps to "pdf_analysis" or strictly text is free? 
+    // The prompt said "3 Analisis PDF". It didn't specify raw text limits. 
+    // But usually "Analysis" is the heavy feature. I'll map it to 'pdf_analysis' for now to be safe/consistent with "Analysis".
+    if (session?.user) {
+      const { allowed } = await checkUsageQuota(session.user.id, 'pdf_analysis');
+      if (!allowed) {
+        setUpgradeFeature('Essay Analysis');
+        setShowUpgradeModal(true);
+        return;
+      }
+      incrementUsage(session.user.id, 'pdf_analysis').catch(err => console.error("Increment failed", err));
+    }
+
     setContextText(null); // Clear context for global analysis unless specified
     if (essayText.trim()) {
       performAnalysis();
@@ -622,6 +692,17 @@ function App() {
   const handleInsightClick = async () => {
     const textToAnalyze = selectionPopup.text;
     setSelectionPopup({ ...selectionPopup, show: false });
+
+    // CHECK QUOTA: Deep Review
+    if (session?.user) {
+      const { allowed } = await checkUsageQuota(session.user.id, 'deep_review');
+      if (!allowed) {
+        setUpgradeFeature('Deep Review');
+        setShowUpgradeModal(true);
+        return;
+      }
+      incrementUsage(session.user.id, 'deep_review').catch(err => console.error("Increment failed", err));
+    }
 
     setIsAnalyzing(true);
 
@@ -702,6 +783,9 @@ function App() {
   }, [currentChatId]); // Added dep
 
 
+  // Determine effective mode
+  // If we are in 'upload' mode (default), we just render the main layout
+
   if (isLoadingAuth) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#F8FAFC]">
@@ -711,7 +795,15 @@ function App() {
   }
 
   if (appMode === 'landing') {
-    return <LandingPage onStart={handleStart} onPrivacy={() => setAppMode('privacy')} onTerms={() => setAppMode('terms')} onLogin={() => setAppMode('login')} />;
+    return (
+      <LandingPage
+        onStart={handleStart}
+        onPrivacy={() => setAppMode('privacy')}
+        onTerms={() => setAppMode('terms')}
+        onLogin={() => setAppMode('login')}
+        onPricing={() => setAppMode('pricing')}
+      />
+    );
   }
 
   if (appMode === 'login') {
@@ -728,6 +820,15 @@ function App() {
 
   if (appMode === 'terms') {
     return <TermsOfService onBack={() => setAppMode('landing')} />;
+  }
+
+  if (appMode === 'pricing') {
+    return (
+      <PricingPage
+        onBack={() => setAppMode('landing')}
+        onLogin={() => setAppMode('login')}
+      />
+    );
   }
 
   if (appMode === 'canvas') {
@@ -755,6 +856,11 @@ function App() {
           onOpenPrivacy={() => {
             console.log("Open Privacy Policy");
           }}
+        />
+        <UpgradeModal
+          open={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          featureName={upgradeFeature}
         />
       </>
     );
@@ -857,9 +963,14 @@ function App() {
           ))}
         </div>
 
-        <div className="p-4 border-t border-gray-100 bg-white relative">
+        <div className="p-4 border-t border-gray-100 bg-white relative" ref={userMenuRef}>
           {showUserMenu && (
-            <div className="fixed bottom-20 left-4 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn z-50">
+            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl border border-oxford-blue/10 overflow-hidden animate-fadeIn flex flex-col z-50">
+
+
+
+              <div className="h-px bg-oxford-blue/10 my-0"></div>
+
               {/* Email Header */}
               <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                 <p className="text-xs text-oxford-blue/60 truncate font-medium">
@@ -1044,11 +1155,27 @@ function App() {
                     <span className="font-bold text-sm tracking-wide">AI Assistant</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="text-oxford-blue/40 hover:text-red-500 transition-colors">
-                      <X size={16} onClick={() => {/* Maybe toggle sidebar visibility context */ }} />
+                    {/* Close button that just hides on mobile or does nothing on desktop */}
+                    <button
+                      onClick={() => setSidebarOpen(false)} // Assuming this closes it on mobile
+                      className="text-oxford-blue/40 hover:text-red-500 transition-colors lg:hidden"
+                    >
+                      <X size={16} />
                     </button>
                   </div>
                 </div>
+
+                {/* Quota Display */}
+                <div className="bg-gray-50 border-b border-oxford-blue/5">
+                  <QuotaDisplay userId={session?.user?.id} />
+                </div>
+
+                {/* Quota Indicator (Free Plan Only) */}
+                {session?.user && (
+                  <div className="border-b border-oxford-blue/5">
+                    <QuotaDisplay userId={session.user.id} />
+                  </div>
+                )}
 
                 {/* Chat Stream */}
                 <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-6">
@@ -1062,15 +1189,15 @@ function App() {
 
                       {(essayText || fileUrl) && (
                         <button
-                          onClick={() => handleChatSubmit("Analyze all paragraphs with format: Main Idea, Idea Development, and Sentence Evidence")}
+                          onClick={() => performAnalysis("Analyze all paragraphs with format: Main Idea, Idea Development, and Sentence Evidence")}
                           className="w-full flex items-center gap-3 p-3 bg-white border border-oxford-blue/10 rounded-xl shadow-sm hover:shadow-md hover:border-bronze/30 transition-all group text-left"
                         >
                           <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center text-oxford-blue/60 group-hover:bg-bronze/10 group-hover:text-bronze transition-colors">
                             <Sparkles size={16} />
                           </div>
                           <div>
-                            <p className="font-bold text-oxford-blue text-xs group-hover:text-bronze transition-colors">Analyze All</p>
-                            <p className="text-[10px] text-oxford-blue/50">Full structure breakdown</p>
+                            <p className="font-bold text-oxford-blue text-xs group-hover:text-bronze transition-colors">Analisis Semua</p>
+                            <p className="text-[10px] text-oxford-blue/50">Bedah seluruh struktur</p>
                           </div>
                         </button>
                       )}

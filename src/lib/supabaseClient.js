@@ -11,4 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Create and export the Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create and export the Supabase client, handling missing keys gracefully
+export const supabase = (supabaseUrl && supabaseAnonKey)
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;

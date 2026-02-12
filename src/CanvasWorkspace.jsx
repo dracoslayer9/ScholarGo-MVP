@@ -17,6 +17,9 @@ import { sendChatMessage } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle } from './services/chatService';
 import { generateSmartTitle } from './utils/chatUtils';
 import ChatMessagesList from './components/ChatMessagesList';
+import UpgradeModal from './components/UpgradeModal';
+import QuotaDisplay from './components/QuotaDisplay';
+import { checkUsageQuota, incrementUsage } from './services/subscriptionService';
 
 const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut, onOpenSettings }) => {
     // --- State ---
@@ -45,6 +48,10 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const [currentChatId, setCurrentChatId] = useState(null); // Canvas Chat Persistence
+
+    // Subscription State
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [upgradeFeature, setUpgradeFeature] = useState('');
 
     // Refs
     const textareaRef = useRef(null);
@@ -88,6 +95,17 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
         if (onRequireAuth && onRequireAuth()) return;
 
         if ((!chatInput.trim() && !essayContent.trim()) || isAnalyzing) return;
+
+        // CHECK QUOTA: Chat
+        if (user) {
+            const { allowed } = await checkUsageQuota(user.id, 'chat');
+            if (!allowed) {
+                setUpgradeFeature('Chat Messages');
+                setShowUpgradeModal(true);
+                return;
+            }
+            incrementUsage(user.id, 'chat').catch(err => console.error("Increment failed", err));
+        }
 
         const userMessage = chatInput.trim() || "Analyze this essay";
         // precise context: The essay content
@@ -296,6 +314,11 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                     {/* User Menu Popup */}
                     {isUserMenuOpen && (
                         <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl border border-oxford-blue/10 overflow-hidden animate-fadeIn flex flex-col z-50">
+
+
+
+                            <div className="h-px bg-oxford-blue/10 my-0"></div>
+
                             <button className="text-left px-4 py-3 hover:bg-oxford-blue/5 text-sm font-medium text-oxford-blue transition-colors">
                                 Upgrade your plan
                             </button>
@@ -447,6 +470,11 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                     </button>
                 </div>
 
+                {/* Quota Display */}
+                <div className="bg-white border-b border-oxford-blue/5">
+                    <QuotaDisplay userId={user?.id} />
+                </div>
+
                 {/* Chat History & Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F8FAFC] custom-scrollbar">
                     {/* Welcome Message */}
@@ -521,6 +549,11 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                     </div>
                 </div>
             </div>
+            <UpgradeModal
+                open={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                featureName={upgradeFeature}
+            />
         </div>
     );
 };
