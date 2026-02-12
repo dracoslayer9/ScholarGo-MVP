@@ -1059,7 +1059,9 @@ function App() {
                     <Menu size={24} />
                   </button>
                   {!sidebarOpen && (
-                    <div className="w-8 h-8"></div> /* Spacer or empty */
+                    <div className="flex items-center">
+                      <QuotaDisplay userId={session?.user?.id} visibleQuotas={['pdf_analysis', 'chat']} minimal={true} />
+                    </div>
                   )}
                 </div>
               </div>
@@ -1140,18 +1142,15 @@ function App() {
 
                 {/* Sidebar Header */}
                 {/* Sidebar Header with Quota */}
-                <div className="h-16 flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm border-b border-oxford-blue/10 shrink-0">
-                  <div className="flex-1 flex flex-col justify-center">
-                    <QuotaDisplay userId={session?.user?.id} visibleQuotas={['pdf_analysis', 'chat']} minimal={true} />
-                  </div>
-                  {/* Mobile Close Button */}
-                  <button
-                    onClick={() => setSidebarOpen(false)}
-                    className="text-oxford-blue/40 hover:text-red-500 transition-colors lg:hidden ml-4"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
+                {/* Sidebar Header Removed - Quota moved to main header */}
+
+                {/* Mobile Close Button (Floating) */}
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="absolute top-4 right-4 z-50 text-oxford-blue/40 hover:text-red-500 transition-colors lg:hidden bg-white/80 p-2 rounded-full shadow-sm backdrop-blur-sm"
+                >
+                  <X size={16} />
+                </button>
 
                 {/* Chat Stream */}
                 <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-6">
