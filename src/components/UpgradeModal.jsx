@@ -53,7 +53,6 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
                             <div className="mb-6 relative z-10">
                                 <div className="flex items-center justify-between mb-1">
                                     <h3 className="font-serif font-bold text-xl text-oxford-blue">Plus Plan</h3>
-                                    <Sparkles size={16} className="text-bronze" />
                                 </div>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-2xl font-bold text-oxford-blue">Rp 49rb</span>
@@ -70,9 +69,9 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
 
                             <button
                                 onClick={() => alert("Payment coming soon!")}
-                                className="w-full py-3 bg-gradient-to-r from-bronze to-amber-600 text-white font-bold rounded-xl shadow-lg shadow-bronze/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-2 group"
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-2"
                             >
-                                <Crown size={16} className="group-hover:-translate-y-0.5 transition-transform" />
+                                <Crown size={16} />
                                 Upgrade Now
                             </button>
                         </div>
@@ -103,9 +102,9 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
                             </div>
                             <button
                                 onClick={() => alert("Payment integration coming soon!")}
-                                className="w-full py-3 bg-gradient-to-r from-bronze to-amber-600 text-white rounded-xl font-bold shadow-lg shadow-bronze/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group text-sm"
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm"
                             >
-                                <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
+                                <Crown size={16} />
                                 Upgrade to Plus
                             </button>
                             <button onClick={onClose} className="w-full mt-4 text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors">
