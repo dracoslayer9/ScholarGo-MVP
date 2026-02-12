@@ -21,6 +21,8 @@ import UpgradeModal from './components/UpgradeModal';
 import QuotaDisplay from './components/QuotaDisplay';
 import { checkUsageQuota, incrementUsage } from './services/subscriptionService';
 
+
+
 const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut, onOpenSettings }) => {
     // --- State ---
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -305,6 +307,11 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                             <span className="font-bold text-sm">New Chat</span>
                         </button>
                     </div>
+                </div>
+
+
+                <div className="px-4 py-2 border-t border-oxford-blue/5">
+                    <QuotaDisplay userId={user?.id} visibleQuotas={['chat', 'deep_review']} />
                 </div>
 
                 <div className="flex-1" />

@@ -1166,14 +1166,12 @@ function App() {
                 </div>
 
                 {/* Quota Display */}
-                <div className="bg-gray-50 border-b border-oxford-blue/5">
-                  <QuotaDisplay userId={session?.user?.id} />
-                </div>
+
 
                 {/* Quota Indicator (Free Plan Only) */}
                 {session?.user && (
                   <div className="border-b border-oxford-blue/5">
-                    <QuotaDisplay userId={session.user.id} />
+                    <QuotaDisplay userId={session?.user?.id} visibleQuotas={['pdf_analysis', 'chat']} />
                   </div>
                 )}
 
