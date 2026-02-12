@@ -463,7 +463,7 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                 {/* Header */}
                 {/* Header / Quota Indicator */}
                 <div className="border-b border-oxford-blue/5 bg-gray-50/50">
-                    <QuotaDisplay userId={user?.id} visibleQuotas={['chat', 'deep_review']} />
+                    <QuotaDisplay userId={user?.id} visibleQuotas={['chat', 'deep_review']} minimal={true} />
                 </div>
 
                 {/* Chat History & Content */}
