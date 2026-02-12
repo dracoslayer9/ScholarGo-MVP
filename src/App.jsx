@@ -1149,31 +1149,19 @@ function App() {
               <div className="w-full lg:w-[480px] lg:h-full h-[500px] bg-white border-t lg:border-t-0 border-oxford-blue/10 flex flex-col shrink-0 z-20 shadow-xl shadow-oxford-blue/5">
 
                 {/* Sidebar Header */}
-                <div className="h-14 px-4 border-b border-oxford-blue/5 flex items-center justify-between shrink-0 bg-white/50 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-oxford-blue">
-                    <Sparkles size={16} className="text-bronze" />
-                    <span className="font-bold text-sm tracking-wide">AI Assistant</span>
+                {/* Sidebar Header with Quota */}
+                <div className="h-16 flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm border-b border-oxford-blue/10 shrink-0">
+                  <div className="flex-1 flex flex-col justify-center">
+                    <QuotaDisplay userId={session?.user?.id} visibleQuotas={['pdf_analysis', 'chat']} minimal={true} />
                   </div>
-                  <div className="flex items-center gap-2">
-                    {/* Close button that just hides on mobile or does nothing on desktop */}
-                    <button
-                      onClick={() => setSidebarOpen(false)} // Assuming this closes it on mobile
-                      className="text-oxford-blue/40 hover:text-red-500 transition-colors lg:hidden"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
+                  {/* Mobile Close Button */}
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="text-oxford-blue/40 hover:text-red-500 transition-colors lg:hidden ml-4"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
-
-                {/* Quota Display */}
-
-
-                {/* Quota Indicator (Free Plan Only) */}
-                {session?.user && (
-                  <div className="border-b border-oxford-blue/5">
-                    <QuotaDisplay userId={session?.user?.id} visibleQuotas={['pdf_analysis', 'chat']} />
-                  </div>
-                )}
 
                 {/* Chat Stream */}
                 <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-6">
