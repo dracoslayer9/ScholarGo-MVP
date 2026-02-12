@@ -310,10 +310,6 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                 </div>
 
 
-                <div className="px-4 py-2 border-t border-oxford-blue/5">
-                    <QuotaDisplay userId={user?.id} visibleQuotas={['chat', 'deep_review']} />
-                </div>
-
                 <div className="flex-1" />
 
                 {/* User Profile */}
@@ -465,21 +461,9 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
             {/* RIGHT PANEL: AI ASSISTANT CHAT */}
             <div className="w-[450px] flex flex-col bg-white h-full shadow-xl shadow-oxford-blue/5 z-20">
                 {/* Header */}
-                <div className="h-16 border-b border-oxford-blue/10 flex items-center justify-between px-6 bg-white shrink-0">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                            <Sparkles size={16} />
-                        </div>
-                        <span className="font-bold text-oxford-blue">ScholarGo AI</span>
-                    </div>
-                    <button className="p-2 hover:bg-oxford-blue/5 rounded-lg text-oxford-blue/40 transition-colors">
-                        <Settings size={18} />
-                    </button>
-                </div>
-
-                {/* Quota Display */}
-                <div className="bg-white border-b border-oxford-blue/5">
-                    <QuotaDisplay userId={user?.id} />
+                {/* Header / Quota Indicator */}
+                <div className="border-b border-oxford-blue/5 bg-gray-50/50">
+                    <QuotaDisplay userId={user?.id} visibleQuotas={['chat', 'deep_review']} />
                 </div>
 
                 {/* Chat History & Content */}
