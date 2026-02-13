@@ -291,12 +291,19 @@ function App() {
     await supabase.auth.signOut();
     setSession(null);
     setAppMode('landing');
-    setShowSettings(false);
     setShowUserMenu(false);
   };
+
+  const handleAuthError = (err) => {
+    if (err.code === '401' || (err.message && err.message.includes('JWT'))) {
+      console.warn("Session invalid (401). Forcing logout.");
+      handleSignOut();
+      return true;
+    }
+    return false;
+  };
+
   const [editingTitle, setEditingTitle] = useState("");
-
-
 
   const handleRenameChat = async (e, chatId) => {
     e.stopPropagation(); // Prevent loadChat trigger
@@ -387,6 +394,11 @@ function App() {
       setSavedChats((chats || []).filter(c => !c.title || !c.title.startsWith("Canvas:")));
     } catch (err) {
       console.error("Failed to load chats:", err);
+      // AUTO-FIX: Invalid JWT / 401
+      if (err.code === '401' || (err.message && err.message.includes('JWT'))) {
+        console.warn("Session invalid (401). Forcing logout.");
+        handleSignOut();
+      }
     }
   };
 
@@ -477,13 +489,17 @@ function App() {
 
     // CHECK QUOTA: PDF Analysis
     if (session?.user) {
-      const { allowed } = await checkUsageQuota(session.user.id, 'pdf_analysis');
-      if (!allowed) {
-        setUpgradeFeature('PDF Analysis');
-        setShowUpgradeModal(true);
-        // Reset file input
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
+      try {
+        const { allowed } = await checkUsageQuota(session.user.id, 'pdf_analysis');
+        if (!allowed) {
+          setUpgradeFeature('PDF Analysis');
+          setShowUpgradeModal(true);
+          // Reset file input
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+      } catch (err) {
+        if (handleAuthError(err)) return;
       }
       // Increment only after successful processing (done inside specific blocks or here if confident)
       // We'll increment here for simplicity of "Attempt" or move it to success
@@ -600,13 +616,17 @@ function App() {
 
       // CHECK QUOTA: Chat
       if (session?.user) {
-        const { allowed } = await checkUsageQuota(session.user.id, 'chat');
-        if (!allowed) {
-          setUpgradeFeature('Chat Messages');
-          setShowUpgradeModal(true);
-          setIsAnalyzing(false); // Reset loading state
-          abortControllerRef.current = null;
-          return;
+        try {
+          const { allowed } = await checkUsageQuota(session.user.id, 'chat');
+          if (!allowed) {
+            setUpgradeFeature('Chat Messages');
+            setShowUpgradeModal(true);
+            setIsAnalyzing(false); // Reset loading state
+            abortControllerRef.current = null;
+            return;
+          }
+        } catch (err) {
+          if (handleAuthError(err)) return;
         }
         // Non-blocking increment
         incrementUsage(session.user.id, 'chat').catch(err => console.error("Increment failed", err));
@@ -633,7 +653,12 @@ function App() {
       }
 
       if (activeChatId) {
-        saveMessage(activeChatId, 'user', messageToSend).catch(err => console.error("Save Msg Error:", err));
+        try {
+          await saveMessage(activeChatId, 'user', messageToSend);
+        } catch (err) {
+          if (handleAuthError(err)) return;
+          console.error("Save Msg Error:", err);
+        }
 
         // AUTO-TITLE: If first message, generate "3 kata utama unik"
         if (chatHistory.length === 0) {
@@ -659,7 +684,12 @@ function App() {
 
         // SAVE TO DB (AI Message)
         if (activeChatId) {
-          saveMessage(activeChatId, 'assistant', aiResponse).catch(err => console.error("Save Msg Error:", err));
+          try {
+            await saveMessage(activeChatId, 'assistant', aiResponse);
+          } catch (err) {
+            if (handleAuthError(err)) return;
+            console.error("Save Msg Error:", err);
+          }
         }
 
       } catch (err) {
@@ -687,11 +717,15 @@ function App() {
     // The prompt said "3 Analisis PDF". It didn't specify raw text limits. 
     // But usually "Analysis" is the heavy feature. I'll map it to 'pdf_analysis' for now to be safe/consistent with "Analysis".
     if (session?.user) {
-      const { allowed } = await checkUsageQuota(session.user.id, 'pdf_analysis');
-      if (!allowed) {
-        setUpgradeFeature('Essay Analysis');
-        setShowUpgradeModal(true);
-        return;
+      try {
+        const { allowed } = await checkUsageQuota(session.user.id, 'pdf_analysis');
+        if (!allowed) {
+          setUpgradeFeature('Essay Analysis');
+          setShowUpgradeModal(true);
+          return;
+        }
+      } catch (err) {
+        if (handleAuthError(err)) return;
       }
       incrementUsage(session.user.id, 'pdf_analysis').catch(err => console.error("Increment failed", err));
     }
@@ -709,11 +743,15 @@ function App() {
 
     // CHECK QUOTA: Deep Review
     if (session?.user) {
-      const { allowed } = await checkUsageQuota(session.user.id, 'deep_review');
-      if (!allowed) {
-        setUpgradeFeature('Deep Review');
-        setShowUpgradeModal(true);
-        return;
+      try {
+        const { allowed } = await checkUsageQuota(session.user.id, 'deep_review');
+        if (!allowed) {
+          setUpgradeFeature('Deep Review');
+          setShowUpgradeModal(true);
+          return;
+        }
+      } catch (err) {
+        if (handleAuthError(err)) return;
       }
       incrementUsage(session.user.id, 'deep_review').catch(err => console.error("Increment failed", err));
     }

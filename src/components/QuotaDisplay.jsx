@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getUserSubscription, PLAN_LIMITS } from '../services/subscriptionService';
+import { supabase } from '../lib/supabaseClient';
 import { Loader, MessageSquare, FileText, Sparkles } from 'lucide-react';
 
 const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
@@ -8,9 +9,18 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
 
     const fetchUsage = async () => {
         if (!userId) return;
-        const profile = await getUserSubscription(userId);
-        setUsage(profile);
-        setLoading(false);
+        try {
+            const profile = await getUserSubscription(userId);
+            setUsage(profile);
+            setLoading(false);
+        } catch (error) {
+            console.error("Quota Fetch Error:", error);
+            // AUTO-FIX: Invalid JWT / 401
+            if (error && (error.code === '401' || (error.message && error.message.includes('JWT')))) {
+                await supabase.auth.signOut();
+                // Optionally redirect or let auth listener handle it
+            }
+        }
     };
 
     useEffect(() => {

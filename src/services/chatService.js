@@ -39,6 +39,10 @@ export const getUserChats = async (userId) => {
         return data;
     } catch (error) {
         console.error("Error fetching chats:", error);
+        // Propagate Auth Errors
+        if (error.code === '401' || (error.message && error.message.includes('JWT'))) {
+            throw error;
+        }
         return [];
     }
 };
@@ -65,6 +69,10 @@ export const getChatMessages = async (chatId) => {
         return data;
     } catch (error) {
         console.error("Error fetching messages:", error);
+        // Propagate Auth Errors
+        if (error.code === '401' || (error.message && error.message.includes('JWT'))) {
+            throw error;
+        }
         return [];
     }
 };
@@ -88,7 +96,11 @@ export const saveMessage = async (chatId, role, content) => {
         return data;
     } catch (error) {
         console.error("Error saving message:", error);
-        // We don't throw here to avoid blocking the UI if persistence fails,
+        // Propagate Auth Errors
+        if (error.code === '401' || (error.message && error.message.includes('JWT'))) {
+            throw error;
+        }
+        // We don't throw other errors here to avoid blocking the UI if persistence fails,
         // but depending on verify requirements we might want to alert.
         return null;
     }

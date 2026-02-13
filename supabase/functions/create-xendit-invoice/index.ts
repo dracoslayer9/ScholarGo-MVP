@@ -7,31 +7,49 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+    // Handle CORS
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
 
     try {
-        const supabaseClient = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-        )
+        console.log("Request received");
 
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-        if (userError || !user) throw new Error('Unauthorized')
+        // 1. Parse Body
+        let body;
+        try {
+            body = await req.json();
+        } catch (e) {
+            console.error("Failed to parse request body:", e);
+            throw new Error("Invalid Request Body");
+        }
+        const { planType, userId, email } = body;
+        console.log("Payload:", { planType, userId, email });
 
-        const { planType, userId, email } = await req.json()
+        // 2. Check Configuration
         const xenditSecret = Deno.env.get('XENDIT_SECRET_KEY')
-
         if (!xenditSecret) {
-            throw new Error('Server Key not configured')
+            console.error("Missing XENDIT_SECRET_KEY");
+            throw new Error('Server Key configuration missing')
         }
 
-        const externalId = `inv_${Date.now()}_${userId.substring(0, 8)}`
-        const amount = 49000 // Fixed for now
+        // 3. Setup Supabase Admin
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-        // 1. Create Invoice in Xendit
+        if (!supabaseUrl || !serviceRoleKey) {
+            console.error("Missing Supabase Configuration (URL or Service Role Key)");
+            throw new Error('Database configuration missing');
+        }
+
+        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+        // 4. Create Xendit Invoice
+        const externalId = `inv_${Date.now()}_${userId.substring(0, 8)}`
+        const amount = 49000
+
+        console.log("Creating Xendit Invoice...", { externalId, amount });
+
         const response = await fetch('https://api.xendit.co/v2/invoices', {
             method: 'POST',
             headers: {
@@ -43,29 +61,26 @@ serve(async (req) => {
                 amount: amount,
                 payer_email: email,
                 description: `Upgrade to ScholarGo ${planType}`,
-                success_redirect_url: 'http://localhost:5173/?payment=success', // Localhost for now
+                success_redirect_url: 'http://localhost:5173/?payment=success',
                 failure_redirect_url: 'http://localhost:5173/?payment=failed'
             })
         })
 
         const invoice = await response.json()
+        console.log("Xendit Response:", invoice);
 
         if (!invoice.invoice_url) {
-            console.error('Xendit Error:', invoice)
-            throw new Error('Failed to create invoice')
+            console.error('Xendit Logic Error:', invoice)
+            // Throw full error object to see validation details (e.g. invalid email format)
+            throw new Error('Xendit Failed: ' + JSON.stringify(invoice))
         }
 
-        // 2. Save to Supabase Transactions
-        // Note: We use the SERVICE_ROLE_KEY to bypass RLS for inserting if needed, 
-        // but here we are authenticated as user, so RLS should allow insert if policy exists.
-        // However, typically writes to 'transactions' might be restricted. 
-        // Let's assume we can write with the user's client or use service role if needed.
-        // Ideally, we use a Supabase client with Service Role for admin tasks.
+        // 5. Save to Database
+        console.log("Saving to DB...");
 
-        const supabaseAdmin = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
+        // Verify table exists first (optional check)
+        // const { error: tableCheck } = await supabaseAdmin.from('transactions').select('count').limit(1);
+        // if (tableCheck) console.error("Table Check Error:", tableCheck);
 
         const { error: dbError } = await supabaseAdmin
             .from('transactions')
@@ -77,7 +92,12 @@ serve(async (req) => {
                 payment_link: invoice.invoice_url
             })
 
-        if (dbError) throw dbError
+        if (dbError) {
+            console.error("DB Insert Error:", dbError);
+            throw new Error("Database Write Failed: " + dbError.message);
+        }
+
+        console.log("Success!");
 
         return new Response(
             JSON.stringify({ invoice_url: invoice.invoice_url, external_id: externalId }),
@@ -85,6 +105,7 @@ serve(async (req) => {
         )
 
     } catch (error) {
+        console.error('CRITICAL FUNCTION ERROR:', error)
         return new Response(
             JSON.stringify({ error: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }

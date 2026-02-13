@@ -47,6 +47,10 @@ export const getUserSubscription = async (userId) => {
         return data;
     } catch (error) {
         console.error("Error fetching subscription:", error);
+        // Propagate Auth Errors
+        if (error.code === '401' || (error.message && error.message.includes('JWT'))) {
+            throw error;
+        }
         return null;
     }
 };
