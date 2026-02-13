@@ -52,7 +52,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
             {/* PDF Analysis */}
             {visible.includes('pdf_analysis') && (
                 <div className="space-y-1">
-                    <div className={minimal ? "flex justify-between items-center text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
+                    <div className={minimal ? "flex justify-between items-center gap-2 text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
                         <div className="flex items-center gap-1.5">
                             {!minimal && <FileText size={14} className="text-blue-500" />}
                             <span className={minimal ? "" : "opacity-70"}>PDF Analysis</span>
@@ -73,7 +73,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
             {/* Chat Messages */}
             {visible.includes('chat') && (
                 <div className="space-y-1">
-                    <div className={minimal ? "flex justify-between items-center text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
+                    <div className={minimal ? "flex justify-between items-center gap-2 text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
                         <div className="flex items-center gap-1.5">
                             {!minimal && <MessageSquare size={14} className="text-indigo-500" />}
                             <span className={minimal ? "" : "opacity-70"}>Chat Messages</span>
@@ -94,7 +94,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
             {/* Deep Review */}
             {visible.includes('deep_review') && (
                 <div className="space-y-1">
-                    <div className={minimal ? "flex justify-between items-center text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
+                    <div className={minimal ? "flex justify-between items-center gap-2 text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
                         <div className="flex items-center gap-1.5">
                             {!minimal && <Sparkles size={14} className="text-bronze" />}
                             <span className={minimal ? "" : "opacity-70"}>Deep Review</span>
