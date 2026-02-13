@@ -40,6 +40,7 @@ import SettingsModal from './components/SettingsModal';
 import UpgradeModal from './components/UpgradeModal';
 import QuotaDisplay from './components/QuotaDisplay';
 import PricingPage from './PricingPage';
+import PaymentSuccess from './components/PaymentSuccess';
 import { checkUsageQuota, incrementUsage } from './services/subscriptionService';
 // ... (lines 48-670 unchanged) ... 
 // Jumping to render logic below ... 
@@ -216,6 +217,19 @@ function App() {
       app_mode: appMode // detailed tracking
     });
   }, [appMode]);
+
+  // Payment Success State
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+
+  useEffect(() => {
+    // Check for Xendit redirect params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      setShowPaymentSuccess(true);
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Auth State
   const [session, setSession] = useState(null);
@@ -1384,6 +1398,16 @@ function App() {
         onClose={() => setShowUpgradeModal(false)}
         featureName={upgradeFeature}
       />
+
+      {/* Payment Success Modal */}
+      {showPaymentSuccess && (
+        <PaymentSuccess
+          onContinue={() => {
+            setShowPaymentSuccess(false);
+            window.location.reload(); // Reload to refresh subscription status
+          }}
+        />
+      )}
 
     </div>
   );
