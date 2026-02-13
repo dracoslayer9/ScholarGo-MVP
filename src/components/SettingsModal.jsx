@@ -173,6 +173,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                             </div>
                         )}
 
+
                     </div>
                     {/* Footer / Version */}
                     <div className="p-4 border-t border-gray-100 bg-gray-50/30 text-center">
