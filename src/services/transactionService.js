@@ -17,22 +17,10 @@ export const createTransaction = async (planType = 'plus') => {
         // Ensure email is valid or provide a fallback for Xendit
         const userEmail = session.user.email || `user_${session.user.id.substring(0, 8)}@placeholder.scholargo.com`;
 
-        // DEBUG: Check Config and Session (Restored for Localhost Debugging)
-        // Using console.error to ensure it's visible even with error filters
-        console.error("Transaction Debug [Build " + new Date().toISOString() + "]:", {
-            url: import.meta.env.VITE_SUPABASE_URL,
-            keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5),
-            hasSession: !!session,
-            tokenPrefix: session?.access_token?.substring(0, 5),
-            user: session?.user?.id
-        });
+        // Ensure email is valid or provide a fallback for Xendit
+        const userEmail = session.user.email || `user_${session.user.id.substring(0, 8)}@placeholder.scholargo.com`;
 
-        // Debug Context for UI
-        const debugContext = {
-            url: import.meta.env.VITE_SUPABASE_URL,
-            keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5),
-            tokenPrefix: session?.access_token?.substring(0, 5)
-        };
+        // Call Supabase Edge Function 'create-xendit-invoice'
 
         // Call Supabase Edge Function 'create-xendit-invoice'
         const { data, error } = await supabase.functions.invoke('create-xendit-invoice', {

@@ -24,21 +24,7 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
             }
         } catch (error) {
             console.error(error);
-
-            // DEBUG INFO FOR USER
-            const debugInfo = `
-FAILED TO INITIATE PAYMENT
---------------------------
-Error: ${error.message}
-            
-DEBUG INFO (Please Screenshot):
-- Build Time: ${new Date().toISOString()}
-- Supabase URL: ${error.debugContext?.url || import.meta.env.VITE_SUPABASE_URL}
-- Key Prefix: ${error.debugContext?.keyPrefix || import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5)}...
-- Token Prefix (Session): ${error.debugContext?.tokenPrefix || 'Unknown'}...
-            `;
-
-            alert(debugInfo);
+            alert(`Failed to initiate payment: ${error.message}`);
             setLoading(false);
         }
     };
