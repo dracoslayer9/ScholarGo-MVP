@@ -13,6 +13,15 @@ export const createTransaction = async (planType = 'plus') => {
         // Ensure email is valid or provide a fallback for Xendit
         const userEmail = session.user.email || `user_${session.user.id.substring(0, 8)}@placeholder.scholargo.com`;
 
+        // DEBUG: Check Config and Session (Restored for Localhost Debugging)
+        console.log("Transaction Debug:", {
+            url: import.meta.env.VITE_SUPABASE_URL,
+            keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5),
+            hasSession: !!session,
+            tokenPrefix: session?.access_token?.substring(0, 5),
+            user: session?.user?.id
+        });
+
         // Call Supabase Edge Function 'create-xendit-invoice'
         const { data, error } = await supabase.functions.invoke('create-xendit-invoice', {
             body: {
@@ -60,11 +69,15 @@ export const createTransaction = async (planType = 'plus') => {
         return data;
     } catch (error) {
         console.error('Error creating transaction:', error);
-        // AUTO-FIX: Invalid JWT / 401
+
+        // REMOVED: Auto-logout on 401/JWT error per user request.
+        // We now just throw the error so the UI can show a specific message.
+        /* 
         if (error.code === '401' || (error.message && error.message.includes('JWT'))) {
             await supabase.auth.signOut();
-            window.location.reload(); // Hard reload to clear state
+            window.location.reload(); 
         }
+        */
         throw error;
     }
 };
