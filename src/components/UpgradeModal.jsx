@@ -10,18 +10,55 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
     // MINIMALIST PRICING VIEW (General Upgrade)
     const isGeneralUpgrade = !featureName;
 
+    // Load Midtrans Snap.js
+    React.useEffect(() => {
+        const snapUrl = "https://app.midtrans.com/snap/snap.js";
+        const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || 'Mid-client-FNNO_z9Q54bZdZS9'; // Fallback to provided key
+
+        const script = document.createElement('script');
+        script.src = snapUrl;
+        script.setAttribute('data-client-key', clientKey);
+        script.async = true;
+
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
+
     const handleUpgrade = async () => {
         setLoading(true);
         try {
-            // 1. Create Transaction (Xendit Invoice) via Backend
-            const { invoice_url } = await createTransaction('plus');
+            // 1. Get Snap Token from Backend
+            const { token } = await createTransaction('plus');
 
-            // 2. Redirect to Xendit Invoice Page
-            if (invoice_url) {
-                window.location.href = invoice_url;
+            // 2. Trigger Snap Popup
+            if (window.snap) {
+                window.snap.pay(token, {
+                    onSuccess: function (result) {
+                        console.log('Payment Success:', result);
+                        window.location.href = '/?payment=success';
+                    },
+                    onPending: function (result) {
+                        console.log('Payment Pending:', result);
+                        alert("Payment pending. Please complete the payment.");
+                        setLoading(false);
+                    },
+                    onError: function (result) {
+                        console.error('Payment Error:', result);
+                        alert("Payment failed. Please try again.");
+                        setLoading(false);
+                    },
+                    onClose: function () {
+                        console.log('Customer closed the popup without finishing the payment');
+                        setLoading(false);
+                    }
+                });
             } else {
-                throw new Error("Invalid invoice URL");
+                throw new Error("Midtrans Snap.js not loaded");
             }
+
         } catch (error) {
             console.error(error);
             alert(`Failed to initiate payment: ${error.message}`);
