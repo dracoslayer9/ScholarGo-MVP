@@ -57,7 +57,11 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
                         <div className="flex-1 p-8 bg-gray-50/50 flex flex-col border-r border-oxford-blue/5">
                             <div className="mb-6">
                                 <h3 className="font-serif font-bold text-xl text-oxford-blue mb-1">Free Plan</h3>
-                                <p className="text-sm text-oxford-blue/40 font-medium">Your current plan</p>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-2xl font-bold text-oxford-blue">Rp 0</span>
+                                    <span className="text-xs text-oxford-blue/40">/month</span>
+                                </div>
+                                <p className="text-sm text-oxford-blue/40 font-medium mt-1">Your current plan</p>
                             </div>
                             <div className="space-y-4 mb-8 flex-1">
                                 <FeatureRow text="3 PDF Analysis / month" />
