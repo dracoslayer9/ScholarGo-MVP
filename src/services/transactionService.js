@@ -17,9 +17,6 @@ export const createTransaction = async (planType = 'plus') => {
         // Ensure email is valid or provide a fallback for Xendit
         const userEmail = session.user.email || `user_${session.user.id.substring(0, 8)}@placeholder.scholargo.com`;
 
-        // Ensure email is valid or provide a fallback for Xendit
-        const userEmail = session.user.email || `user_${session.user.id.substring(0, 8)}@placeholder.scholargo.com`;
-
         // Call Supabase Edge Function 'create-xendit-invoice'
 
         // Call Supabase Edge Function 'create-xendit-invoice'
