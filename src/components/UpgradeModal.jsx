@@ -64,9 +64,9 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
                                 <p className="text-sm text-oxford-blue/40 font-medium mt-1">Your current plan</p>
                             </div>
                             <div className="space-y-4 mb-8 flex-1">
-                                <FeatureRow text="3 PDF Analysis / month" />
-                                <FeatureRow text="5 Chat Messages / month" />
-                                <FeatureRow text="3 Deep Reviews / month" />
+                                <FeatureRow text="3 PDF Analysis" />
+                                <FeatureRow text="5 Chat Messages" />
+                                <FeatureRow text="3 Deep Reviews" />
                             </div>
                             <button disabled className="w-full py-3 bg-gray-200 text-oxford-blue/40 font-bold rounded-xl cursor-default text-sm">
                                 Current Plan
