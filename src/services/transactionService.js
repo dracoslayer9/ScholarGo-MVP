@@ -14,7 +14,8 @@ export const createTransaction = async (planType = 'plus') => {
         const userEmail = session.user.email || `user_${session.user.id.substring(0, 8)}@placeholder.scholargo.com`;
 
         // DEBUG: Check Config and Session (Restored for Localhost Debugging)
-        console.log("Transaction Debug:", {
+        // Using console.error to ensure it's visible even with error filters
+        console.error("Transaction Debug [Build " + new Date().toISOString() + "]:", {
             url: import.meta.env.VITE_SUPABASE_URL,
             keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5),
             hasSession: !!session,
