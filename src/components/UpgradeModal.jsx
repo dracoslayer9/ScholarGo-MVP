@@ -5,11 +5,6 @@ import { createTransaction } from '../services/transactionService';
 const UpgradeModal = ({ open, onClose, featureName }) => {
     const [loading, setLoading] = useState(false);
 
-    if (!open) return null;
-
-    // MINIMALIST PRICING VIEW (General Upgrade)
-    const isGeneralUpgrade = !featureName;
-
     // Load Midtrans Snap.js
     React.useEffect(() => {
         const snapUrl = "https://app.midtrans.com/snap/snap.js";
@@ -26,6 +21,11 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
             document.body.removeChild(script);
         };
     }, []);
+
+    if (!open) return null;
+
+    // MINIMALIST PRICING VIEW (General Upgrade)
+    const isGeneralUpgrade = !featureName;
 
     const handleUpgrade = async () => {
         setLoading(true);
