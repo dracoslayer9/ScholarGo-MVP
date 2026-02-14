@@ -6,8 +6,12 @@ import { supabase } from '../lib/supabaseClient';
  * @returns {Promise<{invoice_url: string, external_id: string}>}
  */
 export const createTransaction = async (planType = 'plus') => {
+    // Capture session context early for debug use
+    let sessionDebug = null;
     try {
         const { data: { session } } = await supabase.auth.getSession();
+        sessionDebug = session;
+
         if (!session) throw new Error('User not authenticated');
 
         // Ensure email is valid or provide a fallback for Xendit
@@ -76,19 +80,56 @@ export const createTransaction = async (planType = 'plus') => {
 
         return data;
     } catch (error) {
-        console.error('Error creating transaction:', error);
+        console.error('Error creating transaction (SDK):', error);
 
-        // Attach debug context if available (captured in scope above, redefine here if needed)
+        // FALLBACK: Try Direct Fetch to debug "Failed to send request" errors
+        // This bypasses sdk wrappers that might hide the real response/status
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            error.debugContext = {
-                url: import.meta.env.VITE_SUPABASE_URL,
-                keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5),
-                tokenPrefix: session?.access_token?.substring(0, 5) || 'NONE'
-            };
-        } catch (e) {
-            console.error("Failed to attach debug context", e);
+            console.warn("Attempting Raw Fetch Fallback...");
+            const currentSession = sessionDebug;
+
+            const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-xendit-invoice`;
+
+            const rawResponse = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentSession?.access_token}`
+                },
+                body: JSON.stringify({
+                    planType,
+                    userId: currentSession?.user?.id,
+                    email: currentSession?.user?.email
+                })
+            });
+
+            const rawText = await rawResponse.text();
+            console.log("Raw Fetch Response:", rawResponse.status, rawText);
+
+            if (!rawResponse.ok) {
+                // Throw a more descriptive error from the raw response
+                const statusPrefix = `Raw Fetch Failed (${rawResponse.status})`;
+                error.message = `${statusPrefix}: ${rawText.substring(0, 200)}`;
+            } else {
+                // If raw fetch succeeded (odd), return parsed
+                const rawData = JSON.parse(rawText);
+                if (rawData.invoice_url) return rawData;
+            }
+
+        } catch (fetchError) {
+            console.error("Raw Fetch also failed:", fetchError);
+            // Use the raw fetch error message if it's more descriptive
+            if (fetchError.message && fetchError.message.includes('Raw Fetch Failed')) {
+                error.message = fetchError.message;
+            }
         }
+
+        // Attach debug context if available
+        error.debugContext = {
+            url: import.meta.env.VITE_SUPABASE_URL,
+            keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5),
+            tokenPrefix: sessionDebug?.access_token?.substring(0, 5) || 'NONE'
+        };
 
         throw error;
     }

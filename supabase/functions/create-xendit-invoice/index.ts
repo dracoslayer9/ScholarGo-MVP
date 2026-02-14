@@ -26,6 +26,43 @@ serve(async (req) => {
         const { planType, userId, email } = body;
         console.log("Payload:", { planType, userId, email });
 
+        // --- AUTH CHECK & DEBUG ---
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+            return new Response(
+                JSON.stringify({ error: 'Missing Authorization Header', debug: { receivedTokenPrefix: 'NONE' } }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+            );
+        }
+
+        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+
+        // Create a client specifically to validate the user token
+        const supabaseClient = createClient(
+            supabaseUrl ?? '',
+            supabaseAnonKey ?? '',
+            { global: { headers: { Authorization: authHeader } } }
+        );
+
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+
+        if (userError) {
+            console.error("User Auth Failed:", userError);
+            return new Response(
+                JSON.stringify({
+                    error: "Auth Failed: " + userError.message,
+                    debug: {
+                        receivedTokenPrefix: authHeader?.replace('Bearer ', '').substring(0, 5),
+                        serverAnonKeyPrefix: supabaseAnonKey?.substring(0, 5),
+                        errorDetails: userError
+                    }
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+            );
+        }
+        // ---------------------------
+
         // 2. Check Configuration
         const xenditSecret = Deno.env.get('XENDIT_SECRET_KEY')
         if (!xenditSecret) {
@@ -34,7 +71,7 @@ serve(async (req) => {
         }
 
         // 3. Setup Supabase Admin
-        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        // supabaseUrl already retrieved above
         const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
         if (!supabaseUrl || !serviceRoleKey) {
