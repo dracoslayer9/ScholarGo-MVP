@@ -23,6 +23,13 @@ export const createTransaction = async (planType = 'plus') => {
             user: session?.user?.id
         });
 
+        // Debug Context for UI
+        const debugContext = {
+            url: import.meta.env.VITE_SUPABASE_URL,
+            keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5),
+            tokenPrefix: session?.access_token?.substring(0, 5)
+        };
+
         // Call Supabase Edge Function 'create-xendit-invoice'
         const { data, error } = await supabase.functions.invoke('create-xendit-invoice', {
             body: {
@@ -71,14 +78,18 @@ export const createTransaction = async (planType = 'plus') => {
     } catch (error) {
         console.error('Error creating transaction:', error);
 
-        // REMOVED: Auto-logout on 401/JWT error per user request.
-        // We now just throw the error so the UI can show a specific message.
-        /* 
-        if (error.code === '401' || (error.message && error.message.includes('JWT'))) {
-            await supabase.auth.signOut();
-            window.location.reload(); 
+        // Attach debug context if available (captured in scope above, redefine here if needed)
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            error.debugContext = {
+                url: import.meta.env.VITE_SUPABASE_URL,
+                keyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5),
+                tokenPrefix: session?.access_token?.substring(0, 5) || 'NONE'
+            };
+        } catch (e) {
+            console.error("Failed to attach debug context", e);
         }
-        */
+
         throw error;
     }
 };

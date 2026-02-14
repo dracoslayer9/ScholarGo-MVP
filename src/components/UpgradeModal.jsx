@@ -33,8 +33,9 @@ Error: ${error.message}
             
 DEBUG INFO (Please Screenshot):
 - Build Time: ${new Date().toISOString()}
-- Supabase URL: ${import.meta.env.VITE_SUPABASE_URL}
-- Key Prefix: ${import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5)}...
+- Supabase URL: ${error.debugContext?.url || import.meta.env.VITE_SUPABASE_URL}
+- Key Prefix: ${error.debugContext?.keyPrefix || import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 5)}...
+- Token Prefix (Session): ${error.debugContext?.tokenPrefix || 'Unknown'}...
             `;
 
             alert(debugInfo);
