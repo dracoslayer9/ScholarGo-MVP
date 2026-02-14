@@ -34,7 +34,8 @@ export const getUserSubscription = async (userId) => {
                     plan_type: 'free',
                     usage_pdf_analysis: 0,
                     usage_chat: 0,
-                    usage_deep_review: 0
+                    usage_deep_review: 0,
+                    last_reset_date: new Date().toISOString()
                 }])
                 .select()
                 .single();
@@ -62,8 +63,35 @@ export const getUserSubscription = async (userId) => {
  * @returns {Promise<{ allowed: boolean, remaining: number, plan: string }>}
  */
 export const checkUsageQuota = async (userId, feature) => {
-    const profile = await getUserSubscription(userId);
+    let profile = await getUserSubscription(userId);
     if (!profile) return { allowed: false, remaining: 0, plan: 'unknown' };
+
+    // --- MONTHLY RESET LOGIC ---
+    const now = new Date();
+    const lastReset = profile.last_reset_date ? new Date(profile.last_reset_date) : new Date(0);
+
+    // If month/year changed (and plan is free usage tracking), reset usage
+    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+        console.log("New month detected. Resetting monthly usage...");
+
+        const { data: updatedProfile, error } = await supabase
+            .from('profiles')
+            .update({
+                usage_pdf_analysis: 0,
+                usage_chat: 0,
+                usage_deep_review: 0,
+                last_reset_date: now.toISOString()
+            })
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (!error && updatedProfile) {
+            profile = updatedProfile;
+        } else {
+            console.warn("Failed to reset monthly quota (Note: Ensure 'last_reset_date' column exists in 'profiles' table):", error);
+        }
+    }
 
     const plan = profile.plan_type || 'free';
     const limit = PLAN_LIMITS[plan][feature];
