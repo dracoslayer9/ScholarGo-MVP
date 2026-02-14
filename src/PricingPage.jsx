@@ -69,9 +69,9 @@ const PricingPage = ({ onBack, onLogin }) => {
                             </div>
 
                             <div className="space-y-4">
-                                <FeatureItem text="3 Analisis Dokumen PDF" />
-                                <FeatureItem text="5 Chat AI Assistant" />
-                                <FeatureItem text="3 Deep Review (Insight)" />
+                                <FeatureItem text="3 Analisis Dokumen PDF / bulan" />
+                                <FeatureItem text="5 Chat AI Assistant / bulan" />
+                                <FeatureItem text="3 Deep Review (Insight) / bulan" />
                                 <FeatureItem text="Akses Fitur Dasar" />
                             </div>
                         </div>
