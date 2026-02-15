@@ -879,6 +879,7 @@ function App() {
       <PricingPage
         onBack={() => setAppMode('landing')}
         onLogin={() => setAppMode('login')}
+        session={session}
       />
     );
   }

@@ -1,9 +1,72 @@
-import React from 'react';
-import { BookOpen, Check, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Check, ArrowLeft, Loader } from 'lucide-react';
+import { createTransaction } from './services/transactionService';
 import GuideModal from './components/GuideModal';
 
-const PricingPage = ({ onBack, onLogin }) => {
-    const [showGuide, setShowGuide] = React.useState(false);
+const PricingPage = ({ onBack, onLogin, session }) => {
+    const [showGuide, setShowGuide] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // Load Midtrans Snap.js
+    useEffect(() => {
+        const snapUrl = "https://app.midtrans.com/snap/snap.js";
+        const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || 'Mid-client-FNNO_z9Q54bZdZS9'; // Fallback
+
+        const script = document.createElement('script');
+        script.src = snapUrl;
+        script.setAttribute('data-client-key', clientKey);
+        script.async = true;
+
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
+
+    const handleUpgrade = async () => {
+        if (!session) {
+            onLogin();
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // 1. Get Snap Token from Backend
+            const { token } = await createTransaction('plus');
+
+            // 2. Trigger Snap Popup
+            if (window.snap) {
+                window.snap.pay(token, {
+                    onSuccess: function (result) {
+                        console.log('Payment Success:', result);
+                        window.location.href = '/?payment=success';
+                    },
+                    onPending: function (result) {
+                        console.log('Payment Pending:', result);
+                        alert("Payment pending. Please complete the payment.");
+                        setLoading(false);
+                    },
+                    onError: function (result) {
+                        console.error('Payment Error:', result);
+                        alert("Payment failed. Please try again.");
+                        setLoading(false);
+                    },
+                    onClose: function () {
+                        console.log('Customer closed the popup without finishing the payment');
+                        setLoading(false);
+                    }
+                });
+            } else {
+                throw new Error("Midtrans Snap.js not loaded");
+            }
+        } catch (error) {
+            console.error(error);
+            alert(`Failed to initiate payment: ${error.message}`);
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-white font-sans text-oxford-blue overflow-x-hidden selection:bg-bronze/20">
             {/* Navbar (Minimal) */}
@@ -32,12 +95,21 @@ const PricingPage = ({ onBack, onLogin }) => {
                     </div>
 
                     <div className="flex-1 flex items-center justify-end gap-6">
-                        <button
-                            onClick={onLogin}
-                            className="px-5 py-2 text-sm font-bold text-oxford-blue hover:text-bronze transition-colors"
-                        >
-                            Masuk
-                        </button>
+                        {!session && (
+                            <button
+                                onClick={onLogin}
+                                className="px-5 py-2 text-sm font-bold text-oxford-blue hover:text-bronze transition-colors"
+                            >
+                                Masuk
+                            </button>
+                        )}
+                        {session && (
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                                    {session.user.email[0].toUpperCase()}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -61,10 +133,14 @@ const PricingPage = ({ onBack, onLogin }) => {
                                     <span className="text-oxford-blue/60 text-lg">/bulan</span>
                                 </div>
                                 <button
-                                    onClick={onLogin}
-                                    className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 text-base"
+                                    onClick={session ? null : onLogin}
+                                    disabled={!!session}
+                                    className={`w-full py-3.5 font-bold rounded-xl transition-colors shadow-lg text-base ${session
+                                            ? 'bg-gray-200 text-oxford-blue/40 cursor-default shadow-none'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'
+                                        }`}
                                 >
-                                    Mulai Gratis
+                                    {session ? 'Current Plan' : 'Mulai Gratis'}
                                 </button>
                             </div>
 
@@ -88,10 +164,12 @@ const PricingPage = ({ onBack, onLogin }) => {
                                     <span className="text-oxford-blue/60 text-lg">/bulan</span>
                                 </div>
                                 <button
-                                    onClick={onLogin}
-                                    className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 text-base"
+                                    onClick={session ? handleUpgrade : onLogin}
+                                    disabled={loading}
+                                    className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 text-base flex items-center justify-center gap-2"
                                 >
-                                    Mulai Gratis
+                                    {loading && <Loader size={18} className="animate-spin" />}
+                                    {loading ? 'Processing...' : (session ? 'Upgrade Plan' : 'Mulai Gratis')}
                                 </button>
                             </div>
 
