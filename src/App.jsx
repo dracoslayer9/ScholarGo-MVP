@@ -914,6 +914,11 @@ function App() {
           open={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
           featureName={upgradeFeature}
+          session={session}
+          onLogin={() => {
+            setShowUpgradeModal(false);
+            setAppMode('login');
+          }}
         />
       </>
     );
@@ -1436,6 +1441,11 @@ function App() {
         open={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         featureName={upgradeFeature}
+        session={session}
+        onLogin={() => {
+          setShowUpgradeModal(false);
+          setAppMode('login');
+        }}
       />
 
       {/* Payment Success Modal */}

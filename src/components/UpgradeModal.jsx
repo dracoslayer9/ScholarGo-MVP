@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Crown, Check, X, Loader } from 'lucide-react';
 import { createTransaction } from '../services/transactionService';
 
-const UpgradeModal = ({ open, onClose, featureName }) => {
+const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
     const [loading, setLoading] = useState(false);
 
     // Load Midtrans Snap.js
@@ -24,8 +24,11 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
 
     if (!open) return null;
 
-    // MINIMALIST PRICING VIEW (General Upgrade)
-    const isGeneralUpgrade = !featureName;
+    // Guest Mode Logic
+    const isGuest = !session;
+
+    // Force "General Upgrade" view if Guest, OR if no specific feature limit was hit
+    const isGeneralUpgrade = isGuest || !featureName;
 
     const handleUpgrade = async () => {
         setLoading(true);
@@ -88,7 +91,7 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
                 )}
 
                 {isGeneralUpgrade ? (
-                    // --- GENERAL UPGRADE VIEW ---
+                    // --- GENERAL UPGRADE VIEW (Used for Guests too) ---
                     <div className="flex flex-col md:flex-row h-full">
                         {/* Free Plan (Left) */}
                         <div className="flex-1 p-8 bg-gray-50/50 flex flex-col border-r border-oxford-blue/5">
@@ -98,16 +101,28 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
                                     <span className="text-2xl font-bold text-oxford-blue">Rp 0</span>
                                     <span className="text-xs text-oxford-blue/40">/month</span>
                                 </div>
-                                <p className="text-sm text-oxford-blue/40 font-medium mt-1">Your current plan</p>
+                                <p className="text-sm text-oxford-blue/40 font-medium mt-1">
+                                    {isGuest ? "Start for free" : "Your current plan"}
+                                </p>
                             </div>
                             <div className="space-y-4 mb-8 flex-1">
                                 <FeatureRow text="3 PDF Analysis" />
                                 <FeatureRow text="5 Chat Messages" />
                                 <FeatureRow text="3 Deep Reviews" />
                             </div>
-                            <button disabled className="w-full py-3 bg-gray-200 text-oxford-blue/40 font-bold rounded-xl cursor-default text-sm">
-                                Current Plan
-                            </button>
+
+                            {isGuest ? (
+                                <button
+                                    onClick={onLogin}
+                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-600/20 text-sm"
+                                >
+                                    Mulai Gratis
+                                </button>
+                            ) : (
+                                <button disabled className="w-full py-3 bg-gray-200 text-oxford-blue/40 font-bold rounded-xl cursor-default text-sm">
+                                    Current Plan
+                                </button>
+                            )}
                         </div>
 
                         {/* Plus Plan (Right - Highlighted) */}
@@ -131,12 +146,12 @@ const UpgradeModal = ({ open, onClose, featureName }) => {
                             </div>
 
                             <button
-                                onClick={handleUpgrade}
+                                onClick={isGuest ? onLogin : handleUpgrade}
                                 disabled={loading}
                                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-2"
                             >
                                 {loading ? <Loader size={16} className="animate-spin" /> : <Crown size={16} />}
-                                {loading ? 'Processing...' : 'Upgrade Now'}
+                                {loading ? 'Processing...' : (isGuest ? 'Mulai Gratis' : 'Upgrade Now')}
                             </button>
                         </div>
                     </div>
