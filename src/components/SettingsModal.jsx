@@ -1,9 +1,56 @@
-import React, { useState } from 'react';
-import { X, User, Shield, FileText, Mail, Trash2, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, User, Shield, FileText, Mail, Trash2, LogOut, Loader, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { extractResumeText, parseResumeWithAI } from '../services/resumeService';
 
 const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
     const [activeTab, setActiveTab] = useState('profile');
+    const [isUploading, setIsUploading] = useState(false);
+    const [resumeData, setResumeData] = useState(null);
+
+    // Load Resume Data on Open
+    useEffect(() => {
+        if (open && user) {
+            // Check user metadata for existing resume profile
+            if (user.user_metadata?.resume_profile) {
+                setResumeData(user.user_metadata.resume_profile);
+            }
+        }
+    }, [open, user]);
+
+    const handleResumeUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            // 1. Extract Text
+            const text = await extractResumeText(file);
+            console.log("Resume Text extracted, length:", text.length);
+
+            // 2. Parse with AI
+            const parsedData = await parseResumeWithAI(text);
+            console.log("Parsed Data:", parsedData);
+
+            // 3. Save to Supabase (User Metadata)
+            const { data, error } = await supabase.auth.updateUser({
+                data: { resume_profile: parsedData }
+            });
+
+            if (error) throw error;
+
+            setResumeData(parsedData);
+            alert("Resume analyzed and profile updated!");
+
+        } catch (error) {
+            console.error("Resume Upload Error:", error);
+            alert(`Failed to process resume: ${error.message}`);
+        } finally {
+            setIsUploading(false);
+            // Reset input
+            e.target.value = null;
+        }
+    };
 
     if (!open) return null;
 
@@ -89,6 +136,82 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                             <Mail size={16} className="text-oxford-blue/40" />
                                             {user?.email}
                                         </div>
+                                    </div>
+
+                                    {/* Resume Upload Section */}
+                                    <div className="pt-4 border-t border-gray-100">
+                                        <h4 className="text-sm font-bold text-oxford-blue mb-3">Professional Profile</h4>
+
+                                        {!resumeData ? (
+                                            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:bg-gray-50 transition-colors relative">
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf,.txt"
+                                                    onChange={handleResumeUpload}
+                                                    disabled={isUploading}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                                                />
+                                                <div className="flex flex-col items-center gap-2 pointer-events-none">
+                                                    {isUploading ? (
+                                                        <>
+                                                            <Loader size={24} className="text-bronze animate-spin" />
+                                                            <span className="text-sm text-oxford-blue/60 font-medium">Analyzing Resume...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="w-10 h-10 bg-oxford-blue/5 rounded-full flex items-center justify-center text-oxford-blue/40">
+                                                                <FileText size={20} />
+                                                            </div>
+                                                            <span className="text-sm text-oxford-blue font-medium">Upload Resume / CV</span>
+                                                            <span className="text-xs text-oxford-blue/40">PDF or TXT (Max 5MB)</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-white border border-oxford-blue/10 rounded-xl p-4 shadow-sm space-y-3 relative group">
+                                                <button
+                                                    onClick={() => setResumeData(null)}
+                                                    className="absolute top-2 right-2 p-1 text-oxford-blue/20 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                                    title="Remove Resume Data"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-bronze/10 flex items-center justify-center text-bronze font-bold text-lg">
+                                                        {resumeData.full_name?.[0] || "U"}
+                                                    </div>
+                                                    <div>
+                                                        <h5 className="font-bold text-oxford-blue text-sm">{resumeData.full_name || "User"}</h5>
+                                                        <span className="text-xs text-bronze font-medium px-2 py-0.5 bg-bronze/5 rounded-full border border-bronze/10">
+                                                            {resumeData.ai_identity_label || "Scholar"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2 pt-2">
+                                                    <div>
+                                                        <span className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-wider">Top Skills</span>
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {resumeData.top_skills?.map((skill, i) => (
+                                                                <span key={i} className="text-xs bg-gray-100 text-oxford-blue/80 px-2 py-1 rounded-md">{skill}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {resumeData.latest_experience && (
+                                                        <div>
+                                                            <span className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-wider">Latest Experience</span>
+                                                            <div className="mt-1 text-xs text-oxford-blue/80">
+                                                                <p className="font-medium">{resumeData.latest_experience.title}</p>
+                                                                <p className="text-oxford-blue/60">{resumeData.latest_experience.organization}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
