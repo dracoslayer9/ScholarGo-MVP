@@ -142,7 +142,6 @@ export const runRealAnalysis = async (
     // If backend already returns the JSON object
     return data;
 };
-// ... existing runRealAnalysis code ...
 
 /**
  * Handles conversational follow-up questions about the document.
@@ -151,12 +150,13 @@ export const sendChatMessage = async (
     message,
     history = [],
     documentContent = "",
-    signal = null // Add signal param
+    signal = null, // Add signal param
+    model = "gpt-4o" // Add model param
 ) => {
     // FALLBACK: Client-Side Execution for Local Development
     if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY) {
         try {
-            console.log("Running Local Chat Message...");
+            console.log(`Running Local Chat Message with ${model}...`);
             const openai = new OpenAI({
                 apiKey: import.meta.env.VITE_OPENAI_API_KEY,
                 dangerouslyAllowBrowser: true
@@ -246,7 +246,7 @@ export const sendChatMessage = async (
             ];
 
             const completion = await openai.chat.completions.create({
-                model: "gpt-4o",
+                model: model,
                 messages: messages,
                 temperature: 0.7,
             }, { signal }); // Pass signal
@@ -263,17 +263,21 @@ export const sendChatMessage = async (
     const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, history, documentContent }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, history, documentContent, model }),
         signal // Pass signal
     });
+    signal // Pass signal
+});
 
-    const data = await response.json();
+const data = await response.json();
 
-    if (!response.ok) {
-        throw new Error(data?.error || `Request failed with status ${response.status}`);
-    }
+if (!response.ok) {
+    throw new Error(data?.error || `Request failed with status ${response.status}`);
+}
 
-    return data.result;
+return data.result;
 };
 
 /**

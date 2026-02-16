@@ -70,7 +70,8 @@ Instruksi Ketat: Jangan berikan penjelasan teks apa pun sebelum atau sesudah JSO
     try {
         // We use sendChatMessage as a generic "ask AI" function
         // Pass empty history, resume text as context, 'openai' as provider
-        const response = await sendChatMessage(prompt, [], "", "openai");
+        // USE gpt-4o-mini for speed and cost efficiency
+        const response = await sendChatMessage(prompt, [], "", null, "gpt-4o-mini");
 
         // Clean markdown code blocks if present
         const jsonString = response.replace(/```json/g, '').replace(/```/g, '').trim();
