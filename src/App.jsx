@@ -1368,7 +1368,9 @@ function App() {
 
               // Trigger Research Mode automatically via Chat
               // We send a specific directive that the AI will recognize
-              const researchPrompt = `Lakukan riset verifikasi mendalam untuk teks ini: "${text}". Fokus pada validasi klaim, data, dan referensi.`;
+              const researchPrompt = `Analisis teks ini untuk keperluan esai beasiswa: "${text}".
+1. Berikan referensi akademis atau data kredibel yang relevan dengan topik ini.
+2. Jelaskan bagaimana penulis (awardee) bisa mengangkat isu atau solusi dari poin ini.`;
               handleChatSubmit(researchPrompt, true);
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-oxford-blue/5 transition-colors text-xs font-medium"
