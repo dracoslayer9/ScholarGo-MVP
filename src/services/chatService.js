@@ -143,3 +143,22 @@ export const deleteChat = async (chatId) => {
         throw error;
     }
 };
+
+/**
+ * Updates the payload (metadata/content) of a chat session.
+ * @param {string} chatId 
+ * @param {Object} payload - The new payload object (merged with existing or replacing? typically replace or merge depending on DB, but here we replace for simplicity or we can fetch-merge-update if needed. Supabase 'update' replaces the column value).
+ * @returns {Promise<void>}
+ */
+export const updateChatPayload = async (chatId, payload) => {
+    try {
+        const { error } = await supabase
+            .from('chat_sessions')
+            .update({ payload })
+            .eq('id', chatId);
+
+        if (error) throw error;
+    } catch (error) {
+        console.error("Error updating chat payload:", error);
+    }
+};

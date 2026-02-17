@@ -14,7 +14,8 @@ import {
     Command
 } from 'lucide-react';
 import { sendChatMessage } from './services/analysis';
-import { createChat, saveMessage, updateChatTitle } from './services/chatService';
+import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat } from './services/chatService';
+import { Trash2, MessageSquare, Edit2, Check, X } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
 import ChatMessagesList from './components/ChatMessagesList';
 import UpgradeModal from './components/UpgradeModal';
@@ -50,6 +51,12 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const [currentChatId, setCurrentChatId] = useState(null); // Canvas Chat Persistence
+    const [savedChats, setSavedChats] = useState([]); // History List
+
+    // History Management State
+    const [editingChatId, setEditingChatId] = useState(null);
+    const [editingTitle, setEditingTitle] = useState("");
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null); // Optional: confirm delete
 
     // Subscription State
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -80,6 +87,25 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
             chatInputRef.current.style.height = Math.min(chatInputRef.current.scrollHeight, 160) + 'px'; // Max height
         }
     }, [chatInput]);
+
+    // --- Load History ---
+    useEffect(() => {
+        if (user) {
+            loadCanvasChats();
+        }
+    }, [user]);
+
+    const loadCanvasChats = async () => {
+        if (!user) return;
+        try {
+            const allChats = await getUserChats(user.id);
+            // Filter only Canvas chats
+            const canvasChats = allChats.filter(c => c.title && c.title.startsWith("Canvas:"));
+            setSavedChats(canvasChats);
+        } catch (err) {
+            console.error("Failed to load canvas chats:", err);
+        }
+    };
 
     // --- Handlers ---
 
@@ -137,12 +163,17 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
         if (activeChatId) {
             saveMessage(activeChatId, 'user', userMessage).catch(err => console.error("Save Msg Error:", err));
 
-            // AUTO-TITLE: If first message
             if (chatHistory.length === 0) {
                 const smartTitle = generateSmartTitle(userMessage);
                 const finalTitle = `Canvas: ${smartTitle}`; // Distinguishable prefix
                 updateChatTitle(activeChatId, finalTitle);
+                // Update local list title
+                setSavedChats(prev => prev.map(c => c.id === activeChatId ? { ...c, title: finalTitle } : c));
             }
+
+            // AUTO-SAVE ESSAY CONTENT (Persistence)
+            // Every time we chat, we snapshot the essay content to the payload
+            updateChatPayload(activeChatId, { essayContent: context }).catch(err => console.error("Payload Save Error:", err));
         }
 
         // Create AbortController
@@ -220,7 +251,7 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
 
     // Manual Save Handler
     const handleSaveChat = async () => {
-        if (!user) return; // Allow saving even if chatHistory is empty (to save session title)
+        if (!user) return;
 
         try {
             let activeChatId = currentChatId;
@@ -231,25 +262,24 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                 const newChat = await createChat(user.id, `Canvas: ${title}`);
                 activeChatId = newChat.id;
                 setCurrentChatId(activeChatId);
+                // Add to list
+                setSavedChats(prev => [newChat, ...prev]);
             }
 
-            // Save messages that haven't been saved? 
-            // actually chatService.saveMessage is individual. 
-            // But if we want to "snapshot" the whole thing or ensure validation:
-            // For now, simpler approach: The messages are saved one-by-one during chat. 
-            // So "Save" here might be more about updating the Title or ensuring the Essay Content is saved (if we had a DB field for it).
-            // Request says: "pastikan datanya tersimpan menjadi history chat khusus fitur canvas"
-
-            // Since we already lazy-create chat on first message (lines 102-114), 
-            // the chat might already be saved. 
-            // If the user hasn't sent a message yet, but wants to save "work" (the essay), we don't have a backend for essay text yet (only chats).
-            // So we will focus on ensuring the CHAT SESSION exists and has the correct title.
-
             if (activeChatId) {
-                // Update title to match current essay title
+                // Update title
                 const currentTitle = essayTitle.trim() || "Untitled Canvas Essay";
-                await updateChatTitle(activeChatId, `Canvas: ${currentTitle}`);
-                alert("Canvas Session Saved!");
+                const finalTitle = currentTitle.startsWith("Canvas:") ? currentTitle : `Canvas: ${currentTitle}`;
+
+                await updateChatTitle(activeChatId, finalTitle);
+
+                // CRITICAL: Save Essay Content to Payload
+                await updateChatPayload(activeChatId, { essayContent: essayContent });
+
+                // Update local list
+                loadCanvasChats();
+
+                alert("Canvas Session & Essay Saved!");
             }
 
         } catch (error) {
@@ -259,16 +289,74 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
     };
 
     const handleNewChat = () => {
-        // 1. Reset Chat State
+        // Simple Reset for New Chat (User rejected the Modal flow)
         setChatHistory([]);
         setChatInput('');
+        setEssayContent('');
+        setEssayTitle('Untitled Essay');
         setCurrentChatId(null);
+    };
 
-        // 2. Feedback
-        // Since we explicitly preserve the essay content (user request), 
-        // the screen might look "unchanged" if chat was already empty.
-        // We provide a subtle confirmation.
-        alert("New chat session started. Your essay is preserved.");
+    // --- History Management Handlers ---
+
+    const handleRenameChat = async (e, chatId) => {
+        if (e.key === 'Enter' || e.type === 'blur') {
+            if (editingTitle.trim()) {
+                try {
+                    const finalTitle = editingTitle.startsWith("Canvas:") ? editingTitle : `Canvas: ${editingTitle}`;
+                    await updateChatTitle(chatId, finalTitle);
+                    setSavedChats(prev => prev.map(ch => ch.id === chatId ? { ...ch, title: finalTitle } : ch));
+                } catch (err) {
+                    console.error("Rename failed", err);
+                }
+            }
+            setEditingChatId(null);
+        } else if (e.key === 'Escape') {
+            setEditingChatId(null);
+        }
+    };
+
+    const handleDeleteChat = async (e, chatId) => {
+        e.stopPropagation();
+        if (window.confirm("Are you sure you want to delete this session?")) {
+            try {
+                await deleteChat(chatId);
+                setSavedChats(prev => prev.filter(ch => ch.id !== chatId));
+                if (currentChatId === chatId) {
+                    handleNewChat(); // Reset if deleting active
+                }
+            } catch (err) {
+                console.error("Delete failed", err);
+            }
+        }
+    };
+
+
+
+    const handleLoadChat = async (chatId) => {
+        try {
+            // 1. Get Session Data (from local list)
+            const session = savedChats.find(c => c.id === chatId);
+            if (!session) return;
+
+            setCurrentChatId(chatId);
+            setEssayTitle(session.title.replace("Canvas: ", ""));
+
+            // 2. Restore Essay Content from Payload
+            if (session.payload && session.payload.essayContent) {
+                setEssayContent(session.payload.essayContent);
+            } else {
+                setEssayContent(''); // Fallback
+            }
+
+            // 3. Load Messages
+            const messages = await getChatMessages(chatId);
+            setChatHistory(messages.map(m => ({ role: m.role, content: m.content })));
+
+            // Close Sidebar on mobile (optional)
+        } catch (err) {
+            console.error("Load Chat Error:", err);
+        }
     };
 
 
@@ -306,6 +394,66 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                             </div>
                             <span className="font-bold text-sm">New Chat</span>
                         </button>
+                    </div>
+
+                    {/* HISTORY LIST */}
+                    <div className="flex-1 overflow-y-auto px-1 space-y-1 custom-scrollbar max-h-[calc(100vh-320px)]">
+                        {savedChats.length === 0 && (
+                            <div className="text-center py-4 text-xs text-oxford-blue/40 italic">
+                                No canvas history yet.
+                            </div>
+                        )}
+                        {savedChats.map(chat => (
+                            <div
+                                key={chat.id}
+                                onClick={() => handleLoadChat(chat.id)}
+                                className={`w-full text-left px-4 py-3 rounded-xl transition-all text-sm truncate flex items-center gap-3 group cursor-pointer ${currentChatId === chat.id
+                                    ? 'bg-oxford-blue/5 text-oxford-blue font-medium'
+                                    : 'text-oxford-blue/60 hover:bg-white hover:shadow-sm'
+                                    }`}
+                            >
+                                <MessageSquare size={16} className={`shrink-0 ${currentChatId === chat.id ? 'text-bronze' : 'opacity-50'}`} />
+
+                                {editingChatId === chat.id ? (
+                                    <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+                                        <input
+                                            autoFocus
+                                            className="w-full bg-white border border-oxford-blue/20 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-bronze"
+                                            value={editingTitle}
+                                            onChange={(e) => setEditingTitle(e.target.value)}
+                                            onKeyDown={(e) => handleRenameChat(e, chat.id)}
+                                            onBlur={(e) => handleRenameChat(e, chat.id)}
+                                        />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <span className="truncate flex-1">{chat.title.replace("Canvas: ", "")}</span>
+
+                                        {/* Action Buttons (Visible on Group Hover) */}
+                                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                                            <button
+                                                className="p-1 hover:bg-oxford-blue/10 rounded text-oxford-blue/40 hover:text-oxford-blue transition-all"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingChatId(chat.id);
+                                                    setEditingTitle(chat.title || "");
+                                                }}
+                                                title="Rename"
+                                            >
+                                                <Edit2 size={12} />
+                                            </button>
+                                            <button
+                                                className="p-1 hover:bg-red-100 rounded text-oxford-blue/40 hover:text-red-500 transition-all"
+                                                onClick={(e) => handleDeleteChat(e, chat.id)}
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
 
@@ -552,8 +700,10 @@ const CanvasWorkspace = ({ onSwitchMode, onBack, onRequireAuth, user, onSignOut,
                 onClose={() => setShowUpgradeModal(false)}
                 featureName={upgradeFeature}
             />
+
         </div>
     );
 };
+
 
 export default CanvasWorkspace;
