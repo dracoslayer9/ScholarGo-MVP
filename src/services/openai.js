@@ -263,21 +263,17 @@ export const sendChatMessage = async (
     const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, history, documentContent, model }),
         signal // Pass signal
     });
-    signal // Pass signal
-});
 
-const data = await response.json();
+    const data = await response.json();
 
-if (!response.ok) {
-    throw new Error(data?.error || `Request failed with status ${response.status}`);
-}
+    if (!response.ok) {
+        throw new Error(data?.error || `Request failed with status ${response.status}`);
+    }
 
-return data.result;
+    return data.result;
 };
 
 /**
