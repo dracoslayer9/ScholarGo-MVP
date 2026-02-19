@@ -54,7 +54,7 @@ export const parseResumeWithAI = async (resumeText) => {
 Tugas Anda adalah mengekstrak teks mentah dari resume pengguna menjadi profil JSON yang terstruktur dan strategis.
 
 Teks Resume Pengguna: 
-${resumeText.substring(0, 5000)} // Limit context to avoid token issues
+${resumeText.substring(0, 3000)} // Limit context to 3000 chars for speed
 
 Tugas Anda:
 
@@ -68,10 +68,16 @@ Instruksi Ketat: Jangan berikan penjelasan teks apa pun sebelum atau sesudah JSO
     `;
 
     try {
-        // We use sendChatMessage as a generic "ask AI" function
-        // Pass empty history, resume text as context, 'openai' as provider
-        // USE gpt-4o-mini for speed and cost efficiency
-        const response = await sendChatMessage(prompt, [], "", null, "gpt-4o-mini");
+        // Create a timeout promise (15 seconds)
+        const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Analysis timed out")), 15000)
+        );
+
+        // Race the API call against the timeout
+        const response = await Promise.race([
+            sendChatMessage(prompt, [], "", null, "gpt-4o-mini"),
+            timeout
+        ]);
 
         // Clean markdown code blocks if present
         const jsonString = response.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -79,6 +85,9 @@ Instruksi Ketat: Jangan berikan penjelasan teks apa pun sebelum atau sesudah JSO
         return JSON.parse(jsonString);
     } catch (error) {
         console.error("Error parsing resume with AI:", error);
+        if (error.message === "Analysis timed out") {
+            throw new Error("Analysis took too long. Please try a shorter resume or check your connection.");
+        }
         throw new Error("Failed to analyze resume. Please try again.");
     }
 };

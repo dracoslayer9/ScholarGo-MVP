@@ -127,3 +127,29 @@ export const incrementUsage = async (userId, feature) => {
         console.error(`Error incrementing ${feature}:`, error);
     }
 };
+
+/**
+ * Initiates a payment process using Midtrans.
+ * Calls the edge function 'create-midtrans-token'.
+ * @param {string} userId 
+ * @param {string} email 
+ * @param {string} planType 
+ * @returns {Promise<{ token: string, redirect_url: string }>}
+ */
+export const initiatePayment = async (userId, email, planType = 'plus') => {
+    try {
+        const { data, error } = await supabase.functions.invoke('create-midtrans-token', {
+            body: {
+                planType,
+                userId,
+                email
+            }
+        });
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Payment Initiation Error:", error);
+        throw error;
+    }
+};

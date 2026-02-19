@@ -1311,14 +1311,17 @@ function App() {
                       <button
                         onClick={() => isAnalyzing ? abortControllerRef.current?.abort() : handleChatSubmit()}
                         disabled={!chatInput.trim() && !essayText.trim() && !isAnalyzing}
-                        className={`p-2 rounded-lg transition-all flex items-center justify-center ${isAnalyzing
-                          ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                          : "bg-bronze text-white hover:bg-bronze/90 shadow-md shadow-bronze/20 disabled:opacity-30 disabled:bg-oxford-blue/50"}`}
+                        className={`p-2 rounded-xl shadow-lg transition-all flex items-center justify-center ${isAnalyzing
+                          ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
+                          : 'bg-bronze hover:bg-bronze/90 text-white shadow-bronze/20 disabled:opacity-50 disabled:shadow-none'
+                          }`}
                       >
                         {isAnalyzing ? (
-                          <div className="w-3 h-3 bg-current rounded-sm" />
+                          <div className="w-5 h-5 flex items-center justify-center">
+                            <div className="w-2.5 h-2.5 bg-white rounded-[2px]" />
+                          </div>
                         ) : (
-                          <Send size={16} />
+                          <Send size={18} />
                         )}
                       </button>
                     </div>

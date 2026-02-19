@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Shield, FileText, Mail, Trash2, LogOut, Loader, Upload } from 'lucide-react';
+import { X, User, Shield, FileText, Mail, Trash2, LogOut, Loader, Upload, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { extractResumeText, parseResumeWithAI } from '../services/resumeService';
+import { initiatePayment } from '../services/subscriptionService';
 
 const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
     const [activeTab, setActiveTab] = useState('profile');
@@ -88,6 +89,13 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                         >
                             <User size={18} />
                             Profil Pengguna
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('membership')}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'membership' ? 'bg-white text-oxford-blue shadow-sm' : 'text-oxford-blue/60 hover:text-oxford-blue hover:bg-white/50'}`}
+                        >
+                            <CreditCard size={18} />
+                            Membership Plan
                         </button>
                         <button
                             onClick={() => setActiveTab('account')}
@@ -212,6 +220,97 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                                 </div>
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+
+                        {/* Membership Tab */}
+                        {activeTab === 'membership' && (
+                            <div className="space-y-6 animate-fadeIn">
+                                <h3 className="text-lg font-bold text-oxford-blue border-b border-gray-100 pb-2">Membership Plan</h3>
+
+                                <div className="space-y-4">
+                                    {/* Free Plan */}
+                                    <div className="p-4 rounded-xl border border-gray-200 bg-white relative">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h4 className="font-bold text-oxford-blue">Free Plan</h4>
+                                                <p className="text-sm text-oxford-blue/60 mt-1">Basic feature access</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="block font-bold text-xl text-oxford-blue">Rp 0</span>
+                                                <span className="text-xs text-oxford-blue/40">/month</span>
+                                            </div>
+                                        </div>
+                                        <div className="mt-4 flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                            <span className="text-sm font-medium text-oxford-blue/80">Active</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Plus Plan */}
+                                    <div className="p-4 rounded-xl border border-bronze/30 bg-gradient-to-br from-white to-bronze/5 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 bg-bronze text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">
+                                            RECOMMENDED
+                                        </div>
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h4 className="font-bold text-oxford-blue flex items-center gap-2">
+                                                    ScholarGo Plus
+                                                    <span className="px-2 py-0.5 rounded-full bg-bronze/10 text-bronze text-[10px] uppercase">Pro</span>
+                                                </h4>
+                                                <p className="text-sm text-oxford-blue/60 mt-1">Unlimited AI analysis & advanced features</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="block font-bold text-xl text-bronze">Rp 49.000</span>
+                                                <span className="text-xs text-oxford-blue/40">/month</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-4 space-y-2">
+                                            {['Unlimited Essay Analysis', 'Detailed AI Feedback', 'Export to PDF', 'Priority Support'].map((feature, i) => (
+                                                <div key={i} className="flex items-center gap-2">
+                                                    <div className="w-4 h-4 rounded-full bg-bronze/20 flex items-center justify-center text-bronze text-[10px]">✓</div>
+                                                    <span className="text-xs text-oxford-blue/70">{feature}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const data = await initiatePayment(user?.id, user?.email, 'plus');
+
+                                                    if (data?.token) {
+                                                        window.snap.pay(data.token, {
+                                                            onSuccess: function (result) {
+                                                                alert("Payment Success!");
+                                                                console.log(result);
+                                                            },
+                                                            onPending: function (result) {
+                                                                alert("Waiting for payment!");
+                                                                console.log(result);
+                                                            },
+                                                            onError: function (result) {
+                                                                alert("Payment Failed!");
+                                                                console.log(result);
+                                                            },
+                                                            onClose: function () {
+                                                                console.log('Customer closed the popup without finishing the payment');
+                                                            }
+                                                        });
+                                                    }
+                                                } catch (e) {
+                                                    console.error("Payment Error:", e);
+                                                    alert("Failed to initiate payment. Please try again.");
+                                                }
+                                            }}
+                                            className="mt-6 w-full py-2.5 bg-bronze text-white font-medium rounded-xl shadow-lg shadow-bronze/20 hover:bg-bronze/90 transition-all hover:scale-[1.02]"
+                                        >
+                                            Upgrade Now
+                                        </button>
                                     </div>
                                 </div>
                             </div>
