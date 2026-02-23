@@ -11,6 +11,15 @@ if (!rootElement) {
   throw new Error("Root element 'root' not found in document.");
 }
 
+// Initialize PostHog
+if (typeof window !== 'undefined' && import.meta.env.VITE_POSTHOG_KEY) {
+  posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
+    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
+    autocapture: true,
+    capture_pageview: false // We capture this manually in App.jsx
+  });
+}
+
 try {
   createRoot(rootElement).render(
     <StrictMode>
