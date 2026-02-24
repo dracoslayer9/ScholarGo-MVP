@@ -13,14 +13,14 @@ const PrivacyPolicy = ({ onBack }) => {
                     Kembali
                 </button>
 
-                <h1 className="text-4xl font-serif font-bold text-oxford-blue mb-4">Kebijakan Privasi ScholarGo</h1>
+                <h1 className="text-4xl font-serif font-bold text-oxford-blue mb-4">Kebijakan Privasi Scholarstory</h1>
                 <p className="text-oxford-blue/60 mb-12">Effective Date: 12 Januari 2026</p>
 
                 <div className="space-y-12">
                     <section>
                         <h2 className="text-2xl font-bold text-oxford-blue mb-4">1. Intro</h2>
                         <p className="text-oxford-blue/80 leading-relaxed">
-                            Selamat datang di ScholarGo. Kami sangat menghargai privasi dan punya komitmen penuh buat jagain data personal kamu. Kebijakan ini jelasin gimana cara kami mengelola informasi kamu saat lagi asik pake fitur Analysis dan Canvas kami.
+                            Selamat datang di Scholarstory. Kami sangat menghargai privasi dan punya komitmen penuh buat jagain data personal kamu. Kebijakan ini jelasin gimana cara kami mengelola informasi kamu saat lagi asik pake fitur Analysis dan Canvas kami.
                         </p>
                     </section>
 
@@ -69,7 +69,7 @@ const PrivacyPolicy = ({ onBack }) => {
                     <section>
                         <h2 className="text-2xl font-bold text-oxford-blue mb-4">6. Hubungi Kami</h2>
                         <p className="text-oxford-blue/80 leading-relaxed">
-                            Kalau ada pertanyaan soal kebijakan ini, kamu bisa langsung hubungi kami lewat email support yang terdaftar di Google Cloud Console atau teamscholargo@gmail.com.
+                            Kalau ada pertanyaan soal kebijakan ini, kamu bisa langsung hubungi kami lewat email support yang terdaftar di Google Cloud Console atau teamscholarstory@gmail.com.
                         </p>
                     </section>
                 </div>

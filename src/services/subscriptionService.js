@@ -129,16 +129,16 @@ export const incrementUsage = async (userId, feature) => {
 };
 
 /**
- * Initiates a payment process using Midtrans.
- * Calls the edge function 'create-midtrans-token'.
+ * Initiates a payment process using Xendit.
+ * Calls the edge function 'create-xendit-invoice'.
  * @param {string} userId 
  * @param {string} email 
  * @param {string} planType 
- * @returns {Promise<{ token: string, redirect_url: string }>}
+ * @returns {Promise<{ invoice_url: string, external_id: string }>}
  */
 export const initiatePayment = async (userId, email, planType = 'plus') => {
     try {
-        const { data, error } = await supabase.functions.invoke('create-midtrans-token', {
+        const { data, error } = await supabase.functions.invoke('create-xendit-invoice', {
             body: {
                 planType,
                 userId,

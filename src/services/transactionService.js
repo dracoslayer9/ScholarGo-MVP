@@ -15,10 +15,10 @@ export const createTransaction = async (planType = 'plus') => {
         if (!session) throw new Error('User not authenticated');
 
         // Ensure email is valid or provide a fallback for Xendit
-        const userEmail = session.user.email || `user_${session.user.id.substring(0, 8)}@placeholder.scholargo.com`;
+        const userEmail = session.user.email || `user_${session.user.id.substring(0, 8)}@placeholder.scholarstory.com`;
 
-        // Call Supabase Edge Function 'create-midtrans-token'
-        const { data, error } = await supabase.functions.invoke('create-midtrans-token', {
+        // Call Supabase Edge Function 'create-xendit-invoice'
+        const { data, error } = await supabase.functions.invoke('create-xendit-invoice', {
             body: {
                 planType,
                 userId: session.user.id,
@@ -32,13 +32,13 @@ export const createTransaction = async (planType = 'plus') => {
             throw new Error(message);
         }
 
-        if (!data || !data.token) {
-            throw new Error('No Snap Token returned');
+        if (!data || !data.invoice_url) {
+            throw new Error('No Invoice URL returned');
         }
 
-        return data; // { token: "...", redirect_url: "..." }
+        return data; // { invoice_url: "...", external_id: "..." }
     } catch (error) {
-        console.error('Error creating transaction (Midtrans):', error);
+        console.error('Error creating transaction (Xendit):', error);
         throw error;
     }
 };

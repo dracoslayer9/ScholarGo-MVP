@@ -97,7 +97,7 @@ serve(async (req) => {
                 external_id: externalId,
                 amount: amount,
                 payer_email: email,
-                description: `Upgrade to ScholarGo ${planType}`,
+                description: `Upgrade to Scholarstory ${planType}`,
                 success_redirect_url: 'http://localhost:5173/?payment=success',
                 failure_redirect_url: 'http://localhost:5173/?payment=failed'
             })

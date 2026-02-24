@@ -132,7 +132,7 @@ export const sendChatMessage = async (
         console.log("Running Gemini Chat...");
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        let systemPrompt = `You are an elite Scholarship Consultant for ScholarGo. Your goal is to guide the user to write a "Gold Standard" essay using the **ScholarGo Master Framework**.
+        let systemPrompt = `You are an elite Scholarship Consultant for Scholarstory. Your goal is to guide the user to write a "Gold Standard" essay using the **Scholarstory Master Framework**.
             
         **THE MASTER FRAMEWORK**:
         Winning essays must follow this **"Gap-Bridge-Vision"** narrative arc:

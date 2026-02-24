@@ -79,7 +79,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col md:flex-row h-[500px] animate-slideIn relative z-10">
 
                 {/* Sidebar */}
-                <div className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-4 shrink-0">
+                <div className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-4 shrink-0 flex flex-col">
                     <h2 className="font-serif font-bold text-xl text-oxford-blue mb-6 px-2">Settings</h2>
 
                     <nav className="space-y-1">
@@ -112,23 +112,41 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                             Legal & Dukungan
                         </button>
                     </nav>
+
+                    <div className="mt-auto pt-4">
+                        <button
+                            onClick={onSignOut}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-red-600 hover:bg-red-50 hover:text-red-700"
+                        >
+                            <LogOut size={18} />
+                            Keluar
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 flex flex-col relative">
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 p-2 text-oxford-blue/40 hover:text-oxford-blue transition-colors rounded-lg hover:bg-gray-50"
-                    >
-                        <X size={20} />
-                    </button>
+                <div className="flex-1 flex flex-col relative bg-white">
+                    {/* Sticky Header */}
+                    <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 shrink-0 z-10 bg-white">
+                        <h3 className="text-xl font-bold text-oxford-blue">
+                            {activeTab === 'profile' && 'Profil Pengguna'}
+                            {activeTab === 'membership' && 'Membership Plan'}
+                            {activeTab === 'account' && 'Manajemen Akun'}
+                            {activeTab === 'legal' && 'Legal & Dukungan'}
+                        </h3>
+                        <button
+                            onClick={onClose}
+                            className="p-1 -m-1 text-oxford-blue/40 hover:text-oxford-blue transition-colors rounded"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
 
-                    <div className="flex-1 p-8 overflow-y-auto">
+                    <div className="flex-1 px-8 py-6 overflow-y-auto">
 
                         {/* Profile Tab */}
                         {activeTab === 'profile' && (
                             <div className="space-y-6 animate-fadeIn">
-                                <h3 className="text-lg font-bold text-oxford-blue border-b border-gray-100 pb-2">Profil Pengguna</h3>
 
                                 <div className="space-y-4">
                                     <div>
@@ -229,7 +247,6 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                         {/* Membership Tab */}
                         {activeTab === 'membership' && (
                             <div className="space-y-6 animate-fadeIn">
-                                <h3 className="text-lg font-bold text-oxford-blue border-b border-gray-100 pb-2">Membership Plan</h3>
 
                                 <div className="space-y-4">
                                     {/* Free Plan */}
@@ -252,20 +269,20 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
 
                                     {/* Plus Plan */}
                                     <div className="p-4 rounded-xl border border-bronze/30 bg-gradient-to-br from-white to-bronze/5 relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 bg-bronze text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">
+                                        <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">
                                             RECOMMENDED
                                         </div>
-                                        <div className="flex justify-between items-start">
+                                        <div className="flex justify-between items-start mt-4">
                                             <div>
                                                 <h4 className="font-bold text-oxford-blue flex items-center gap-2">
-                                                    ScholarGo Plus
-                                                    <span className="px-2 py-0.5 rounded-full bg-bronze/10 text-bronze text-[10px] uppercase">Pro</span>
+                                                    Scholarstory Plus
+                                                    <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] uppercase font-bold">Pro</span>
                                                 </h4>
                                                 <p className="text-sm text-oxford-blue/60 mt-1">Unlimited AI analysis & advanced features</p>
                                             </div>
-                                            <div className="text-right">
-                                                <span className="block font-bold text-xl text-bronze">Rp 49.000</span>
-                                                <span className="text-xs text-oxford-blue/40">/month</span>
+                                            <div className="text-right shrink-0 ml-2">
+                                                <span className="block font-bold text-lg text-blue-600">Rp 49.000</span>
+                                                <span className="text-[10px] text-oxford-blue/40">/month</span>
                                             </div>
                                         </div>
 
@@ -283,24 +300,10 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                                 try {
                                                     const data = await initiatePayment(user?.id, user?.email, 'plus');
 
-                                                    if (data?.token) {
-                                                        window.snap.pay(data.token, {
-                                                            onSuccess: function (result) {
-                                                                alert("Payment Success!");
-                                                                console.log(result);
-                                                            },
-                                                            onPending: function (result) {
-                                                                alert("Waiting for payment!");
-                                                                console.log(result);
-                                                            },
-                                                            onError: function (result) {
-                                                                alert("Payment Failed!");
-                                                                console.log(result);
-                                                            },
-                                                            onClose: function () {
-                                                                console.log('Customer closed the popup without finishing the payment');
-                                                            }
-                                                        });
+                                                    if (data?.invoice_url) {
+                                                        window.location.href = data.invoice_url;
+                                                    } else {
+                                                        throw new Error("Payment link not generated");
                                                     }
                                                 } catch (e) {
                                                     console.error("Payment Error:", e);
@@ -319,7 +322,6 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                         {/* Account Tab */}
                         {activeTab === 'account' && (
                             <div className="space-y-6 animate-fadeIn">
-                                <h3 className="text-lg font-bold text-oxford-blue border-b border-gray-100 pb-2">Manajemen Akun</h3>
 
                                 <div className="p-4 rounded-xl border border-red-100 bg-red-50/50 space-y-4">
                                     <div className="flex items-start gap-4">
@@ -329,7 +331,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                         <div>
                                             <h4 className="font-bold text-red-900">Delete Account</h4>
                                             <p className="text-sm text-red-700/80 mt-1">
-                                                Permanently remove your account and all associated data from ScholarGo. This action is not reversible.
+                                                Permanently remove your account and all associated data from Scholarstory. This action is not reversible.
                                             </p>
                                         </div>
                                     </div>
@@ -358,7 +360,6 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                         {/* Legal Tab */}
                         {activeTab === 'legal' && (
                             <div className="space-y-6 animate-fadeIn">
-                                <h3 className="text-lg font-bold text-oxford-blue border-b border-gray-100 pb-2">Legal & Dukungan</h3>
 
                                 <div className="space-y-2">
                                     <button
@@ -385,7 +386,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                         Our support team is here for you.
                                     </p>
                                     <a
-                                        href="mailto:teamscholargo@gmail.com"
+                                        href="mailto:teamscholarstory@gmail.com"
                                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-oxford-blue text-white rounded-xl font-medium shadow-lg shadow-oxford-blue/20 hover:bg-oxford-blue/90 transition-all hover:scale-105"
                                     >
                                         <Mail size={18} />
@@ -399,7 +400,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                     </div>
                     {/* Footer / Version */}
                     <div className="p-4 border-t border-gray-100 bg-gray-50/30 text-center">
-                        <p className="text-[10px] text-oxford-blue/30 font-medium">ScholarGo v1.2.0 • 2026</p>
+                        <p className="text-[10px] text-oxford-blue/30 font-medium">Scholarstory v1.2.0 • 2026</p>
                     </div>
                 </div>
             </div>

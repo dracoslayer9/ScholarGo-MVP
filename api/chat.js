@@ -8,22 +8,39 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-        return res.status(500).json({ error: 'Missing OPENAI_API_KEY in server environment variables.' });
-    }
+    // Client initialization moved down to check model
 
-    const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
 
     try {
-        const { message, history = [], documentContent = "" } = req.body;
+        const { message, history = [], documentContent = "", model = "gpt-4o" } = req.body;
+
+        let openaiClient;
+        let requestModel = "gpt-4o";
+
+        if (model === "perplexity") {
+            if (!process.env.PERPLEXITY_API_KEY) {
+                return res.status(500).json({ error: 'Missing PERPLEXITY_API_KEY in server environment variables.' });
+            }
+            openaiClient = new OpenAI({
+                apiKey: process.env.PERPLEXITY_API_KEY,
+                baseURL: "https://api.perplexity.ai",
+            });
+            requestModel = "sonar-pro";
+        } else {
+            if (!process.env.OPENAI_API_KEY) {
+                return res.status(500).json({ error: 'Missing OPENAI_API_KEY in server environment variables.' });
+            }
+            openaiClient = new OpenAI({
+                apiKey: process.env.OPENAI_API_KEY,
+            });
+            requestModel = "gpt-4o";
+        }
 
         if (!message) {
             return res.status(400).json({ error: "Message is required" });
         }
 
-        let systemPrompt = `You are an elite Scholarship Consultant for ScholarGo. Your goal is to guide the user to write a "Gold Standard" essay using the **ScholarGo Master Framework**.
+        let systemPrompt = `You are an elite Scholarship Consultant for Scholarstory. Your goal is to guide the user to write a "Gold Standard" essay using the **Scholarstory Master Framework**.
             
         **THE MASTER FRAMEWORK**:
         Winning essays must follow this **"Gap-Bridge-Vision"** narrative arc:
@@ -107,8 +124,8 @@ export default async function handler(req, res) {
             { role: "user", content: message }
         ];
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+        const completion = await openaiClient.chat.completions.create({
+            model: requestModel,
             messages: messages,
             temperature: 0.7,
         });

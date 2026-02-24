@@ -9,7 +9,7 @@ const PaymentSuccess = ({ onContinue }) => {
             </div>
             <h1 className="text-3xl font-serif font-bold text-oxford-blue mb-2">Payment Successful!</h1>
             <p className="text-oxford-blue/60 mb-8 text-center max-w-md">
-                Thank you for upgrading to ScholarGo Plus. You now have unlimited access to all AI features.
+                Thank you for upgrading to Scholarstory Plus. You now have unlimited access to all AI features.
             </p>
 
             <button

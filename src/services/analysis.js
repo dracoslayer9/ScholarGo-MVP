@@ -17,7 +17,10 @@ export const sendChatMessage = async (message, history, documentContent, provide
     if (provider === 'gemini') {
         return await Gemini.sendChatMessage(message, history, documentContent, signal); // Assuming Gemini is updated similarly
     }
-    return await OpenAI.sendChatMessage(message, history, documentContent, signal);
+    if (provider === 'perplexity') {
+        return await OpenAI.sendChatMessage(message, history, documentContent, signal, 'perplexity');
+    }
+    return await OpenAI.sendChatMessage(message, history, documentContent, signal, 'gpt-4o');
 };
 
 // Facade for Paragraph Insight (Context Menu)

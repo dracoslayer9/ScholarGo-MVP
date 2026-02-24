@@ -88,7 +88,7 @@ const LoginPage = ({ onBack }) => {
                 {/* Header */}
                 <div className="text-center mb-6">
                     <h1 className="text-3xl font-serif font-bold text-oxford-blue mb-2">
-                        {isSignUp ? "Get started with ScholarGo" : "Sign in to ScholarGo"}
+                        {isSignUp ? "Get started with Scholarstory" : "Sign in to Scholarstory"}
                     </h1>
                 </div>
 

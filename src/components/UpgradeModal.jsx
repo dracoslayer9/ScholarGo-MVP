@@ -5,22 +5,7 @@ import { createTransaction } from '../services/transactionService';
 const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
     const [loading, setLoading] = useState(false);
 
-    // Load Midtrans Snap.js
-    React.useEffect(() => {
-        const snapUrl = "https://app.midtrans.com/snap/snap.js";
-        const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || 'Mid-client-FNNO_z9Q54bZdZS9'; // Fallback to provided key
-
-        const script = document.createElement('script');
-        script.src = snapUrl;
-        script.setAttribute('data-client-key', clientKey);
-        script.async = true;
-
-        document.body.appendChild(script);
-
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
+    // Xendit uses redirects, no external script injection needed.
 
     if (!open) return null;
 
@@ -33,33 +18,14 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
     const handleUpgrade = async () => {
         setLoading(true);
         try {
-            // 1. Get Snap Token from Backend
-            const { token } = await createTransaction('plus');
+            // 1. Get Invoice URL from Backend
+            const { invoice_url } = await createTransaction('plus');
 
-            // 2. Trigger Snap Popup
-            if (window.snap) {
-                window.snap.pay(token, {
-                    onSuccess: function (result) {
-                        console.log('Payment Success:', result);
-                        window.location.href = '/?payment=success';
-                    },
-                    onPending: function (result) {
-                        console.log('Payment Pending:', result);
-                        alert("Payment pending. Please complete the payment.");
-                        setLoading(false);
-                    },
-                    onError: function (result) {
-                        console.error('Payment Error:', result);
-                        alert("Payment failed. Please try again.");
-                        setLoading(false);
-                    },
-                    onClose: function () {
-                        console.log('Customer closed the popup without finishing the payment');
-                        setLoading(false);
-                    }
-                });
+            // 2. Redirect to Payment Gateway
+            if (invoice_url) {
+                window.location.href = invoice_url;
             } else {
-                throw new Error("Midtrans Snap.js not loaded");
+                throw new Error("Payment link not generated");
             }
 
         } catch (error) {
@@ -94,15 +60,15 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                     // --- GENERAL UPGRADE VIEW (Used for Guests too) ---
                     <div className="flex flex-col md:flex-row h-full">
                         {/* Free Plan (Left) */}
-                        <div className="flex-1 p-8 bg-gray-50/50 flex flex-col border-r border-oxford-blue/5">
+                        <div className="flex-1 p-8 bg-white flex flex-col border-r border-gray-100">
                             <div className="mb-6">
-                                <h3 className="font-serif font-bold text-xl text-oxford-blue mb-1">Free Plan</h3>
+                                <h3 className="font-bold text-2xl text-oxford-blue mb-1">Free Plan</h3>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-2xl font-bold text-oxford-blue">Rp 0</span>
-                                    <span className="text-xs text-oxford-blue/40">/month</span>
+                                    <span className="text-3xl font-bold text-oxford-blue">Rp 0</span>
+                                    <span className="text-sm text-oxford-blue/40 font-medium">/month</span>
                                 </div>
-                                <p className="text-sm text-oxford-blue/40 font-medium mt-1">
-                                    {isGuest ? "Start for free" : "Your current plan"}
+                                <p className="text-sm text-oxford-blue/40 font-medium mt-2">
+                                    Start for free
                                 </p>
                             </div>
                             <div className="space-y-4 mb-8 flex-1">
@@ -111,18 +77,12 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                 <FeatureRow text="3 Deep Reviews" />
                             </div>
 
-                            {isGuest ? (
-                                <button
-                                    onClick={onLogin}
-                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-600/20 text-sm"
-                                >
-                                    Mulai Gratis
-                                </button>
-                            ) : (
-                                <button disabled className="w-full py-3 bg-gray-200 text-oxford-blue/40 font-bold rounded-xl cursor-default text-sm">
-                                    Current Plan
-                                </button>
-                            )}
+                            <button
+                                onClick={onLogin}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors text-sm"
+                            >
+                                Mulai Gratis
+                            </button>
                         </div>
 
                         {/* Plus Plan (Right - Highlighted) */}
@@ -130,11 +90,11 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
 
                             <div className="mb-6 relative z-10">
                                 <div className="flex items-center justify-between mb-1">
-                                    <h3 className="font-serif font-bold text-xl text-oxford-blue">Plus Plan</h3>
+                                    <h3 className="font-bold text-2xl text-oxford-blue">Plus Plan</h3>
                                 </div>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-2xl font-bold text-oxford-blue">Rp 49rb</span>
-                                    <span className="text-xs text-oxford-blue/40">/month</span>
+                                    <span className="text-3xl font-bold text-oxford-blue">Rp 49rb</span>
+                                    <span className="text-sm text-oxford-blue/40 font-medium">/month</span>
                                 </div>
                             </div>
 
@@ -148,10 +108,10 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                             <button
                                 onClick={isGuest ? onLogin : handleUpgrade}
                                 disabled={loading}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-2"
                             >
                                 {loading ? <Loader size={16} className="animate-spin" /> : <Crown size={16} />}
-                                {loading ? 'Processing...' : (isGuest ? 'Mulai Gratis' : 'Upgrade Now')}
+                                {loading ? 'Processing...' : 'Mulai Gratis'}
                             </button>
                         </div>
                     </div>
@@ -169,7 +129,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                         <div className="p-8">
                             <div className="text-center mb-8">
                                 <p className="text-oxford-blue/60 mb-6 text-sm">
-                                    Upgrade to <span className="font-bold text-oxford-blue">ScholarGo Plus</span> to continue analyzing without limits.
+                                    Upgrade to <span className="font-bold text-oxford-blue">Scholarstory Plus</span> to continue analyzing without limits.
                                 </p>
                                 <div className="space-y-3 text-left max-w-xs mx-auto">
                                     <FeatureRow text="Unlimited PDF Analysis" highlight />
@@ -198,10 +158,10 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
 
 const FeatureRow = ({ text, highlight = false }) => (
     <div className="flex items-center gap-3">
-        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${highlight ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
-            <Check size={10} strokeWidth={3} />
+        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${highlight ? 'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-400'}`}>
+            <Check size={12} strokeWidth={3} />
         </div>
-        <span className={`text-sm ${highlight ? 'text-oxford-blue font-medium' : 'text-oxford-blue/60'}`}>{text}</span>
+        <span className={`text-base font-medium ${highlight ? 'text-oxford-blue' : 'text-oxford-blue/60'}`}>{text}</span>
     </div>
 );
 

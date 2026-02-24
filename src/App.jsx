@@ -32,7 +32,6 @@ import LoginPage from './LoginPage';
 import AnalysisResultView from './components/AnalysisResultView';
 import ChatMessagesList from './components/ChatMessagesList';
 import LandingPage from './LandingPage';
-import SelectionPage from './SelectionPage';
 import PrivacyPolicy from './PrivacyPolicy';
 import TermsOfService from './TermsOfService';
 import CanvasWorkspace from './CanvasWorkspace';
@@ -207,11 +206,11 @@ const PDFPage = ({ pdf, pageNum, scale }) => {
 
 function App() {
   // App Mode: 'landing' | 'selection' | 'upload' | 'canvas'
-  const [appMode, setAppMode] = useState(() => localStorage.getItem('scholarGo_appMode') || 'landing');
+  const [appMode, setAppMode] = useState(() => localStorage.getItem('scholarStory_appMode') || 'landing');
 
   // Persist App Mode
   useEffect(() => {
-    localStorage.setItem('scholarGo_appMode', appMode);
+    localStorage.setItem('scholarStory_appMode', appMode);
     // Track Page View
     posthog.capture('$pageview', {
       app_mode: appMode // detailed tracking
@@ -247,6 +246,8 @@ function App() {
   const [fileType, setFileType] = useState(null);
   const [fileName, setFileName] = useState('');
   const [chatInput, setChatInput] = useState('');
+  const [isFileParsing, setIsFileParsing] = useState(false);
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   const [selectedProvider] = useState('openai'); // 'openai' or 'gemini'
 
   // --- SUPABASE CHAT STATE ---
@@ -366,7 +367,7 @@ function App() {
 
         setAppMode((prevMode) => {
           if (prevMode === 'login') {
-            return 'selection';
+            return 'canvas';
           }
           return prevMode;
         });
@@ -403,8 +404,8 @@ function App() {
   };
 
   const handleStart = () => {
-    // Lazy Auth: Always go to selection, check auth later on action
-    setAppMode('selection');
+    // Lazy Auth: Always go to canvas, check auth later on action
+    setAppMode('canvas');
   };
 
 
@@ -509,6 +510,7 @@ function App() {
 
     const url = URL.createObjectURL(file);
     setFileUrl(url);
+    setIsFileParsing(true);
 
     // Normalize file type based on extension if MIME type is missing or generic
     let detectedType = file.type;
@@ -524,7 +526,10 @@ function App() {
 
     if (detectedType === "text/plain" || lowerName.endsWith('.txt')) {
       const reader = new FileReader();
-      reader.onload = (event) => setEssayText(event.target.result);
+      reader.onload = (event) => {
+        setEssayText(event.target.result);
+        setIsFileParsing(false);
+      };
       reader.readAsText(file);
     }
     else if (detectedType === "application/pdf") {
@@ -547,6 +552,8 @@ function App() {
         } catch (err) {
           console.error("PDF Parse Error:", err);
           setEssayText("Error reading PDF content. Please try converting to text.");
+        } finally {
+          setIsFileParsing(false);
         }
       };
       reader.readAsArrayBuffer(file);
@@ -563,6 +570,8 @@ function App() {
         } catch (err) {
           console.error("DOCX Parse Error:", err);
           setEssayText("Error reading DOCX content.");
+        } finally {
+          setIsFileParsing(false);
         }
       };
       reader.readAsArrayBuffer(file);
@@ -573,6 +582,7 @@ function App() {
         setEssayText('');
         console.warn("Unsupported file type for text extraction:", detectedType);
       }
+      setIsFileParsing(false);
     }
   };
 
@@ -862,10 +872,6 @@ function App() {
     return <LoginPage onBack={() => setAppMode('landing')} />;
   }
 
-  if (appMode === 'selection') {
-    return <SelectionPage onSelect={(mode) => setAppMode(mode)} user={session?.user} />;
-  }
-
   if (appMode === 'privacy') {
     return <PrivacyPolicy onBack={() => setAppMode('landing')} />;
   }
@@ -888,7 +894,6 @@ function App() {
     return (
       <>
         <CanvasWorkspace
-          onSwitchMode={() => setAppMode('selection')}
           onBack={() => setAppMode('landing')}
           onRequireAuth={() => {
             if (!session) {
@@ -1252,8 +1257,46 @@ function App() {
                   <div ref={messagesEndRef} className="h-2" />
                 </div>
 
+                {/* Document Preview Modal */}
+                {showDocumentPreview && fileUrl && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-oxford-blue/20 backdrop-blur-sm animate-fadeIn" onClick={() => setShowDocumentPreview(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-full flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-between px-6 py-4 border-b border-oxford-blue/10 bg-gray-50/50 shrink-0">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                            <BookOpen size={20} />
+                          </div>
+                          <h3 className="font-semibold text-oxford-blue truncate max-w-md">{fileName}</h3>
+                        </div>
+                        <button
+                          onClick={() => setShowDocumentPreview(false)}
+                          className="p-2 text-oxford-blue/40 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded-full transition-colors"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+                      <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-white">
+                        {isFileParsing ? (
+                          <div className="flex flex-col items-center justify-center py-12 gap-4">
+                            <Loader className="animate-spin text-bronze" size={32} />
+                            <p className="text-oxford-blue/60 font-medium">Membaca dokumen...</p>
+                          </div>
+                        ) : essayText ? (
+                          <div className="font-serif text-oxford-blue leading-relaxed whitespace-pre-wrap text-base md:text-lg">
+                            {essayText}
+                          </div>
+                        ) : (
+                          <div className="text-center text-oxford-blue/50 py-12 font-serif">
+                            Preview not available for this file type.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Input Area (Fixed Bottom - Gemini Style) */}
-                <div className="p-4 bg-white border-t border-oxford-blue/5">
+                <div className="p-3 bg-[#F8FAFC]">
 
                   {/* Context Indicator (if selected) */}
                   {contextText && (
@@ -1264,7 +1307,35 @@ function App() {
                   )}
 
                   {/* Unified Input Box */}
-                  <div className="bg-gray-50 border border-oxford-blue/10 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-bronze/10 focus-within:border-bronze/30 transition-all shadow-sm">
+                  <div className="bg-gray-50 border border-oxford-blue/10 rounded-xl p-3 focus-within:ring-2 focus-within:ring-bronze/10 focus-within:border-bronze/30 transition-all shadow-sm">
+
+                    {/* File Attachment Preview */}
+                    {fileUrl && fileName && (
+                      <div
+                        onClick={() => setShowDocumentPreview(true)}
+                        className="group flex items-center gap-2 mb-2 px-3 py-1.5 bg-white hover:bg-gray-50 border border-oxford-blue/10 rounded-full w-fit max-w-full shadow-sm cursor-pointer transition-all active:scale-[0.98]"
+                      >
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                          <BookOpen size={12} />
+                        </div>
+                        <span className="text-xs font-semibold text-oxford-blue truncate max-w-[150px]">
+                          1 File Attached
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFileUrl(null);
+                            setFileName('');
+                            setEssayText('');
+                            setIsAnalyzed(false);
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                          className="ml-1 p-0.5 text-oxford-blue/40 hover:text-red-500 rounded-full hover:bg-oxford-blue/5 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
 
                     <textarea
                       ref={chatInputRef}
@@ -1277,21 +1348,22 @@ function App() {
                         }
                       }}
                       disabled={isAnalyzing}
-                      placeholder={isAnalyzing ? "ScholarGo is thinking..." : (contextText ? "Ask about selected text..." : "Ask ScholarGo...")}
-                      className="w-full bg-transparent border-none px-4 py-3 text-sm text-oxford-blue outline-none resize-none custom-scrollbar disabled:opacity-50 placeholder:text-oxford-blue/40"
+                      placeholder={isAnalyzing ? "Scholarstory is thinking..." : (contextText ? "Ask about selected text..." : "Ask Scholarstory...")}
+                      className="w-full bg-transparent border-none px-2 py-1 text-sm text-oxford-blue outline-none resize-none custom-scrollbar disabled:opacity-50 placeholder:text-oxford-blue/40"
                       rows={1}
-                      style={{ minHeight: '60px', maxHeight: '200px' }}
+                      style={{ minHeight: '28px', maxHeight: '200px' }}
                     />
 
                     {/* Internal Toolbar */}
-                    <div className="flex items-center justify-between px-2 pb-1 mt-1">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between px-1 mt-2">
+                      <div className="flex items-center gap-3">
                         {/* Add Document Button */}
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-oxford-blue/10 text-oxford-blue/60 transition-colors text-xs font-medium"
+                          className="p-1 rounded-full text-oxford-blue/40 hover:text-bronze hover:bg-oxford-blue/10 transition-colors"
+                          title="Lampirkan File"
                         >
-                          <Plus size={14} /> Dokumen
+                          <Plus size={18} strokeWidth={2.5} />
                         </button>
                         <input
                           type="file"
@@ -1302,7 +1374,7 @@ function App() {
                         />
 
                         {/* Model Indicator (Static) */}
-                        <div className="flex items-center gap-1.5 text-oxford-blue/40 text-xs font-medium cursor-default">
+                        <div className="text-oxford-blue/40 text-xs font-semibold cursor-default">
                           GPT-4o
                         </div>
                       </div>

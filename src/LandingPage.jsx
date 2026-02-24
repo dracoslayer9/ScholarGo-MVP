@@ -24,7 +24,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                         <div className="w-10 h-10 bg-bronze rounded-xl flex items-center justify-center text-white shadow-lg shadow-bronze/20">
                             <BookOpen size={20} />
                         </div>
-                        <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">ScholarGo</span>
+                        <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">Scholarstory</span>
                     </div>
 
                     {/* Center: Navigation */}
@@ -61,14 +61,14 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                     <div className="flex flex-col items-center text-center">
 
                         {/* Headline */}
-                        <h1 className="text-5xl md:text-7xl font-serif font-medium text-oxford-blue mb-8 leading-[1.1] tracking-tight max-w-4xl">
-                            AI Asisten <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Beasiswa</span>
+                        <h1 className="text-5xl md:text-7xl font-serif font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-8 pb-2 leading-tight tracking-tight max-w-4xl">
+                            Write great <br />
+                            for a greater tomorrow
                         </h1>
 
                         {/* Subtitle */}
                         <p className="text-lg md:text-xl text-oxford-blue/80 mb-12 max-w-2xl leading-relaxed font-normal">
-                            Bantu bedah struktur esai pemenang dan susun narasi aplikasi autentik yang siap tembus beasiswa impian kamu
+                            Canvas kolaboratif yang didukung AI canggih untuk memenangkan beasiswa
                         </p>
 
                         {/* CTAs */}
@@ -77,19 +77,13 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                                 onClick={onStart}
                                 className="w-full sm:w-auto px-6 py-3 bg-bronze text-white rounded-xl font-bold hover:brightness-90 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg shadow-bronze/20"
                             >
-                                Langsung coba
-                            </button>
-                            <button
-                                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-                                className="w-full sm:w-auto px-6 py-3 bg-white border border-oxford-blue/10 text-oxford-blue rounded-xl font-bold hover:bg-gray-50 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-sm"
-                            >
-                                Lihat Fitur
+                                Mulai Menulis
                             </button>
                         </div>
 
                         <div className="mt-8 flex items-center justify-center gap-3 animate-fadeIn">
                             <span className="text-3xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                                200+
+                                300+
                             </span>
                             <span className="text-oxford-blue/60 font-medium">
                                 pejuang beasiswa sudah gabung!
@@ -134,7 +128,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold tracking-wider text-sm uppercase mb-3 block">
                             FITUR UNGGULAN
                         </span>
-                        <h2 className="text-3xl md:text-4xl font-serif font-medium text-oxford-blue mb-4">Analisis Mendalam. Esai <span className="italic">Level-up</span>.</h2>
+                        <h2 className="text-3xl md:text-4xl font-serif font-medium text-oxford-blue mb-4">Esai <span className="italic">Level-up</span>.</h2>
                         <p className="text-base text-oxford-blue/80 max-w-2xl mx-auto">Bedah aplikasi dan susun esai di laboratorium interaktif.</p>
                     </div>
 
@@ -146,7 +140,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                             </div>
                             <h3 className="text-2xl font-bold text-oxford-blue mb-4">Analisis Esai Ala Awardee</h3>
                             <p className="text-oxford-blue/60 leading-relaxed text-lg">
-                                Secara cepat bedah pola esai penerima beasiswa global dengan AI.
+                                Secara cepat bedah pola aplikasi penerima beasiswa global dengan AI.
                             </p>
                         </div>
 
@@ -157,7 +151,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                             </div>
                             <h3 className="text-2xl font-bold text-oxford-blue mb-4">Canvas Menulis Interaktif</h3>
                             <p className="text-oxford-blue/60 leading-relaxed text-lg">
-                                Tulis draf secara real-time dengan panduan interaktif agar esai kamu sesuai dengan pemenang beasiswa.
+                                Tulis draf secara real-time dengan panduan interaktif agar narasi kamu sesuai dengan pemenang beasiswa.
                             </p>
                         </div>
                     </div>
@@ -249,10 +243,10 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
             {/* Footer */}
             <footer className="py-8 bg-white border-t border-oxford-blue/5 text-center text-sm text-oxford-blue/40">
                 <div className="flex items-center justify-center gap-6 mb-4">
-                    <a href="https://youtube.com/@scholargooo?si=HmgmbNA6jdviKamt" target="_blank" rel="noopener noreferrer" className="text-oxford-blue/40 hover:text-red-600 transition-colors">
+                    <a href="https://youtube.com/@scholarstoryoo?si=HmgmbNA6jdviKamt" target="_blank" rel="noopener noreferrer" className="text-oxford-blue/40 hover:text-red-600 transition-colors">
                         <Youtube size={20} />
                     </a>
-                    <a href="https://www.tiktok.com/@scholargo?_r=1&_t=ZS-930EamaS16z" target="_blank" rel="noopener noreferrer" className="text-oxford-blue/40 hover:text-black transition-colors">
+                    <a href="https://www.tiktok.com/@scholarstory?_r=1&_t=ZS-930EamaS16z" target="_blank" rel="noopener noreferrer" className="text-oxford-blue/40 hover:text-black transition-colors">
                         <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                             <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
                         </svg>
@@ -266,7 +260,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                         Ketentuan Layanan
                     </button>
                 </div>
-                <p>© 2026 ScholarGo. All rights reserved.</p>
+                <p>© 2026 Scholarstory. All rights reserved.</p>
             </footer>
             <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
         </div>
