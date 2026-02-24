@@ -38,6 +38,7 @@ import { sendChatMessage, runRealAnalysis } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat } from './services/chatService';
 import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
+import { PDFViewer } from './components/PDFViewer';
 import ChatMessagesList from './components/ChatMessagesList';
 import AnalysisResultView from './components/AnalysisResultView';
 import UpgradeModal from './components/UpgradeModal';
@@ -133,6 +134,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // File Upload State for Canvas Chat
     const [fileUrl, setFileUrl] = useState(null);
+    const [fileType, setFileType] = useState(null);
     const [fileName, setFileName] = useState('');
     const [fileContext, setFileContext] = useState('');
     const [isFileParsing, setIsFileParsing] = useState(false);
@@ -583,6 +585,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         if (lowerName.endsWith('.pdf')) detectedType = 'application/pdf';
         else if (lowerName.endsWith('.docx')) detectedType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
+        setFileType(detectedType);
         setFileName(file.name);
         setIsFileParsing(true);
 
@@ -595,72 +598,12 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             reader.readAsText(file);
         }
         else if (detectedType === "application/pdf") {
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const timeoutId = setTimeout(() => {
-                    setIsFileParsing(false);
-                    setFileContext("Parsing timed out. Please try converting to plain text.");
-                }, 15000);
-
-                try {
-                    if (!window.pdfjsLib) throw new Error("PDF Library not loaded");
-                    const loadingTask = window.pdfjsLib.getDocument(event.target.result);
-                    const pdf = await Promise.race([
-                        loadingTask.promise,
-                        new Promise((_, reject) => setTimeout(() => reject(new Error("PDF loading timed out")), 14000))
-                    ]);
-                    let fullText = '';
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        const pageText = textContent.items.map(item => item.str).join(' ');
-                        fullText += `Page ${i}:\n${pageText}\n\n`;
-                    }
-                    setFileContext(fullText);
-                } catch (err) {
-                    console.error("PDF Parse Error:", err);
-                    setFileContext("Error reading PDF content. Please try converting to text.");
-                } finally {
-                    setIsFileParsing(false);
-                    clearTimeout(timeoutId);
-                }
-            };
-            reader.onerror = () => {
-                setIsFileParsing(false);
-                setFileContext("Error reading file.");
-            };
-            reader.readAsArrayBuffer(file);
+            // User explicitly requested "dont parser" - we only attach visually
+            setIsFileParsing(false);
         }
         else if (detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx")) {
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const timeoutId = setTimeout(() => {
-                    setIsFileParsing(false);
-                    setFileContext("Parsing timed out. Please try converting to plain text.");
-                }, 15000);
-
-                try {
-                    if (!window.mammoth) throw new Error("Mammoth Library not loaded");
-                    const arrayBuffer = event.target.result;
-                    const resultTask = window.mammoth.extractRawText({ arrayBuffer });
-                    const result = await Promise.race([
-                        resultTask,
-                        new Promise((_, reject) => setTimeout(() => reject(new Error("DOCX loading timed out")), 14000))
-                    ]);
-                    setFileContext(result.value);
-                } catch (err) {
-                    console.error("DOCX Parse Error:", err);
-                    setFileContext("Error reading DOCX content.");
-                } finally {
-                    setIsFileParsing(false);
-                    clearTimeout(timeoutId);
-                }
-            };
-            reader.onerror = () => {
-                setIsFileParsing(false);
-                setFileContext("Error reading file.");
-            };
-            reader.readAsArrayBuffer(file);
+            // User explicitly requested "dont parser" - we only attach visually
+            setIsFileParsing(false);
         }
         else {
             setIsFileParsing(false);
@@ -1269,14 +1212,14 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
                     {/* Document Preview Modal */}
                     {showDocumentPreview && fileUrl && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-oxford-blue/20 backdrop-blur-sm animate-fadeIn" onClick={() => setShowDocumentPreview(false)}>
-                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-full flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-oxford-blue/60 backdrop-blur-sm animate-fadeIn" onClick={() => setShowDocumentPreview(false)}>
+                            <div className="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] max-w-6xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                                 <div className="flex items-center justify-between px-6 py-4 border-b border-oxford-blue/10 bg-gray-50/50 shrink-0">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                                             <BookOpen size={20} />
                                         </div>
-                                        <h3 className="font-semibold text-oxford-blue truncate max-w-md">{fileName}</h3>
+                                        <h3 className="font-semibold text-oxford-blue truncate max-w-2xl">{fileName}</h3>
                                     </div>
                                     <button
                                         onClick={() => setShowDocumentPreview(false)}
@@ -1285,33 +1228,46 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                                         <X size={20} />
                                     </button>
                                 </div>
-                                <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-white">
+                                <div className="p-0 overflow-hidden bg-white flex-1 flex flex-col relative">
                                     {isFileParsing ? (
-                                        <div className="flex flex-col items-center justify-center py-12 gap-4">
+                                        <div className="flex flex-col items-center justify-center py-20 gap-4 flex-1">
                                             <Loader className="animate-spin text-bronze" size={32} />
                                             <p className="text-oxford-blue/60 font-medium">Membaca dokumen...</p>
                                         </div>
+                                    ) : fileType === 'application/pdf' ? (
+                                        <div className="absolute inset-0 w-full h-full bg-gray-100">
+                                            <PDFViewer key={fileUrl} url={fileUrl} />
+                                        </div>
+                                    ) : fileType?.startsWith('image/') ? (
+                                        <div className="w-full h-full flex items-center justify-center p-8 bg-gray-50 overflow-y-auto flex-1">
+                                            <img
+                                                src={fileUrl}
+                                                alt="Document"
+                                                className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg"
+                                                style={{ imageOrientation: 'from-image' }}
+                                            />
+                                        </div>
                                     ) : fileContext ? (
-                                        <div className="font-serif text-oxford-blue leading-relaxed whitespace-pre-wrap text-base md:text-lg">
+                                        <div className="font-serif text-oxford-blue leading-relaxed whitespace-pre-wrap text-base md:text-lg overflow-y-auto p-8 md:p-12 w-full h-full flex-1">
                                             {fileContext}
                                         </div>
                                     ) : (
-                                        <div className="text-center text-oxford-blue/50 py-12 font-serif">
+                                        <div className="text-center text-oxford-blue/50 py-20 font-serif flex-1 flex items-center justify-center flex-1">
                                             Preview not available for this file type.
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Footer Actions - Analyze Button */}
-                                {(!isFileParsing && fileContext?.trim()) && (
+                                {(!isFileParsing && (fileContext?.trim() || fileUrl)) && (
                                     <div className="px-6 py-4 border-t border-oxford-blue/10 bg-gray-50/50 shrink-0 flex justify-end">
                                         <button
                                             onClick={handleAnalyzeDocument}
                                             disabled={isAnalyzing}
-                                            className={`px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 ${isAnalyzing ? 'bg-gray-200 text-gray-400' : 'bg-bronze hover:bg-bronze/90 text-white hover:-translate-y-0.5 shadow-bronze/20'}`}
+                                            className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
                                         >
                                             <Sparkles size={18} />
-                                            {isAnalyzing ? "Menganalisis..." : "Analyze"}
+                                            {isAnalyzing ? "Menganalisis..." : "Analyze Document"}
                                         </button>
                                     </div>
                                 )}

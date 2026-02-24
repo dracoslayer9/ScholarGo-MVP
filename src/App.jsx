@@ -27,6 +27,7 @@ import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './ser
 import { supabase } from './lib/supabaseClient';
 import { createChat, getUserChats, getChatMessages, saveMessage, updateChatTitle, deleteChat } from './services/chatService';
 import { generateSmartTitle } from './utils/chatUtils';
+import { PDFViewer } from './components/PDFViewer';
 
 import LoginPage from './LoginPage';
 
@@ -70,142 +71,7 @@ const analyzeEssay = async (text, model, instruction, context, signal) => {
   }
 };
 
-// PDF Viewer Component (Moved outside to prevent re-renders)
-const PDFViewer = ({ url }) => {
-  const [pdf, setPdf] = useState(null);
-  const [pages, setPages] = useState([]);
-  const [scale, setScale] = useState(1.2);
-  const containerRef = useRef(null);
 
-  // Load PDF
-  useEffect(() => {
-    const loadPdf = async () => {
-      if (!url) return;
-      try {
-        if (!window.pdfjsLib) return;
-        const loadingTask = window.pdfjsLib.getDocument(url);
-        const loadedPdf = await loadingTask.promise;
-        setPdf(loadedPdf);
-        setPages(Array.from({ length: loadedPdf.numPages }, (_, i) => i + 1));
-      } catch (error) {
-        console.error("Error loading PDF:", error);
-      }
-    };
-    loadPdf();
-  }, [url]);
-
-  // Handle Resize & Scale - Strict "Fit Width"
-  useEffect(() => {
-    if (!pdf || !containerRef.current) return;
-
-    const updateScale = () => {
-      const containerWidth = containerRef.current.clientWidth;
-      if (containerWidth === 0) return;
-
-      pdf.getPage(1).then(page => {
-        // Get viewport at scale 1 to determine base dimensions
-        const viewport = page.getViewport({ scale: 1.0 });
-
-        // Calculate strictly to fit width (-64px for p-8 padding)
-        const availableWidth = containerWidth - 64;
-        const fitWidthScale = availableWidth / viewport.width;
-
-        // Force scale to width (Fit Width)
-        setScale(fitWidthScale);
-      });
-    };
-
-    // Initial calculation
-    updateScale();
-
-    // Responsive Listener
-    const resizeObserver = new ResizeObserver(() => {
-      window.requestAnimationFrame(updateScale);
-    });
-
-    resizeObserver.observe(containerRef.current);
-    return () => resizeObserver.disconnect();
-  }, [pdf]);
-
-  if (!pdf) return <div className="text-center p-8 text-oxford-blue/50 font-serif">Loading Document...</div>;
-
-  return (
-    <div
-      ref={containerRef}
-      className="flex flex-col items-center gap-6 bg-white p-8 overflow-y-auto w-full h-full custom-scrollbar"
-    >
-      {pages.map(pageNum => (
-        <PDFPage key={pageNum} pdf={pdf} pageNum={pageNum} scale={scale} />
-      ))}
-    </div>
-  );
-};
-
-const PDFPage = ({ pdf, pageNum, scale }) => {
-  const canvasRef = useRef(null);
-  const textLayerRef = useRef(null);
-
-  useEffect(() => {
-    const renderPage = async () => {
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: scale });
-
-      // Support HiDPI-screens (Retina)
-      const outputScale = window.devicePixelRatio || 1;
-
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-
-      canvas.width = Math.floor(viewport.width * outputScale);
-      canvas.height = Math.floor(viewport.height * outputScale);
-      canvas.style.width = `${Math.floor(viewport.width)}px`;
-      canvas.style.height = `${Math.floor(viewport.height)}px`;
-
-      const transform = outputScale !== 1
-        ? [outputScale, 0, 0, outputScale, 0, 0]
-        : null;
-
-      const renderContext = {
-        canvasContext: context,
-        transform: transform,
-        viewport: viewport
-      };
-
-      await page.render(renderContext).promise;
-
-      // Text Layer
-      const textContent = await page.getTextContent();
-      const textLayerDiv = textLayerRef.current;
-      if (textLayerDiv) {
-        textLayerDiv.innerHTML = '';
-        textLayerDiv.style.height = `${Math.floor(viewport.height)}px`;
-        textLayerDiv.style.width = `${Math.floor(viewport.width)}px`;
-        textLayerDiv.style.setProperty('--scale-factor', scale);
-
-        await window.pdfjsLib.renderTextLayer({
-          textContentSource: textContent,
-          container: textLayerDiv,
-          viewport: viewport,
-          textDivs: []
-        }).promise;
-      }
-    };
-    renderPage();
-  }, [pdf, pageNum, scale]);
-
-  return (
-    <div
-      className="relative bg-white selection:bg-yellow-400 selection:text-transparent"
-      style={{ width: 'fit-content', height: 'fit-content' }}
-    >
-      <canvas ref={canvasRef} className="block" />
-      <div
-        ref={textLayerRef}
-        className="textLayer absolute inset-0"
-      ></div>
-    </div>
-  );
-};
 
 function App() {
   // App Mode: 'landing' | 'selection' | 'upload' | 'canvas'
@@ -541,77 +407,10 @@ function App() {
       reader.readAsText(file);
     }
     else if (detectedType === "application/pdf") {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const timeoutId = setTimeout(() => {
-          setIsFileParsing(false);
-          setEssayText("Parsing timed out. The file might be corrupted or too large. Please try converting to plain text.");
-        }, 15000); // 15 seconds timeout
-
-        try {
-          if (!window.pdfjsLib) throw new Error("PDF Library not loaded");
-          const loadingTask = window.pdfjsLib.getDocument(event.target.result);
-          const pdf = await Promise.race([
-            loadingTask.promise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error("PDF loading timed out")), 14000))
-          ]);
-          let fullText = '';
-
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            fullText += `Page ${i}:\n${pageText}\n\n`;
-          }
-          console.log("PDF Parsed:", fullText.substring(0, 100) + "...");
-          setEssayText(fullText);
-        } catch (err) {
-          console.error("PDF Parse Error:", err);
-          setEssayText("Error reading PDF content. Please try converting to text.");
-        } finally {
-          setIsFileParsing(false);
-          clearTimeout(timeoutId);
-        }
-      };
-      reader.onerror = () => {
-        setIsFileParsing(false);
-        setEssayText("Error reading file.");
-      };
-      reader.readAsArrayBuffer(file);
+      setIsFileParsing(false);
     }
     else if (detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx")) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const timeoutId = setTimeout(() => {
-          setIsFileParsing(false);
-          setEssayText("Parsing timed out. Please try converting to plain text.");
-        }, 15000);
-
-        try {
-          if (!window.mammoth) throw new Error("Mammoth Library not loaded");
-          const arrayBuffer = event.target.result;
-
-          const resultTask = window.mammoth.extractRawText({ arrayBuffer });
-          const result = await Promise.race([
-            resultTask,
-            new Promise((_, reject) => setTimeout(() => reject(new Error("DOCX loading timed out")), 14000))
-          ]);
-
-          console.log("DOCX Parsed:", result.value.substring(0, 100) + "...");
-          setEssayText(result.value);
-        } catch (err) {
-          console.error("DOCX Parse Error:", err);
-          setEssayText("Error reading DOCX content.");
-        } finally {
-          setIsFileParsing(false);
-          clearTimeout(timeoutId);
-        }
-      };
-      reader.onerror = () => {
-        setIsFileParsing(false);
-        setEssayText("Error reading file.");
-      };
-      reader.readAsArrayBuffer(file);
+      setIsFileParsing(false);
     }
     else {
       // Fallback: If it's an image, we don't extract text
@@ -1296,14 +1095,15 @@ function App() {
 
                 {/* Document Preview Modal */}
                 {showDocumentPreview && fileUrl && (
-                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-oxford-blue/20 backdrop-blur-sm animate-fadeIn" onClick={() => setShowDocumentPreview(false)}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-full flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-oxford-blue/60 backdrop-blur-sm animate-fadeIn" onClick={() => setShowDocumentPreview(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] max-w-6xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                      {/* Header */}
                       <div className="flex items-center justify-between px-6 py-4 border-b border-oxford-blue/10 bg-gray-50/50 shrink-0">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                             <BookOpen size={20} />
                           </div>
-                          <h3 className="font-semibold text-oxford-blue truncate max-w-md">{fileName}</h3>
+                          <h3 className="font-semibold text-oxford-blue truncate max-w-2xl">{fileName}</h3>
                         </div>
                         <button
                           onClick={() => setShowDocumentPreview(false)}
@@ -1312,21 +1112,51 @@ function App() {
                           <X size={20} />
                         </button>
                       </div>
-                      <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-white">
+
+                      {/* Content Area */}
+                      <div className="p-0 overflow-hidden bg-white flex-1 flex flex-col relative">
                         {isFileParsing ? (
-                          <div className="flex flex-col items-center justify-center py-12 gap-4">
+                          <div className="flex flex-col items-center justify-center py-20 gap-4 flex-1">
                             <Loader className="animate-spin text-bronze" size={32} />
                             <p className="text-oxford-blue/60 font-medium">Membaca dokumen...</p>
                           </div>
+                        ) : fileType === 'application/pdf' ? (
+                          <div className="absolute inset-0 w-full h-full bg-gray-100">
+                            <PDFViewer key={fileUrl} url={fileUrl} />
+                          </div>
+                        ) : fileType?.startsWith('image/') ? (
+                          <div className="w-full h-full flex items-center justify-center p-8 bg-gray-50 overflow-y-auto">
+                            <img
+                              src={fileUrl}
+                              alt="Document"
+                              className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg"
+                              style={{ imageOrientation: 'from-image' }}
+                            />
+                          </div>
                         ) : essayText ? (
-                          <div className="font-serif text-oxford-blue leading-relaxed whitespace-pre-wrap text-base md:text-lg">
+                          <div className="font-serif text-oxford-blue leading-relaxed whitespace-pre-wrap text-base md:text-lg overflow-y-auto p-8 md:p-12 w-full h-full">
                             {essayText}
                           </div>
                         ) : (
-                          <div className="text-center text-oxford-blue/50 py-12 font-serif">
+                          <div className="text-center text-oxford-blue/50 py-20 font-serif flex-1 flex items-center justify-center">
                             Preview not available for this file type.
                           </div>
                         )}
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="px-6 py-4 border-t border-oxford-blue/10 bg-gray-50/50 shrink-0 flex justify-end">
+                        <button
+                          onClick={() => {
+                            setShowDocumentPreview(false);
+                            handleChatSubmit("Tolong analisis dokumen ini secara detail.", true);
+                          }}
+                          disabled={isAnalyzing}
+                          className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
+                        >
+                          <Sparkles size={18} />
+                          {isAnalyzing ? "Menganalisis..." : "Analyze Document"}
+                        </button>
                       </div>
                     </div>
                   </div>
