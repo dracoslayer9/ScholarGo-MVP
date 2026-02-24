@@ -17,8 +17,11 @@ import {
   Loader,
   Trash2,
   Globe,
-  BookOpen
+  BookOpen,
+  ChevronUp,
+  Check
 } from 'lucide-react';
+
 
 import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './services/analysis';
 import { supabase } from './lib/supabaseClient';
@@ -248,7 +251,15 @@ function App() {
   const [chatInput, setChatInput] = useState('');
   const [isFileParsing, setIsFileParsing] = useState(false);
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
-  const [selectedProvider] = useState('openai'); // 'openai' or 'gemini'
+
+  // UI Dropdowns for Chat Input
+  const [isResearchMode, setIsResearchMode] = useState(false);
+  const [isChatModeMenuOpen, setIsChatModeMenuOpen] = useState(false);
+  const chatModeMenuRef = useRef(null);
+
+  const [selectedModel, setSelectedModel] = useState('openai'); // 'openai' or 'perplexity'
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const modelMenuRef = useRef(null);
 
   // --- SUPABASE CHAT STATE ---
   const [savedChats, setSavedChats] = useState([]); // List of {id, title}
@@ -270,6 +281,23 @@ function App() {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [analysisResult, chatHistory]);
+
+  // Handle clicks outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+      if (chatModeMenuRef.current && !chatModeMenuRef.current.contains(event.target)) {
+        setIsChatModeMenuOpen(false);
+      }
+      if (modelMenuRef.current && !modelMenuRef.current.contains(event.target)) {
+        setIsModelMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Text Selection State
   const [selectionPopup, setSelectionPopup] = useState({ show: false, x: 0, y: 0, text: '' });
@@ -488,26 +516,6 @@ function App() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // CHECK QUOTA: PDF Analysis
-    if (session?.user) {
-      try {
-        const { allowed } = await checkUsageQuota(session.user.id, 'pdf_analysis');
-        if (!allowed) {
-          setUpgradeFeature('PDF Analysis');
-          setShowUpgradeModal(true);
-          // Reset file input
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
-      } catch (err) {
-        if (handleAuthError(err)) return;
-      }
-      // Increment only after successful processing (done inside specific blocks or here if confident)
-      // We'll increment here for simplicity of "Attempt" or move it to success
-      // Non-blocking increment to ensure UI updates
-      incrementUsage(session.user.id, 'pdf_analysis').catch(err => console.error("Increment failed", err));
-    }
-
     const url = URL.createObjectURL(file);
     setFileUrl(url);
     setIsFileParsing(true);
@@ -522,7 +530,7 @@ function App() {
 
     setFileType(detectedType);
     setFileName(file.name);
-    setIsAnalyzed(true);
+    // REMOVED setIsAnalyzed(true) so we don't jump to the document view automatically
 
     if (detectedType === "text/plain" || lowerName.endsWith('.txt')) {
       const reader = new FileReader();
@@ -535,10 +543,18 @@ function App() {
     else if (detectedType === "application/pdf") {
       const reader = new FileReader();
       reader.onload = async (event) => {
+        const timeoutId = setTimeout(() => {
+          setIsFileParsing(false);
+          setEssayText("Parsing timed out. The file might be corrupted or too large. Please try converting to plain text.");
+        }, 15000); // 15 seconds timeout
+
         try {
           if (!window.pdfjsLib) throw new Error("PDF Library not loaded");
           const loadingTask = window.pdfjsLib.getDocument(event.target.result);
-          const pdf = await loadingTask.promise;
+          const pdf = await Promise.race([
+            loadingTask.promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error("PDF loading timed out")), 14000))
+          ]);
           let fullText = '';
 
           for (let i = 1; i <= pdf.numPages; i++) {
@@ -554,17 +570,33 @@ function App() {
           setEssayText("Error reading PDF content. Please try converting to text.");
         } finally {
           setIsFileParsing(false);
+          clearTimeout(timeoutId);
         }
+      };
+      reader.onerror = () => {
+        setIsFileParsing(false);
+        setEssayText("Error reading file.");
       };
       reader.readAsArrayBuffer(file);
     }
     else if (detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx")) {
       const reader = new FileReader();
       reader.onload = async (event) => {
+        const timeoutId = setTimeout(() => {
+          setIsFileParsing(false);
+          setEssayText("Parsing timed out. Please try converting to plain text.");
+        }, 15000);
+
         try {
           if (!window.mammoth) throw new Error("Mammoth Library not loaded");
           const arrayBuffer = event.target.result;
-          const result = await window.mammoth.extractRawText({ arrayBuffer });
+
+          const resultTask = window.mammoth.extractRawText({ arrayBuffer });
+          const result = await Promise.race([
+            resultTask,
+            new Promise((_, reject) => setTimeout(() => reject(new Error("DOCX loading timed out")), 14000))
+          ]);
+
           console.log("DOCX Parsed:", result.value.substring(0, 100) + "...");
           setEssayText(result.value);
         } catch (err) {
@@ -572,7 +604,12 @@ function App() {
           setEssayText("Error reading DOCX content.");
         } finally {
           setIsFileParsing(false);
+          clearTimeout(timeoutId);
         }
+      };
+      reader.onerror = () => {
+        setIsFileParsing(false);
+        setEssayText("Error reading file.");
       };
       reader.readAsArrayBuffer(file);
     }
@@ -1373,9 +1410,71 @@ function App() {
                           accept=".pdf,.docx,.txt"
                         />
 
-                        {/* Model Indicator (Static) */}
-                        <div className="text-oxford-blue/40 text-xs font-semibold cursor-default">
-                          GPT-4o
+                        {/* Mode Indicator / Dropdown Toggle */}
+                        <div className="relative" ref={chatModeMenuRef}>
+                          <button
+                            onClick={() => setIsChatModeMenuOpen(!isChatModeMenuOpen)}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm text-oxford-blue/60 hover:bg-gray-100 hover:text-oxford-blue transition-colors font-medium"
+                            title="Select Chat Mode"
+                          >
+                            <ChevronUp size={16} className="text-oxford-blue/40" />
+                            {isResearchMode ? 'Research' : 'Normal'}
+                          </button>
+
+                          {/* Dropdown Menu */}
+                          {isChatModeMenuOpen && (
+                            <div className="absolute bottom-full left-0 mb-2 w-72 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden py-1 animate-fadeIn">
+                              <button
+                                onClick={() => { setIsResearchMode(false); setIsChatModeMenuOpen(false); setSelectedModel('openai'); }}
+                                className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-center justify-between group transition-colors"
+                              >
+                                <span className={!isResearchMode ? "font-bold text-oxford-blue" : ""}>Normal</span>
+                                {!isResearchMode && <Check size={14} className="text-bronze shrink-0" />}
+                              </button>
+                              <button
+                                onClick={() => { setIsResearchMode(true); setIsChatModeMenuOpen(false); setSelectedModel('perplexity'); }}
+                                className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-start justify-between group transition-colors"
+                              >
+                                <div className="pr-4">
+                                  <span className={isResearchMode ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Research</span>
+                                  <span className="text-[10px] text-oxford-blue/50 font-medium leading-tight block">Explore strategic insights and align them with your dream goals.</span>
+                                </div>
+                                {isResearchMode && <Check size={14} className="text-bronze mt-1 shrink-0" />}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Model Indicator / Dropdown Toggle */}
+                        <div className="relative" ref={modelMenuRef}>
+                          <button
+                            onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm text-oxford-blue/60 hover:bg-gray-100 hover:text-oxford-blue transition-colors font-medium"
+                            title="Select AI Model"
+                          >
+                            <ChevronUp size={16} className="text-oxford-blue/40" />
+                            {selectedModel === 'openai' ? 'GPT-4o' : 'Perplexity Pro'}
+                          </button>
+
+                          {/* Dropdown Menu */}
+                          {isModelMenuOpen && (
+                            <div className="absolute bottom-full left-0 mb-2 w-40 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden py-1 animate-fadeIn">
+                              <button
+                                onClick={() => { setSelectedModel('openai'); setIsModelMenuOpen(false); }}
+                                className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-center justify-between group transition-colors"
+                              >
+                                <span className={selectedModel === 'openai' ? "font-bold text-oxford-blue" : ""}>GPT-4o</span>
+                                {selectedModel === 'openai' && <Check size={14} className="text-bronze" />}
+                              </button>
+                              <button
+                                onClick={() => { setSelectedModel('perplexity'); setIsModelMenuOpen(false); }}
+                                className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-center justify-between group transition-colors"
+                              >
+                                <span className={selectedModel === 'perplexity' ? "font-bold text-oxford-blue" : ""}>Perplexity Pro</span>
+                                {selectedModel === 'perplexity' && <Check size={14} className="text-bronze" />}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
 

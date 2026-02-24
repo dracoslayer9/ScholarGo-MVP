@@ -575,22 +575,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         const file = e.target.files[0];
         if (!file) return;
 
-        // CHECK QUOTA: PDF Analysis (if applicable for canvas context parsing)
-        if (user) {
-            try {
-                const { allowed } = await checkUsageQuota(user.id, 'pdf_analysis');
-                if (!allowed) {
-                    setUpgradeFeature('PDF Analysis');
-                    setShowUpgradeModal(true);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                    return;
-                }
-            } catch (err) {
-                console.error("Quota check failed", err);
-            }
-            incrementUsage(user.id, 'pdf_analysis').catch(err => console.error("Increment failed", err));
-        }
-
         const url = URL.createObjectURL(file);
         setFileUrl(url);
 
@@ -613,10 +597,18 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         else if (detectedType === "application/pdf") {
             const reader = new FileReader();
             reader.onload = async (event) => {
+                const timeoutId = setTimeout(() => {
+                    setIsFileParsing(false);
+                    setFileContext("Parsing timed out. Please try converting to plain text.");
+                }, 15000);
+
                 try {
                     if (!window.pdfjsLib) throw new Error("PDF Library not loaded");
                     const loadingTask = window.pdfjsLib.getDocument(event.target.result);
-                    const pdf = await loadingTask.promise;
+                    const pdf = await Promise.race([
+                        loadingTask.promise,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("PDF loading timed out")), 14000))
+                    ]);
                     let fullText = '';
                     for (let i = 1; i <= pdf.numPages; i++) {
                         const page = await pdf.getPage(i);
@@ -630,24 +622,43 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                     setFileContext("Error reading PDF content. Please try converting to text.");
                 } finally {
                     setIsFileParsing(false);
+                    clearTimeout(timeoutId);
                 }
+            };
+            reader.onerror = () => {
+                setIsFileParsing(false);
+                setFileContext("Error reading file.");
             };
             reader.readAsArrayBuffer(file);
         }
         else if (detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx")) {
             const reader = new FileReader();
             reader.onload = async (event) => {
+                const timeoutId = setTimeout(() => {
+                    setIsFileParsing(false);
+                    setFileContext("Parsing timed out. Please try converting to plain text.");
+                }, 15000);
+
                 try {
                     if (!window.mammoth) throw new Error("Mammoth Library not loaded");
                     const arrayBuffer = event.target.result;
-                    const result = await window.mammoth.extractRawText({ arrayBuffer });
+                    const resultTask = window.mammoth.extractRawText({ arrayBuffer });
+                    const result = await Promise.race([
+                        resultTask,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("DOCX loading timed out")), 14000))
+                    ]);
                     setFileContext(result.value);
                 } catch (err) {
                     console.error("DOCX Parse Error:", err);
                     setFileContext("Error reading DOCX content.");
                 } finally {
                     setIsFileParsing(false);
+                    clearTimeout(timeoutId);
                 }
+            };
+            reader.onerror = () => {
+                setIsFileParsing(false);
+                setFileContext("Error reading file.");
             };
             reader.readAsArrayBuffer(file);
         }
