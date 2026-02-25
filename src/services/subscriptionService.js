@@ -63,6 +63,12 @@ export const getUserSubscription = async (userId) => {
  * @returns {Promise<{ allowed: boolean, remaining: number, plan: string }>}
  */
 export const checkUsageQuota = async (userId, feature) => {
+    // Admin Override
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.email === 'ahmadfirdaus0407@gmail.com') {
+        return { allowed: true, remaining: 9999, plan: 'plus' };
+    }
+
     let profile = await getUserSubscription(userId);
     if (!profile) return { allowed: false, remaining: 0, plan: 'unknown' };
 
@@ -111,6 +117,10 @@ export const checkUsageQuota = async (userId, feature) => {
  */
 export const incrementUsage = async (userId, feature) => {
     try {
+        // Admin Override
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email === 'ahmadfirdaus0407@gmail.com') return;
+
         // We use an RPC call ideally, or just fetch-update for MVP simplicity
         // Optimistic locking not strictly required for this scale
         const profile = await getUserSubscription(userId);
