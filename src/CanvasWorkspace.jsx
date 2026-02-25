@@ -186,6 +186,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const chatInputRef = useRef(null);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const blockAutoSaveRef = useRef(false); // Mutex lock to prevent cross-session overwrite during load
 
     // --- TIPTAP EDITOR INIT ---
     const editor = useEditor({
@@ -223,6 +224,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // Auto-save logic
     useEffect(() => {
         const timeoutId = setTimeout(async () => {
+            if (blockAutoSaveRef.current) return; // Prevent overwriting history during load
+
             if (essayContent) {
                 // Extract first 3 words of raw text (strip HTML tags)
                 const rawText = essayContent.replace(/<[^>]*>?/gm, '').trim();
@@ -749,6 +752,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
 
     const handleLoadChat = async (chatId) => {
+        blockAutoSaveRef.current = true; // Lock auto-save
         try {
             // 1. Get Session Data (from local list)
             const session = savedChats.find(c => c.id === chatId);
@@ -777,6 +781,11 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             // Close Sidebar on mobile (optional)
         } catch (err) {
             console.error("Load Chat Error:", err);
+        } finally {
+            // Unlock auto-save after React finishes state flush
+            setTimeout(() => {
+                blockAutoSaveRef.current = false;
+            }, 1500);
         }
     };
 
