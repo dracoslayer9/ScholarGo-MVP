@@ -377,11 +377,32 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                 const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
                 setAnalysisResult({ ...result, detectedType });
 
-                // Keep the flow continuous without wiping the document
+                const markdownResponse = `### 📊 Analisis Dokumen Selesai
+
+**Skor Keseluruhan:** ${result.totalScore || 'N/A'}/100
+**Tipe Dokumen:** ${detectedType}
+
+#### 💪 Kekuatan Utama
+${(result.strengths || []).length > 0 ? result.strengths.map(s => `- ${s}`).join('\n') : '- Belum ditemukan kekuatan yang menonjol.'}
+
+#### 🎯 Area Perbaikan
+${(result.weaknesses || []).length > 0 ? result.weaknesses.map(w => `- ${w}`).join('\n') : '- Tidak ada kelemahan mayor.'}
+
+#### 💡 Saran Strategis
+${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).join('\n') : '-'}
+
+---
+*${result.feedback || 'Terus semangat merevisi esaimu!'}*`;
+
+                // Keep the flow continuous without wiping the document by piping the analysis into the chat
                 setChatHistory(prev => [...prev, {
                     role: 'assistant',
-                    content: "Analisis dokumen selesai! Silakan lihat area hasil di atas."
+                    content: markdownResponse
                 }]);
+
+                if (currentChatIdRef.current) {
+                    saveMessage(currentChatIdRef.current, 'assistant', markdownResponse).catch(err => console.error("Save Msg Error:", err));
+                }
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
