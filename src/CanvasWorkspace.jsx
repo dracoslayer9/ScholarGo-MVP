@@ -215,16 +215,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         },
     });
 
-    // Sync essayContent to Tiptap when version changes externally
-    useEffect(() => {
-        if (editor && editor.getHTML() !== essayContent && essayContent !== '') {
-            // Only update editor if it didn't originate the change
-            editor.commands.setContent(essayContent);
-        } else if (editor && essayContent === '') {
-            editor.commands.setContent('');
-        }
-    }, [currentVersionId, essayContent, editor]);
-
     // Auto-scroll chat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
