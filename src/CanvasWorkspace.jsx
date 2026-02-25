@@ -234,16 +234,30 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     useEffect(() => {
         const timeoutId = setTimeout(async () => {
             if (essayContent) {
+                // Extract first 3 words of raw text (strip HTML tags)
+                const rawText = essayContent.replace(/<[^>]*>?/gm, '').trim();
+                const words = rawText.split(/\s+/).filter(w => w.length > 0);
+                const firstThreeWords = words.length > 0 ? words.slice(0, 3).join(' ') : "Untitled Essay";
+                const dynamicTitle = `Canvas: ${firstThreeWords}`;
+
                 if (currentChatId) {
-                    updateChatPayload(currentChatId, { essayContent })
-                        .catch(err => console.error("Auto-save Error:", err));
+                    try {
+                        await updateChatPayload(currentChatId, { essayContent });
+                        await updateChatTitle(currentChatId, dynamicTitle);
+                        // Update local list silently so the UI reflects the new name without refreshing
+                        setSavedChats(prev => prev.map(c => c.id === currentChatId ? { ...c, title: dynamicTitle } : c));
+                        setEssayTitle(firstThreeWords);
+                    } catch (err) {
+                        console.error("Auto-save Error:", err);
+                    }
                 } else if (user) {
                     // Automatically create a new chat session if none exists and user starts typing
                     try {
-                        const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
+                        const newBlankChat = await createChat(user.id, dynamicTitle);
                         setCurrentChatId(newBlankChat.id);
                         setSavedChats(prev => [newBlankChat, ...prev]);
                         await updateChatPayload(newBlankChat.id, { essayContent });
+                        setEssayTitle(firstThreeWords);
                     } catch (err) {
                         console.error("Auto-create Error:", err);
                     }
@@ -746,8 +760,14 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             // 2. Restore Essay Content from Payload
             if (session.payload && session.payload.essayContent) {
                 setEssayContent(session.payload.essayContent);
+                if (editor) {
+                    editor.commands.setContent(session.payload.essayContent);
+                }
             } else {
                 setEssayContent(''); // Fallback
+                if (editor) {
+                    editor.commands.setContent('');
+                }
             }
 
             // 3. Load Messages
