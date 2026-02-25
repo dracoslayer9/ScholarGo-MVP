@@ -830,16 +830,32 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
 
     const handleLoadChat = async (chatId) => {
+        if (currentChatId === chatId) return; // Prevent redundant loading
         blockAutoSaveRef.current = true; // Lock auto-save
+
         try {
-            // 1. Get Session Data (from local list)
+            // 0. Eagerly Auto-Save the CURRENT session before switching away!
+            let activeEssay = essayContent;
+            if (editor) {
+                const html = editor.getHTML();
+                activeEssay = html === '<p></p>' ? '' : html;
+            }
+            if (currentChatId && (activeEssay.trim() || chatHistory.length > 0)) {
+                updateChatPayload(currentChatId, { essayContent: activeEssay }).catch(console.error);
+                setSavedChats(prev => prev.map(c => c.id === currentChatId ? {
+                    ...c,
+                    payload: { ...(c.payload || {}), essayContent: activeEssay }
+                } : c));
+            }
+
+            // 1. Get Target Session Data (from local list)
             const session = savedChats.find(c => c.id === chatId);
             if (!session) return;
 
             setCurrentChatId(chatId);
             setEssayTitle(session.title.replace("Canvas: ", ""));
 
-            // 2. Restore Essay Content from Payload
+            // 2. Restore Target Essay Content from Payload
             if (session.payload && session.payload.essayContent) {
                 setEssayContent(session.payload.essayContent);
                 if (editor) {
