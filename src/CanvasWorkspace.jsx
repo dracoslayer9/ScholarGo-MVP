@@ -678,8 +678,12 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                 // CRITICAL: Save Essay Content to Payload
                 await updateChatPayload(activeChatId, { essayContent: essayContent });
 
-                // Update local list
-                loadCanvasChats();
+                // Update local list without triggering a network fetch race condition
+                setSavedChats(prev => prev.map(c => c.id === activeChatId ? {
+                    ...c,
+                    title: finalTitle,
+                    payload: { ...(c.payload || {}), essayContent }
+                } : c));
 
                 if (!silent) alert("Canvas Session & Essay Saved!");
             }
