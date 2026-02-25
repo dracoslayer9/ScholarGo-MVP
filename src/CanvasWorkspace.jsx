@@ -227,36 +227,27 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             if (blockAutoSaveRef.current) return; // Prevent overwriting history during load
 
             if (essayContent) {
-                // Extract first 3 words of raw text (strip HTML tags)
-                const rawText = essayContent.replace(/<[^>]*>?/gm, '').trim();
-                const words = rawText.split(/\s+/).filter(w => w.length > 0);
-                const firstThreeWords = words.length > 0 ? words.slice(0, 3).join(' ') : "Untitled Essay";
-                const dynamicTitle = `Canvas: ${firstThreeWords}`;
-
                 if (currentChatId) {
                     try {
                         await updateChatPayload(currentChatId, { essayContent });
-                        await updateChatTitle(currentChatId, dynamicTitle);
-                        // Update local list silently with deep payload sync
+                        // Update local list silently with deep payload sync, strictly preserving the existing title
                         setSavedChats(prev => prev.map(c => c.id === currentChatId ? {
                             ...c,
-                            title: dynamicTitle,
                             payload: { ...(c.payload || {}), essayContent }
                         } : c));
-                        setEssayTitle(firstThreeWords);
                     } catch (err) {
                         console.error("Auto-save Error:", err);
                     }
                 } else if (user) {
                     // Automatically create a new chat session if none exists and user starts typing
                     try {
-                        const newBlankChat = await createChat(user.id, dynamicTitle);
+                        const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
                         setCurrentChatId(newBlankChat.id);
                         // Inject Payload locally to prevent blank wipe on subsequent load
                         newBlankChat.payload = { ...(newBlankChat.payload || {}), essayContent };
                         setSavedChats(prev => [newBlankChat, ...prev]);
                         await updateChatPayload(newBlankChat.id, { essayContent });
-                        setEssayTitle(firstThreeWords);
+                        setEssayTitle("Untitled Essay");
                     } catch (err) {
                         console.error("Auto-create Error:", err);
                     }
@@ -717,6 +708,11 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                     const finalTitle = editingTitle.startsWith("Canvas:") ? editingTitle : `Canvas: ${editingTitle}`;
                     await updateChatTitle(chatId, finalTitle);
                     setSavedChats(prev => prev.map(ch => ch.id === chatId ? { ...ch, title: finalTitle } : ch));
+
+                    // Keep active session title perfectly synced with Sidebar renaming
+                    if (currentChatId === chatId) {
+                        setEssayTitle(finalTitle.replace("Canvas: ", ""));
+                    }
                 } catch (err) {
                     console.error("Rename failed", err);
                 }
