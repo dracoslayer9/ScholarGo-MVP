@@ -244,8 +244,12 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                     try {
                         await updateChatPayload(currentChatId, { essayContent });
                         await updateChatTitle(currentChatId, dynamicTitle);
-                        // Update local list silently so the UI reflects the new name without refreshing
-                        setSavedChats(prev => prev.map(c => c.id === currentChatId ? { ...c, title: dynamicTitle } : c));
+                        // Update local list silently with deep payload sync
+                        setSavedChats(prev => prev.map(c => c.id === currentChatId ? {
+                            ...c,
+                            title: dynamicTitle,
+                            payload: { ...(c.payload || {}), essayContent }
+                        } : c));
                         setEssayTitle(firstThreeWords);
                     } catch (err) {
                         console.error("Auto-save Error:", err);
@@ -255,6 +259,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                     try {
                         const newBlankChat = await createChat(user.id, dynamicTitle);
                         setCurrentChatId(newBlankChat.id);
+                        // Inject Payload locally to prevent blank wipe on subsequent load
+                        newBlankChat.payload = { ...(newBlankChat.payload || {}), essayContent };
                         setSavedChats(prev => [newBlankChat, ...prev]);
                         await updateChatPayload(newBlankChat.id, { essayContent });
                         setEssayTitle(firstThreeWords);
