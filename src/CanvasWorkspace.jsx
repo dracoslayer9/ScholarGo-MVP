@@ -453,6 +453,43 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         }
     };
 
+    const groupChatsByTime = (chats) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const groups = [
+            { label: 'Hari Ini', chats: [] },
+            { label: 'Kemarin', chats: [] },
+            { label: '7 Hari Terakhir', chats: [] },
+            { label: 'Lebih Lama', chats: [] }
+        ];
+
+        chats.forEach(chat => {
+            const chatDate = new Date(chat.created_at || Date.now());
+            if (chatDate >= today) groups[0].chats.push(chat);
+            else if (chatDate >= yesterday) groups[1].chats.push(chat);
+            else if (chatDate >= sevenDaysAgo) groups[2].chats.push(chat);
+            else groups[3].chats.push(chat);
+        });
+
+        return groups.filter(g => g.chats.length > 0);
+    };
+
+    const generateSmartTitleLLM = async (userMessage) => {
+        const prompt = `Buatlah judul chat history yang singkat (maksimal 3 kata), profesional, dan mencerminkan 'Awardee Logic' berdasarkan input berikut. Jika input tentang beasiswa spesifik, sebutkan nama beasiswanya (misal: 'Esai LPDP UCL', 'Motlet Chevening'). Hanya balas dengan judulnya saja tanpa tanda kutip. Input:\n"${userMessage}"`;
+        try {
+            const response = await sendChatMessage(prompt, [], "", selectedModel, null);
+            return response.trim().replace(/^"|"$/g, '');
+        } catch (e) {
+            console.error("LLM Title Error:", e);
+            return generateSmartTitle(userMessage); // Fallback
+        }
+    };
+
     const handleChatSubmit = async (overrideMessage = null) => {
         // Auth Check
         if (onRequireAuth && onRequireAuth()) return;
@@ -513,11 +550,16 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             saveMessage(activeChatId, 'user', baseUserMessage).catch(err => console.error("Save Msg Error:", err));
 
             if (chatHistory.length === 0) {
-                const smartTitle = generateSmartTitle(baseUserMessage);
-                const finalTitle = `Canvas: ${smartTitle}`; // Distinguishable prefix
-                updateChatTitle(activeChatId, finalTitle);
-                // Update local list title
-                setSavedChats(prev => prev.map(c => c.id === activeChatId ? { ...c, title: finalTitle } : c));
+                // Background async task so UI unblocks instantly
+                generateSmartTitleLLM(baseUserMessage).then(smartTitle => {
+                    const finalTitle = `Canvas: ${smartTitle}`;
+                    updateChatTitle(activeChatId, finalTitle).catch(console.error);
+
+                    setSavedChats(prev => prev.map(c => c.id === activeChatId ? { ...c, title: finalTitle } : c));
+
+                    // Conditionally update active essay header if they haven't manually modified it
+                    setEssayTitle(curr => curr === "Untitled Essay" || curr.startsWith("Untitled") ? smartTitle : curr);
+                });
             }
 
             // AUTO-SAVE ESSAY CONTENT (Persistence)
@@ -816,60 +858,67 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                                 No canvas history yet.
                             </div>
                         )}
-                        {savedChats.map(chat => (
-                            <div
-                                key={chat.id}
-                                onClick={() => handleLoadChat(chat.id)}
-                                className={`w-full text-left px-4 py-3 rounded-xl transition-all text-sm truncate flex items-center gap-3 group cursor-pointer ${currentChatId === chat.id
-                                    ? 'bg-oxford-blue/5 text-oxford-blue font-medium'
-                                    : 'text-oxford-blue/60 hover:bg-white hover:shadow-sm'
-                                    }`}
-                            >
-                                <MessageSquare size={16} className={`shrink-0 ${currentChatId === chat.id ? 'text-bronze' : 'opacity-50'}`} />
+                        {groupChatsByTime(savedChats).map(group => (
+                            <div key={group.label} className="mb-6 last:mb-0 space-y-1">
+                                <div className="px-4 py-2 text-xs font-bold text-oxford-blue/40 uppercase tracking-wider">
+                                    {group.label}
+                                </div>
+                                {group.chats.map(chat => (
+                                    <div
+                                        key={chat.id}
+                                        onClick={() => handleLoadChat(chat.id)}
+                                        className={`w-full text-left px-4 py-3 rounded-xl transition-all text-sm truncate flex items-center gap-3 group cursor-pointer ${currentChatId === chat.id
+                                            ? 'bg-oxford-blue/5 text-oxford-blue font-medium'
+                                            : 'text-oxford-blue/60 hover:bg-white hover:shadow-sm'
+                                            }`}
+                                    >
+                                        <MessageSquare size={16} className={`shrink-0 ${currentChatId === chat.id ? 'text-bronze' : 'opacity-50'}`} />
 
-                                {editingChatId === chat.id ? (
-                                    <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
-                                        <input
-                                            autoFocus
-                                            className="w-full bg-white border border-oxford-blue/20 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-bronze"
-                                            value={editingTitle}
-                                            onChange={(e) => setEditingTitle(e.target.value)}
-                                            onKeyDown={(e) => handleRenameChat(e, chat.id)}
-                                            onBlur={(e) => handleRenameChat(e, chat.id)}
-                                        />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <span className="truncate flex-1">{chat.title.replace("Canvas: ", "")}</span>
+                                        {editingChatId === chat.id ? (
+                                            <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+                                                <input
+                                                    autoFocus
+                                                    className="w-full bg-white border border-oxford-blue/20 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-bronze"
+                                                    value={editingTitle}
+                                                    onChange={(e) => setEditingTitle(e.target.value)}
+                                                    onKeyDown={(e) => handleRenameChat(e, chat.id)}
+                                                    onBlur={(e) => handleRenameChat(e, chat.id)}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="truncate flex-1">{chat.title.replace("Canvas: ", "")}</span>
 
-                                        {/* Action Buttons (Visible on Group Hover) */}
-                                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
-                                            <button
-                                                className="p-1 hover:bg-oxford-blue/10 rounded text-oxford-blue/40 hover:text-oxford-blue transition-all"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEditingChatId(chat.id);
-                                                    setEditingTitle(chat.title || "");
-                                                }}
-                                                title="Rename"
-                                            >
-                                                <div className="w-4 h-4">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                    </svg>
+                                                {/* Action Buttons (Visible on Group Hover) */}
+                                                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                                                    <button
+                                                        className="p-1 hover:bg-oxford-blue/10 rounded text-oxford-blue/40 hover:text-oxford-blue transition-all"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingChatId(chat.id);
+                                                            setEditingTitle(chat.title.replace("Canvas: ", "") || "");
+                                                        }}
+                                                        title="Rename"
+                                                    >
+                                                        <div className="w-4 h-4">
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                            </svg>
+                                                        </div>
+                                                    </button>
+                                                    <button
+                                                        className="p-1 hover:bg-red-100 rounded text-oxford-blue/40 hover:text-red-500 transition-all"
+                                                        onClick={(e) => handleDeleteChat(e, chat.id)}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
                                                 </div>
-                                            </button>
-                                            <button
-                                                className="p-1 hover:bg-red-100 rounded text-oxford-blue/40 hover:text-red-500 transition-all"
-                                                onClick={(e) => handleDeleteChat(e, chat.id)}
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={12} />
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         ))}
                     </div>
