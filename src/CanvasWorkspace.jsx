@@ -3,6 +3,26 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { Extension, InputRule } from '@tiptap/core';
+import { Markdown } from 'tiptap-markdown';
+
+// Define the custom AutoCapitalize Extension to securely enforce capital letters on all devices
+const AutoCapitalize = Extension.create({
+    name: 'autoCapitalize',
+    addInputRules() {
+        return [
+            new InputRule({
+                find: /(?:^|[\n.!?]\s+)([a-z])$/,
+                handler: ({ state, range, match }) => {
+                    const { tr } = state;
+                    const uppercaseLetter = match[1].toUpperCase();
+                    const replacement = match[0].slice(0, -1) + uppercaseLetter;
+                    tr.insertText(replacement, range.from, range.to);
+                },
+            }),
+        ];
+    },
+});
 import {
     Save,
     Settings,
@@ -174,6 +194,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             Placeholder.configure({
                 placeholder: 'Start writing or paste your essay here...',
             }),
+            Markdown,
+            AutoCapitalize,
         ],
         content: essayContent,
         editorProps: {

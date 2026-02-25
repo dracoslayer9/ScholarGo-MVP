@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.97.0",
+    "@tiptap/core": "^3.20.0",
     "@tiptap/extension-placeholder": "^3.20.0",
     "@tiptap/react": "^3.20.0",
     "@tiptap/starter-kit": "^3.20.0",
@@ -23,7 +24,8 @@
     "pdfjs-dist": "^5.4.624",
     "posthog-js": "^1.326.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "tiptap-markdown": "^0.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
