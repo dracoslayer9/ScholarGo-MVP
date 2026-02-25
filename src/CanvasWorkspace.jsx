@@ -664,7 +664,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             await handleSaveChat(true); // silent save
         }
 
-        // Simple Reset for New Chat (User rejected the Modal flow)
+        // Wipe state
         setChatHistory([]);
         setChatInput('');
         setEssayContent('');
@@ -673,6 +673,17 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         }
         setEssayTitle('Untitled Essay');
         setCurrentChatId(null);
+
+        // Explicitly create a new blank chat and attach it to the sidebar immediately
+        if (user) {
+            try {
+                const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
+                setCurrentChatId(newBlankChat.id);
+                setSavedChats(prev => [newBlankChat, ...prev]);
+            } catch (err) {
+                console.error("Failed to forcefully create new chat:", err);
+            }
+        }
     };
 
     // --- History Management Handlers ---
