@@ -234,14 +234,21 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
             const activeId = currentChatIdRef.current;
 
-            if (essayContent) {
+            // Bypass React stale closures! Pull synchronously from the editor
+            let currentEssay = essayContent;
+            if (editor) {
+                const html = editor.getHTML();
+                currentEssay = html === '<p></p>' ? '' : html;
+            }
+
+            if (currentEssay) {
                 if (activeId) {
                     try {
-                        await updateChatPayload(activeId, { essayContent });
+                        await updateChatPayload(activeId, { essayContent: currentEssay });
                         // Update local list silently with deep payload sync, strictly preserving the existing title
                         setSavedChats(prev => prev.map(c => c.id === activeId ? {
                             ...c,
-                            payload: { ...(c.payload || {}), essayContent }
+                            payload: { ...(c.payload || {}), essayContent: currentEssay }
                         } : c));
                     } catch (err) {
                         console.error("Auto-save Error:", err);
@@ -253,9 +260,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                         const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
                         setCurrentChatId(newBlankChat.id);
                         // Inject Payload locally to prevent blank wipe on subsequent load
-                        newBlankChat.payload = { ...(newBlankChat.payload || {}), essayContent };
+                        newBlankChat.payload = { ...(newBlankChat.payload || {}), essayContent: currentEssay };
                         setSavedChats(prev => [newBlankChat, ...prev]);
-                        await updateChatPayload(newBlankChat.id, { essayContent });
+                        await updateChatPayload(newBlankChat.id, { essayContent: currentEssay });
                         setEssayTitle("Untitled Essay");
                     } catch (err) {
                         console.error("Auto-create Error:", err);
