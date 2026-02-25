@@ -688,7 +688,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     };
 
     const handleNewChat = async () => {
-        // 1. Capture current context
+        // 1. Capture current context securely
         const previousEssay = essayContent;
         const previousChatId = currentChatId;
 
@@ -705,17 +705,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         // 3. Auto-save the previous session silently in the background
         if ((previousEssay.trim() || chatHistory.length > 0) && previousChatId) {
             updateChatPayload(previousChatId, { essayContent: previousEssay }).catch(err => console.error(err));
-        }
-
-        // 4. Explicitly create a new blank chat and attach it to the sidebar immediately
-        if (user) {
-            try {
-                const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
-                setCurrentChatId(newBlankChat.id);
-                setSavedChats(prev => [newBlankChat, ...prev]);
-            } catch (err) {
-                console.error("Failed to forcefully create new chat:", err);
-            }
         }
     };
 
