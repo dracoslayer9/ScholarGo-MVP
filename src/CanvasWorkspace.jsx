@@ -733,7 +733,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     };
 
     const handleNewChat = async () => {
-        // 1. Capture current context securely, directly from source of truth to bypass React async render closures
+        if (isCreatingChatRef.current) return;
+
+        // 1. Capture current context securely from Tiptap source of truth
         let previousEssay = essayContent;
         if (editor) {
             const html = editor.getHTML();
@@ -741,38 +743,48 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         }
         const previousChatId = currentChatIdRef.current;
 
-        // 2. Wipe active state instantly for the user
-        setChatHistory([]);
-        setChatInput('');
-        setEssayContent('');
-        if (editor) {
-            editor.commands.setContent('');
-        }
-        setEssayTitle('Untitled Essay');
-        setCurrentChatId(null);
+        // 2. Lock UI to prevent spam clicking
+        isCreatingChatRef.current = true;
 
-        // 3. Auto-save the previous session completely
-        if ((previousEssay.trim() || chatHistory.length > 0) && previousChatId) {
-            updateChatPayload(previousChatId, { essayContent: previousEssay }).catch(err => console.error(err));
-            // CRITICAL FIX: Update the local cache so if the user clicks back, it doesn't load empty!
-            setSavedChats(prev => prev.map(c => c.id === previousChatId ? {
-                ...c,
-                payload: { ...(c.payload || {}), essayContent: previousEssay }
-            } : c));
-        }
+        try {
+            // 3. Eagerly generate the new UI chat row to guarantee it exists before wiping state
+            let newBlankChat = null;
+            if (user) {
+                newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
+            }
 
-        // 4. Eagerly generate a new UI chat row to provide immediate user feedback
-        if (user) {
-            isCreatingChatRef.current = true;
-            try {
-                const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
+            // 4. Safely archive the previous session
+            if ((previousEssay.trim() || chatHistory.length > 0) && previousChatId) {
+                updateChatPayload(previousChatId, { essayContent: previousEssay }).catch(err => console.error(err));
+                setSavedChats(prev => prev.map(c => c.id === previousChatId ? {
+                    ...c,
+                    payload: { ...(c.payload || {}), essayContent: previousEssay }
+                } : c));
+            }
+
+            // 5. Instantly transition UI visually AFTER network is secured
+            setChatHistory([]);
+            setChatInput('');
+            setEssayContent('');
+            if (editor) {
+                editor.commands.setContent('');
+            }
+            setEssayTitle('Untitled Essay');
+
+            // Render the new sidebar row gracefully
+            if (newBlankChat) {
                 setCurrentChatId(newBlankChat.id);
                 setSavedChats(prev => [newBlankChat, ...prev]);
-            } catch (err) {
-                console.error("Failed to forcefully create new chat:", err);
-            } finally {
-                isCreatingChatRef.current = false;
+            } else {
+                setCurrentChatId(null);
             }
+
+        } catch (err) {
+            console.error("Failed to generate new chat session:", err);
+            // On failure, DO NOT wipe their canvas text! Leave it exactly as it was.
+            alert("Gagal membuat sesi baru. Silakan periksa koneksi internet.");
+        } finally {
+            isCreatingChatRef.current = false;
         }
     };
 
