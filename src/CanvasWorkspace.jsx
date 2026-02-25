@@ -733,9 +733,13 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     };
 
     const handleNewChat = async () => {
-        // 1. Capture current context securely
-        const previousEssay = essayContent;
-        const previousChatId = currentChatId;
+        // 1. Capture current context securely, directly from source of truth to bypass React async render closures
+        let previousEssay = essayContent;
+        if (editor) {
+            const html = editor.getHTML();
+            previousEssay = html === '<p></p>' ? '' : html;
+        }
+        const previousChatId = currentChatIdRef.current;
 
         // 2. Wipe active state instantly for the user
         setChatHistory([]);
