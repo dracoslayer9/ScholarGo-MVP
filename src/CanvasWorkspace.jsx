@@ -688,12 +688,11 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     };
 
     const handleNewChat = async () => {
-        // Auto-save current chat if there is any content before wiping
-        if (essayContent.trim() || chatHistory.length > 0) {
-            await handleSaveChat(true); // silent save
-        }
+        // 1. Capture current context
+        const previousEssay = essayContent;
+        const previousChatId = currentChatId;
 
-        // Wipe state
+        // 2. Wipe active state instantly for the user
         setChatHistory([]);
         setChatInput('');
         setEssayContent('');
@@ -703,7 +702,12 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         setEssayTitle('Untitled Essay');
         setCurrentChatId(null);
 
-        // Explicitly create a new blank chat and attach it to the sidebar immediately
+        // 3. Auto-save the previous session silently in the background
+        if ((previousEssay.trim() || chatHistory.length > 0) && previousChatId) {
+            updateChatPayload(previousChatId, { essayContent: previousEssay }).catch(err => console.error(err));
+        }
+
+        // 4. Explicitly create a new blank chat and attach it to the sidebar immediately
         if (user) {
             try {
                 const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
