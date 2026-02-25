@@ -188,6 +188,11 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const fileInputRef = useRef(null);
     const blockAutoSaveRef = useRef(false); // Mutex lock to prevent cross-session overwrite during load
 
+    // Advanced State Sync Refs
+    const currentChatIdRef = useRef(currentChatId);
+    useEffect(() => { currentChatIdRef.current = currentChatId; }, [currentChatId]);
+    const isCreatingChatRef = useRef(false);
+
     // --- TIPTAP EDITOR INIT ---
     const editor = useEditor({
         extensions: [
@@ -225,13 +230,16 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     useEffect(() => {
         const timeoutId = setTimeout(async () => {
             if (blockAutoSaveRef.current) return; // Prevent overwriting history during load
+            if (isCreatingChatRef.current) return; // Guard against race conditions during chat generation
+
+            const activeId = currentChatIdRef.current;
 
             if (essayContent) {
-                if (currentChatId) {
+                if (activeId) {
                     try {
-                        await updateChatPayload(currentChatId, { essayContent });
+                        await updateChatPayload(activeId, { essayContent });
                         // Update local list silently with deep payload sync, strictly preserving the existing title
-                        setSavedChats(prev => prev.map(c => c.id === currentChatId ? {
+                        setSavedChats(prev => prev.map(c => c.id === activeId ? {
                             ...c,
                             payload: { ...(c.payload || {}), essayContent }
                         } : c));
@@ -240,6 +248,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                     }
                 } else if (user) {
                     // Automatically create a new chat session if none exists and user starts typing
+                    isCreatingChatRef.current = true;
                     try {
                         const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
                         setCurrentChatId(newBlankChat.id);
@@ -250,12 +259,14 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                         setEssayTitle("Untitled Essay");
                     } catch (err) {
                         console.error("Auto-create Error:", err);
+                    } finally {
+                        isCreatingChatRef.current = false;
                     }
                 }
             }
         }, 1000); // 1-second debounce
         return () => clearTimeout(timeoutId);
-    }, [essayContent, currentChatId, user]);
+    }, [essayContent, user]);
 
     // Auto-resize chat input
     useEffect(() => {
@@ -736,9 +747,28 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         setEssayTitle('Untitled Essay');
         setCurrentChatId(null);
 
-        // 3. Auto-save the previous session silently in the background
+        // 3. Auto-save the previous session completely
         if ((previousEssay.trim() || chatHistory.length > 0) && previousChatId) {
             updateChatPayload(previousChatId, { essayContent: previousEssay }).catch(err => console.error(err));
+            // CRITICAL FIX: Update the local cache so if the user clicks back, it doesn't load empty!
+            setSavedChats(prev => prev.map(c => c.id === previousChatId ? {
+                ...c,
+                payload: { ...(c.payload || {}), essayContent: previousEssay }
+            } : c));
+        }
+
+        // 4. Eagerly generate a new UI chat row to provide immediate user feedback
+        if (user) {
+            isCreatingChatRef.current = true;
+            try {
+                const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
+                setCurrentChatId(newBlankChat.id);
+                setSavedChats(prev => [newBlankChat, ...prev]);
+            } catch (err) {
+                console.error("Failed to forcefully create new chat:", err);
+            } finally {
+                isCreatingChatRef.current = false;
+            }
         }
     };
 
