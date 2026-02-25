@@ -620,7 +620,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     };
 
     // Manual Save Handler
-    const handleSaveChat = async () => {
+    const handleSaveChat = async (silent = false) => {
         if (!user) return;
 
         try {
@@ -649,20 +649,28 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                 // Update local list
                 loadCanvasChats();
 
-                alert("Canvas Session & Essay Saved!");
+                if (!silent) alert("Canvas Session & Essay Saved!");
             }
 
         } catch (error) {
             console.error("Save Error:", error);
-            alert("Failed to save session.");
+            if (!silent) alert("Failed to save session.");
         }
     };
 
-    const handleNewChat = () => {
+    const handleNewChat = async () => {
+        // Auto-save current chat if there is any content before wiping
+        if (essayContent.trim() || chatHistory.length > 0) {
+            await handleSaveChat(true); // silent save
+        }
+
         // Simple Reset for New Chat (User rejected the Modal flow)
         setChatHistory([]);
         setChatInput('');
         setEssayContent('');
+        if (editor) {
+            editor.commands.setContent('');
+        }
         setEssayTitle('Untitled Essay');
         setCurrentChatId(null);
     };
