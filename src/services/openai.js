@@ -239,10 +239,45 @@ export const sendChatMessage = async (
                 `;
             }
 
-            const messages = [
-                { role: "system", content: systemPrompt },
+            let rawMessages = [
                 ...history,
                 { role: "user", content: message }
+            ];
+
+            // STRICT ALTERNATING ROLE FILTERING (Required by some providers like Anthropic)
+            // 1. Filter out empty messages
+            rawMessages = rawMessages.filter(m => m.content && m.content.trim() !== "");
+
+            // 2. Merge consecutive messages of the same role
+            let sanitizedHistory = [];
+            for (let i = 0; i < rawMessages.length; i++) {
+                let msg = rawMessages[i];
+                if (sanitizedHistory.length > 0 && sanitizedHistory[sanitizedHistory.length - 1].role === msg.role) {
+                    // Combine with previous message of same role
+                    sanitizedHistory[sanitizedHistory.length - 1].content += "\n\n" + msg.content;
+                } else {
+                    sanitizedHistory.push({ role: msg.role, content: msg.content });
+                }
+            }
+
+            // 3. Ensure the sequence starts with 'user' (after system)
+            if (sanitizedHistory.length > 0 && sanitizedHistory[0].role !== 'user') {
+                sanitizedHistory.shift(); // Drop an orphaned assistant message at the start
+            }
+
+            // 4. Ensure the sequence ends with 'user'
+            if (sanitizedHistory.length > 0 && sanitizedHistory[sanitizedHistory.length - 1].role !== 'user') {
+                // Rather than dropping the assistant's previous answer, append a dummy user continuation 
+                // if absolutely necessary, but usually the last appended thing is the new `message` anyway.
+                // This is a safety catch.
+                if (msg.role !== 'user') {
+                    sanitizedHistory.push({ role: 'user', content: 'Continue' });
+                }
+            }
+
+            const messages = [
+                { role: "system", content: systemPrompt },
+                ...sanitizedHistory
             ];
 
             const completion = await openai.chat.completions.create({
