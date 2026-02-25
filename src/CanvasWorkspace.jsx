@@ -1,5 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 import {
     Save,
     Settings,
@@ -159,18 +162,46 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [upgradeFeature, setUpgradeFeature] = useState('');
 
     // Refs
-    const textareaRef = useRef(null);
+    // const textareaRef = useRef(null); // Deprecated by Tiptap
     const chatInputRef = useRef(null);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    // Auto-resize textarea
+    // --- TIPTAP EDITOR INIT ---
+    const editor = useEditor({
+        extensions: [
+            StarterKit,
+            Placeholder.configure({
+                placeholder: 'Start writing or paste your essay here...',
+            }),
+        ],
+        content: essayContent,
+        editorProps: {
+            attributes: {
+                class: 'prose prose-lg prose-oxford-blue max-w-none focus:outline-none min-h-screen whitespace-pre-wrap break-words text-oxford-blue font-serif leading-relaxed px-16 py-12',
+                spellcheck: 'true',
+                autocapitalize: 'sentences'
+            },
+        },
+        onUpdate: ({ editor }) => {
+            const html = editor.getHTML();
+            if (html !== '<p></p>') {
+                setEssayContent(html);
+            } else {
+                setEssayContent('');
+            }
+        },
+    });
+
+    // Sync essayContent to Tiptap when version changes externally
     useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        if (editor && editor.getHTML() !== essayContent && essayContent !== '') {
+            // Only update editor if it didn't originate the change
+            editor.commands.setContent(essayContent);
+        } else if (editor && essayContent === '') {
+            editor.commands.setContent('');
         }
-    }, [essayContent]);
+    }, [currentVersionId, essayContent, editor]);
 
     // Auto-scroll chat
     useEffect(() => {
@@ -197,63 +228,19 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     }, [chatInput]);
 
     const handleFormat = (formatType) => {
-        if (!textareaRef.current) return;
+        if (!editor) return;
 
-        const start = textareaRef.current.selectionStart;
-        const end = textareaRef.current.selectionEnd;
-        const selectedText = essayContent.substring(start, end);
-
-        // Handle alignment
+        // Handle alignment (Custom wrapper logic)
         if (formatType === 'align-left') return setTextAlign('left');
         if (formatType === 'align-center') return setTextAlign('center');
         if (formatType === 'align-right') return setTextAlign('right');
         if (formatType === 'align-justify') return setTextAlign('justify');
 
-        // Handle inline markdown formatting
-        let newText = '';
-        let prefix = '';
-        let suffix = '';
-
-        if (formatType === 'bold') {
-            prefix = '**';
-            suffix = '**';
-        } else if (formatType === 'italic') {
-            prefix = '_';
-            suffix = '_';
-        } else if (formatType === 'quote') {
-            const hasQuote = selectedText.startsWith('"') && selectedText.endsWith('"');
-            if (hasQuote) {
-                newText = selectedText.substring(1, selectedText.length - 1);
-            } else {
-                newText = `"${selectedText}"`;
-            }
-
-            const newContent = essayContent.substring(0, start) + newText + essayContent.substring(end);
-            setEssayContent(newContent);
-
-            setTimeout(() => {
-                textareaRef.current.focus();
-                textareaRef.current.setSelectionRange(
-                    start,
-                    start + newText.length
-                );
-            }, 0);
-            return;
-        }
-
-        if (prefix) {
-            newText = `${prefix}${selectedText}${suffix}`;
-            const newContent = essayContent.substring(0, start) + newText + essayContent.substring(end);
-            setEssayContent(newContent);
-
-            setTimeout(() => {
-                textareaRef.current.focus();
-                textareaRef.current.setSelectionRange(
-                    start + prefix.length,
-                    start + prefix.length + selectedText.length
-                );
-            }, 0);
-        }
+        // Handle inline markdown formatting via Tiptap
+        editor.chain().focus();
+        if (formatType === 'bold') editor.chain().focus().toggleBold().run();
+        if (formatType === 'italic') editor.chain().focus().toggleItalic().run();
+        if (formatType === 'quote') editor.chain().focus().toggleBlockquote().run();
     };
 
     // --- Load History ---
@@ -988,72 +975,13 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
                     <div className="w-full max-w-[816px] bg-white min-h-[1056px] shadow-sm border border-gray-200 mt-2 mb-12 px-16 py-12 relative flex-shrink-0">
 
-                        {/* 1. BACKDROP LAYER: Renders the visual markdown */}
+                        {/* TIPTAP EDITOR LAYER */}
                         <div
-                            className={`absolute inset-0 px-16 py-12 pointer-events-none whitespace-pre-wrap break-words font-serif text-lg leading-relaxed text-oxford-blue z-0`}
+                            className="absolute inset-0 z-10 custom-tiptap-editor"
                             style={{ textAlign }}
-                            aria-hidden="true"
                         >
-                            {essayContent.split('\n').map((line, i) => {
-                                // Empty line check
-                                if (line === '') return <br key={i} />;
-
-                                // 1. Header Detection
-                                let className = "block min-h-[1.5em]"; // Default block
-                                let content = line;
-
-                                if (line.startsWith('### ')) {
-                                    className = "block font-bold text-lg text-black"; // Unified size, Black as requested
-                                    content = line;
-                                } else if (line.startsWith('## ')) {
-                                    className = "block font-bold text-lg text-oxford-blue";
-                                } else if (line.startsWith('# ')) {
-                                    className = "block font-bold text-lg text-oxford-blue underline decoration-bronze/30 underline-offset-4";
-                                }
-
-                                // 2. Bold and Italic Parsing
-                                const parts = content.split(/(\*\*.*?\*\*|_.*?_)/g);
-                                return (
-                                    <div key={i} className={className}>
-                                        {parts.map((part, j) => {
-                                            if (part.startsWith('**') && part.endsWith('**')) {
-                                                return (
-                                                    <span key={j}>
-                                                        <span className="opacity-0">**</span>
-                                                        <span className="font-bold">{part.slice(2, -2)}</span>
-                                                        <span className="opacity-0">**</span>
-                                                    </span>
-                                                );
-                                            }
-                                            if (part.startsWith('_') && part.endsWith('_')) {
-                                                return (
-                                                    <span key={j}>
-                                                        <span className="opacity-0">_</span>
-                                                        <span className="italic">{part.slice(1, -1)}</span>
-                                                        <span className="opacity-0">_</span>
-                                                    </span>
-                                                );
-                                            }
-                                            return <span key={j}>{part}</span>;
-                                        })}
-                                    </div>
-                                );
-                            })}
-                            {/* Trailing newline support */}
-                            {essayContent.endsWith('\n') && <br />}
+                            <EditorContent editor={editor} className="h-full w-full outline-none" />
                         </div>
-
-                        {/* 2. FOREGROUND LAYER: The actual input */}
-                        {/* Text is transparent, Caret is visible. Matches backdrop metrics exactly. */}
-                        <textarea
-                            ref={textareaRef}
-                            value={essayContent}
-                            onChange={(e) => setEssayContent(e.target.value)}
-                            placeholder="Start writing or paste your essay here..."
-                            className={`absolute inset-0 w-full h-full resize-none border-none focus:ring-0 outline-none text-lg leading-relaxed font-serif bg-transparent text-transparent selection:text-transparent selection:bg-blue-200 caret-oxford-blue placeholder-oxford-blue/20 px-16 py-12 whitespace-pre-wrap break-words z-10`}
-                            style={{ textAlign }}
-                            spellCheck={false}
-                        />
                     </div>
                 </div>
 
