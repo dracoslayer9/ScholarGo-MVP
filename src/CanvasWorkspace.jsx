@@ -537,9 +537,10 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             try {
                 // Create Session for first message
                 // Prefix with "Canvas" as requested
-                const newChat = await createChat(user.id, "Canvas Chat");
+                const newChat = await createChat(user.id, "Canvas: Untitled Essay");
                 activeChatId = newChat.id;
                 setCurrentChatId(activeChatId);
+                setSavedChats(prev => [newChat, ...prev]);
             } catch (err) {
                 console.error("Failed to lazy-create canvas chat:", err);
             }
