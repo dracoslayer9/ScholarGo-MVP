@@ -232,14 +232,26 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Auto-save logic
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (essayContent && currentChatId) {
-                updateChatPayload(currentChatId, { essayContent: essayContent })
-                    .catch(err => console.error("Auto-save Error:", err));
+        const timeoutId = setTimeout(async () => {
+            if (essayContent) {
+                if (currentChatId) {
+                    updateChatPayload(currentChatId, { essayContent })
+                        .catch(err => console.error("Auto-save Error:", err));
+                } else if (user) {
+                    // Automatically create a new chat session if none exists and user starts typing
+                    try {
+                        const newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
+                        setCurrentChatId(newBlankChat.id);
+                        setSavedChats(prev => [newBlankChat, ...prev]);
+                        await updateChatPayload(newBlankChat.id, { essayContent });
+                    } catch (err) {
+                        console.error("Auto-create Error:", err);
+                    }
+                }
             }
         }, 1000); // 1-second debounce
         return () => clearTimeout(timeoutId);
-    }, [essayContent, currentChatId]);
+    }, [essayContent, currentChatId, user]);
 
     // Auto-resize chat input
     useEffect(() => {
