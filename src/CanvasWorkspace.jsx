@@ -1643,6 +1643,8 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                 open={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
                 featureName={upgradeFeature}
+                session={user ? { user } : null}
+                onLogin={onRequireAuth}
             />
 
         </div>

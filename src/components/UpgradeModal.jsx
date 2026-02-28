@@ -60,28 +60,29 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                     // --- GENERAL UPGRADE VIEW (Used for Guests too) ---
                     <div className="flex flex-col md:flex-row h-full">
                         {/* Free Plan (Left) */}
-                        <div className="flex-1 p-8 bg-white flex flex-col border-r border-gray-100">
+                        <div className="flex-1 p-8 bg-gray-50 border-r border-gray-100 flex flex-col">
+
                             <div className="mb-6">
-                                <h3 className="font-bold text-2xl text-oxford-blue mb-1">Free Plan</h3>
+                                <h3 className="font-medium text-lg text-oxford-blue mb-2">Free Plan</h3>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-3xl font-bold text-oxford-blue">Rp 0</span>
                                     <span className="text-sm text-oxford-blue/40 font-medium">/month</span>
                                 </div>
-                                <p className="text-sm text-oxford-blue/40 font-medium mt-2">
-                                    Start for free
-                                </p>
                             </div>
+
                             <div className="space-y-4 mb-8 flex-1">
-                                <FeatureRow text="3 PDF Analysis" />
-                                <FeatureRow text="5 Chat Messages" />
-                                <FeatureRow text="3 Deep Reviews" />
+                                <FeatureRow text="5 PDF Analysis / mo" />
+                                <FeatureRow text="10 Chat Messages / mo" />
+                                <FeatureRow text="3 Deep Reviews / mo" />
+                                <FeatureRow text="Basic features access" />
                             </div>
 
                             <button
-                                onClick={onLogin}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors text-sm"
+                                onClick={isGuest ? onLogin : onClose}
+                                disabled={!isGuest}
+                                className={`w-full py-3 font-bold rounded-xl transition-colors text-sm ${isGuest ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-oxford-blue/40 cursor-default'}`}
                             >
-                                Mulai Gratis
+                                {isGuest ? 'Mulai Gratis' : 'Current Plan'}
                             </button>
                         </div>
 
@@ -111,7 +112,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-2"
                             >
                                 {loading ? <Loader size={16} className="animate-spin" /> : <Crown size={16} />}
-                                {loading ? 'Processing...' : 'Mulai Gratis'}
+                                {loading ? 'Processing...' : (isGuest ? 'Mulai Gratis' : 'Upgrade Plan')}
                             </button>
                         </div>
                     </div>
