@@ -229,6 +229,14 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                 setEssayContent('');
             }
         },
+        onBlur: ({ editor }) => {
+            // Eagerly snap the content state when clicking outside the editor
+            const html = editor.getHTML();
+            const contentToSave = html === '<p></p>' ? '' : html;
+            if (currentChatIdRef.current && contentToSave) {
+                updateChatPayload(currentChatIdRef.current, { essayContent: contentToSave }).catch(console.error);
+            }
+        }
     });
 
     // Sync line spacing dynamically using inline styles
@@ -249,7 +257,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     useEffect(() => {
         const timeoutId = setTimeout(async () => {
             if (blockAutoSaveRef.current) return; // Prevent overwriting history during load
-            if (isCreatingChatRef.current) return; // Guard against race conditions during chat generation
 
             const activeId = currentChatIdRef.current;
 
@@ -263,16 +270,17 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             if (currentEssay) {
                 if (activeId) {
                     try {
-                        await updateChatPayload(activeId, { essayContent: currentEssay });
-                        // Update local list silently with deep payload sync, strictly preserving the existing title
+                        // Optimistically update local state immediately so it's not lost
                         setSavedChats(prev => prev.map(c => c.id === activeId ? {
                             ...c,
                             payload: { ...(c.payload || {}), essayContent: currentEssay }
                         } : c));
+                        // Fire network request
+                        await updateChatPayload(activeId, { essayContent: currentEssay });
                     } catch (err) {
                         console.error("Auto-save Error:", err);
                     }
-                } else if (user) {
+                } else if (!isCreatingChatRef.current && user) {
                     // Automatically create a new chat session if none exists and user starts typing
                     isCreatingChatRef.current = true;
                     try {
@@ -779,7 +787,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
         }
     };
 
-    const handleNewChat = async () => {
+    const handleNewChat = async (forceBlank = false) => {
         if (isCreatingChatRef.current) return;
 
         // 1. Capture current context securely from Tiptap source of truth
@@ -796,7 +804,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
         try {
             // 3. Eagerly generate the new UI chat row to guarantee it exists before wiping state
             let newBlankChat = null;
-            if (user) {
+            if (!forceBlank && user) {
                 newBlankChat = await createChat(user.id, "Canvas: Untitled Essay");
             }
 
@@ -863,10 +871,22 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
         e.stopPropagation();
         if (window.confirm("Are you sure you want to delete this session?")) {
             try {
-                await deleteChat(chatId);
-                setSavedChats(prev => prev.filter(ch => ch.id !== chatId));
+                // Delete from Backend in the background
+                deleteChat(chatId).catch(err => console.error("Network Delete failed", err));
+
+                // Optimistically update the UI sidebar
+                const updatedList = savedChats.filter(ch => ch.id !== chatId);
+                setSavedChats(updatedList);
+
+                // If we are deleting the CURRENT active session...
                 if (currentChatId === chatId) {
-                    handleNewChat(); // Reset if deleting active
+                    if (updatedList.length > 0) {
+                        // Smart Fallback: automatically load the next most recent session
+                        handleLoadChat(updatedList[0].id);
+                    } else {
+                        // Complete wipe ONLY if it was the absolute last session left
+                        handleNewChat(true); // pass true flag to force blank without generating network row
+                    }
                 }
             } catch (err) {
                 console.error("Delete failed", err);
@@ -903,13 +923,15 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
             setEssayTitle(session.title.replace("Canvas: ", ""));
 
             // 2. Restore Target Essay Content from Payload
-            if (session.payload && session.payload.essayContent) {
+            if (session.payload && typeof session.payload.essayContent === 'string') {
                 setEssayContent(session.payload.essayContent);
                 if (editor) {
                     editor.commands.setContent(session.payload.essayContent);
                 }
             } else {
-                setEssayContent(''); // Fallback
+                // If it's explicitly broken, don't wipe it completely if we already have text,
+                // just safely set it to empty. 
+                setEssayContent('');
                 if (editor) {
                     editor.commands.setContent('');
                 }
