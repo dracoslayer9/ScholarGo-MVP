@@ -7,23 +7,6 @@ const PricingPage = ({ onBack, onLogin, session }) => {
     const [showGuide, setShowGuide] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // Load Midtrans Snap.js
-    useEffect(() => {
-        const snapUrl = "https://app.midtrans.com/snap/snap.js";
-        const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || 'Mid-client-FNNO_z9Q54bZdZS9'; // Fallback
-
-        const script = document.createElement('script');
-        script.src = snapUrl;
-        script.setAttribute('data-client-key', clientKey);
-        script.async = true;
-
-        document.body.appendChild(script);
-
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
-
     const handleUpgrade = async () => {
         if (!session) {
             onLogin();
@@ -32,33 +15,14 @@ const PricingPage = ({ onBack, onLogin, session }) => {
 
         setLoading(true);
         try {
-            // 1. Get Snap Token from Backend
-            const { token } = await createTransaction('plus');
+            // 1. Get Xendit Invoice URL from Backend
+            const data = await createTransaction('plus');
 
-            // 2. Trigger Snap Popup
-            if (window.snap) {
-                window.snap.pay(token, {
-                    onSuccess: function (result) {
-                        console.log('Payment Success:', result);
-                        window.location.href = '/?payment=success';
-                    },
-                    onPending: function (result) {
-                        console.log('Payment Pending:', result);
-                        alert("Payment pending. Please complete the payment.");
-                        setLoading(false);
-                    },
-                    onError: function (result) {
-                        console.error('Payment Error:', result);
-                        alert("Payment failed. Please try again.");
-                        setLoading(false);
-                    },
-                    onClose: function () {
-                        console.log('Customer closed the popup without finishing the payment');
-                        setLoading(false);
-                    }
-                });
+            // 2. Redirect to Payment Gateway
+            if (data && data.invoice_url) {
+                window.location.href = data.invoice_url;
             } else {
-                throw new Error("Midtrans Snap.js not loaded");
+                throw new Error("Payment link not generated");
             }
         } catch (error) {
             console.error(error);

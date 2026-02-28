@@ -1170,7 +1170,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
 
                         <button
                             onClick={() => {
-                                setUpgradeFeature('Scholarstory Plus');
+                                setUpgradeFeature(null);
                                 setShowUpgradeModal(true);
                             }}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 text-white rounded-md text-xs font-semibold hover:bg-blue-600 transition-colors shadow-[0_2px_4px_rgba(59,130,246,0.2)]"
