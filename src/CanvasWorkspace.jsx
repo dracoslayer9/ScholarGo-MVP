@@ -179,10 +179,12 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // In-Chat History Navigator
     const [showInChatHistory, setShowInChatHistory] = useState(false);
 
+    // Application State
+    const [essayTitle, setEssayTitle] = useState('Untitled Essay');
+
     // History Management State
     const [editingChatId, setEditingChatId] = useState(null);
     const [editingTitle, setEditingTitle] = useState("");
-    const [deleteConfirmId, setDeleteConfirmId] = useState(null); // Optional: confirm delete
 
     // Subscription State
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
