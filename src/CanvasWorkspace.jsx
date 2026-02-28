@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import TextAlign from '@tiptap/extension-text-align';
 import { Extension, InputRule } from '@tiptap/core';
 import { Markdown } from 'tiptap-markdown';
 
@@ -55,7 +56,8 @@ import {
     BookOpen,
     Share,
     History,
-    ChevronUp
+    ChevronUp,
+    MoveVertical
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat } from './services/chatService';
@@ -77,9 +79,11 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const userMenuRef = useRef(null);
 
     const [essayContent, setEssayContent] = useState('');
-    const [textAlign, setTextAlign] = useState('left');
     const [isAlignMenuOpen, setIsAlignMenuOpen] = useState(false);
     const alignMenuRef = useRef(null);
+    const [lineSpacing, setLineSpacing] = useState('1.5');
+    const [isSpacingMenuOpen, setIsSpacingMenuOpen] = useState(false);
+    const spacingMenuRef = useRef(null);
 
     // --- Version State ---
     const [versions, setVersions] = useState([{ id: 1, content: '', title: 'Version 1' }]);
@@ -127,6 +131,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             }
             if (alignMenuRef.current && !alignMenuRef.current.contains(event.target)) {
                 setIsAlignMenuOpen(false);
+            }
+            if (spacingMenuRef.current && !spacingMenuRef.current.contains(event.target)) {
+                setIsSpacingMenuOpen(false);
             }
             if (versionMenuRef.current && !versionMenuRef.current.contains(event.target)) {
                 setIsVersionMenuOpen(false);
@@ -202,11 +209,14 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             }),
             Markdown,
             AutoCapitalize,
+            TextAlign.configure({
+                types: ['heading', 'paragraph'],
+            }),
         ],
         content: essayContent,
         editorProps: {
             attributes: {
-                class: 'prose prose-lg prose-oxford-blue max-w-none focus:outline-none min-h-screen whitespace-pre-wrap break-words text-oxford-blue font-serif leading-relaxed px-16 py-12',
+                class: 'prose prose-lg prose-oxford-blue max-w-none focus:outline-none min-h-screen whitespace-pre-wrap break-words text-oxford-blue font-serif px-16 py-12',
                 spellcheck: 'true',
                 autocapitalize: 'sentences'
             },
@@ -220,6 +230,15 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             }
         },
     });
+
+    // Sync line spacing dynamically using inline styles
+    useEffect(() => {
+        // Ensure the editor and its underlying view/DOM are fully mounted
+        if (editor && !editor.isDestroyed && editor.view && editor.view.dom) {
+            const el = editor.view.dom;
+            el.style.lineHeight = lineSpacing;
+        }
+    }, [editor, lineSpacing]);
 
     // Auto-scroll chat
     useEffect(() => {
@@ -286,11 +305,11 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const handleFormat = (formatType) => {
         if (!editor) return;
 
-        // Handle alignment (Custom wrapper logic)
-        if (formatType === 'align-left') return setTextAlign('left');
-        if (formatType === 'align-center') return setTextAlign('center');
-        if (formatType === 'align-right') return setTextAlign('right');
-        if (formatType === 'align-justify') return setTextAlign('justify');
+        // Handle alignment via Tiptap TextAlign extension
+        if (formatType === 'align-left') return editor.chain().focus().setTextAlign('left').run();
+        if (formatType === 'align-center') return editor.chain().focus().setTextAlign('center').run();
+        if (formatType === 'align-right') return editor.chain().focus().setTextAlign('right').run();
+        if (formatType === 'align-justify') return editor.chain().focus().setTextAlign('justify').run();
 
         // Handle inline markdown formatting via Tiptap
         editor.chain().focus();
@@ -1055,25 +1074,54 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                     <div className="flex items-center gap-0.5 flex-1 justify-center">
                         <div className="relative" ref={alignMenuRef}>
                             <button onClick={() => setIsAlignMenuOpen(!isAlignMenuOpen)} className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors flex items-center gap-1" title="Align Text">
-                                {textAlign === 'left' && <AlignLeft size={16} />}
-                                {textAlign === 'center' && <AlignCenter size={16} />}
-                                {textAlign === 'right' && <AlignRight size={16} />}
-                                {textAlign === 'justify' && <AlignJustify size={16} />}
+                                {(!editor?.isActive({ textAlign: 'center' }) && !editor?.isActive({ textAlign: 'right' }) && !editor?.isActive({ textAlign: 'justify' })) && <AlignLeft size={16} />}
+                                {editor?.isActive({ textAlign: 'center' }) && <AlignCenter size={16} />}
+                                {editor?.isActive({ textAlign: 'right' }) && <AlignRight size={16} />}
+                                {editor?.isActive({ textAlign: 'justify' }) && <AlignJustify size={16} />}
                             </button>
                             {isAlignMenuOpen && (
                                 <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 shadow-lg rounded-md p-1 z-50 flex gap-0.5">
-                                    <button onClick={() => { handleFormat('align-left'); setIsAlignMenuOpen(false); }} className={`p-1.5 rounded transition-colors ${textAlign === 'left' ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`} title="Align Left">
+                                    <button onClick={() => { handleFormat('align-left'); setIsAlignMenuOpen(false); }} className={`p-1.5 rounded transition-colors ${editor?.isActive({ textAlign: 'left' }) || (!editor?.isActive({ textAlign: 'center' }) && !editor?.isActive({ textAlign: 'right' }) && !editor?.isActive({ textAlign: 'justify' })) ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`} title="Align Left">
                                         <AlignLeft size={16} />
                                     </button>
-                                    <button onClick={() => { handleFormat('align-center'); setIsAlignMenuOpen(false); }} className={`p-1.5 rounded transition-colors ${textAlign === 'center' ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`} title="Align Center">
+                                    <button onClick={() => { handleFormat('align-center'); setIsAlignMenuOpen(false); }} className={`p-1.5 rounded transition-colors ${editor?.isActive({ textAlign: 'center' }) ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`} title="Align Center">
                                         <AlignCenter size={16} />
                                     </button>
-                                    <button onClick={() => { handleFormat('align-right'); setIsAlignMenuOpen(false); }} className={`p-1.5 rounded transition-colors ${textAlign === 'right' ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`} title="Align Right">
+                                    <button onClick={() => { handleFormat('align-right'); setIsAlignMenuOpen(false); }} className={`p-1.5 rounded transition-colors ${editor?.isActive({ textAlign: 'right' }) ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`} title="Align Right">
                                         <AlignRight size={16} />
                                     </button>
-                                    <button onClick={() => { handleFormat('align-justify'); setIsAlignMenuOpen(false); }} className={`p-1.5 rounded transition-colors ${textAlign === 'justify' ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`} title="Justify">
+                                    <button onClick={() => { handleFormat('align-justify'); setIsAlignMenuOpen(false); }} className={`p-1.5 rounded transition-colors ${editor?.isActive({ textAlign: 'justify' }) ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`} title="Justify">
                                         <AlignJustify size={16} />
                                     </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative" ref={spacingMenuRef}>
+                            <button onClick={() => setIsSpacingMenuOpen(!isSpacingMenuOpen)} className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors flex items-center gap-1" title="Line Spacing">
+                                <MoveVertical size={16} />
+                            </button>
+                            {isSpacingMenuOpen && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 shadow-lg rounded-md py-1 z-50 w-[100px] flex flex-col">
+                                    {[
+                                        { label: '1,0', value: '1.0' },
+                                        { label: '1,15', value: '1.15' },
+                                        { label: '1,5', value: '1.5' },
+                                        { label: '2,0', value: '2.0' },
+                                        { label: '2,5', value: '2.5' },
+                                        { label: '3,0', value: '3.0' }
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => { setLineSpacing(opt.value); setIsSpacingMenuOpen(false); }}
+                                            className={`relative w-full py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center ${lineSpacing === opt.value ? 'bg-gray-50 font-medium text-gray-900' : 'text-gray-600'}`}
+                                        >
+                                            <div className="w-8 flex justify-center shrink-0">
+                                                {lineSpacing === opt.value && <Check strokeWidth={2.5} className="text-gray-900" size={14} />}
+                                            </div>
+                                            <span className="flex-1">{opt.label}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -1189,7 +1237,6 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                         {/* TIPTAP EDITOR LAYER */}
                         <div
                             className="absolute inset-0 z-10 custom-tiptap-editor"
-                            style={{ textAlign }}
                         >
                             <EditorContent editor={editor} className="h-full w-full outline-none" />
                         </div>
