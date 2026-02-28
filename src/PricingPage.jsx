@@ -82,9 +82,12 @@ const PricingPage = ({ onBack, onLogin, session }) => {
                     {/* Center: Navigation (Same as Landing) */}
                     <div className="hidden md:flex items-center justify-center gap-2">
                         <button
-                            className="px-4 py-2 text-sm font-medium text-oxford-blue rounded-xl bg-oxford-blue/5 transition-all cursor-default"
+                            onClick={session ? handleUpgrade : onLogin}
+                            disabled={loading}
+                            className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center gap-1.5"
                         >
-                            Paket
+                            {loading && <Loader size={14} className="animate-spin" />}
+                            {loading ? 'Processing...' : (session ? 'Upgrade Plan' : 'Mulai Gratis')}
                         </button>
                         <button
                             onClick={() => setShowGuide(true)}
@@ -136,8 +139,8 @@ const PricingPage = ({ onBack, onLogin, session }) => {
                                     onClick={session ? null : onLogin}
                                     disabled={!!session}
                                     className={`w-full py-3.5 font-bold rounded-xl transition-colors shadow-lg text-base ${session
-                                            ? 'bg-gray-200 text-oxford-blue/40 cursor-default shadow-none'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'
+                                        ? 'bg-gray-200 text-oxford-blue/40 cursor-default shadow-none'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'
                                         }`}
                                 >
                                     {session ? 'Current Plan' : 'Mulai Gratis'}

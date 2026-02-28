@@ -31,9 +31,9 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                     <div className="hidden md:flex items-center justify-center gap-2">
                         <button
                             onClick={onPricing}
-                            className="px-4 py-2 text-sm font-medium text-oxford-blue/80 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded-xl transition-all"
+                            className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-md shadow-blue-500/20"
                         >
-                            Paket
+                            Upgrade Plan
                         </button>
                         <button
                             onClick={() => setShowGuide(true)}
