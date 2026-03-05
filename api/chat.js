@@ -2,6 +2,7 @@
 /* global process */
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -40,8 +41,47 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: "Message is required" });
         }
 
+        let ragContext = "";
+
+        // PROACTIVE RAG PIPELINE
+        if (documentContent && documentContent.trim().length > 50 && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            try {
+                const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+                const embeddingClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+                const embeddingResponse = await embeddingClient.embeddings.create({
+                    model: "text-embedding-3-small",
+                    input: documentContent.substring(0, 3000), // Protect token limit
+                });
+                const queryEmbedding = embeddingResponse.data[0].embedding;
+
+                const { data: matchedEssays, error } = await supabase.rpc('match_knowledge_base', {
+                    query_embedding: queryEmbedding,
+                    match_threshold: 0.50, // Relaxed threshold to ensure we get SOMETHING
+                    match_count: 1
+                });
+
+                if (!error && matchedEssays && matchedEssays.length > 0) {
+                    ragContext = `\n\n**PROACTIVE RAG CONTEXT (AWARDEE GOLD STANDARD)**:
+Here is an anonymized writing strategy from a real, successful awardee that is highly relevant to the user's current draft. 
+If the user's draft is weak, USE THIS EXTRACTED STRATEGY to give them a concrete example of how a winning essay pivots or structures its argument. Do NOT mention the names or specific campuses, just use the strategy:
+
+--- AWARDEE STRATEGY ---
+${matchedEssays[0].anonymized_content}
+------------------------
+`;
+                }
+            } catch (err) {
+                console.error("Proactive RAG Error:", err);
+            }
+        }
+
         let systemPrompt = `You are an elite Scholarship Consultant for Scholarstory. Your goal is to guide the user to write a "Gold Standard" essay using the **Scholarstory Master Framework**.
             
+        **CRITICAL ASSUMPTION**:
+        - ALWAYS assume the user is applying for a Master's degree (S2) or a tertiary scholarship.
+        - EVERY response you provide MUST incorporate strong **academic values** (e.g., research potential, advanced theoretical application, academic contribution) to strengthen their scholarship application.
+
         **THE MASTER FRAMEWORK**:
         Winning essays must follow this **"Gap-Bridge-Vision"** narrative arc:
         
@@ -92,6 +132,7 @@ export default async function handler(req, res) {
 
         **Document Content**:
         "${documentContent}"
+        ${ragContext}
         `;
 
         // PATTERN COMMAND INTERCEPT

@@ -2,6 +2,7 @@
 /* global process */
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -68,8 +69,40 @@ export default async function handler(req, res) {
       }
     }
 
+    let ragContext = "";
+    if (text && text.trim().length > 50 && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const embeddingResponse = await openai.embeddings.create({
+          model: "text-embedding-3-small",
+          input: text.substring(0, 3000),
+        });
+        const queryEmbedding = embeddingResponse.data[0].embedding;
+
+        const { data: matchedEssays, error } = await supabase.rpc('match_knowledge_base', {
+          query_embedding: queryEmbedding,
+          match_threshold: 0.50,
+          match_count: 1
+        });
+
+        if (!error && matchedEssays && matchedEssays.length > 0) {
+          ragContext = `\n\n**PROACTIVE RAG CONTEXT (AWARDEE GOLD STANDARD)**:
+Here is an anonymized writing strategy from a real, successful awardee that is highly relevant to this document. 
+USE THIS EXTRACTED STRATEGY to influence your analysis, especially in the 'strategicImprovements' array. Provide concrete examples of winning narrative structures.
+
+--- AWARDEE STRATEGY ---
+${matchedEssays[0].anonymized_content}
+------------------------
+`;
+        }
+      } catch (err) {
+        console.error("Proactive RAG Error:", err);
+      }
+    }
+
     const prompt = `
       ${systemPrompt}
+      ${ragContext}
       
       Return the response in this strict JSON format:
       {
