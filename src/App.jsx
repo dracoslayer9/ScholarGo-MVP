@@ -45,6 +45,7 @@ import QuotaDisplay from './components/QuotaDisplay';
 import PricingPage from './PricingPage';
 import PaymentSuccess from './components/PaymentSuccess';
 import { checkUsageQuota, incrementUsage } from './services/subscriptionService';
+import CampusMatchModal from './components/CampusMatchModal'; // Implemented Campus Match
 // ... (lines 48-670 unchanged) ... 
 // Jumping to render logic below ... 
 
@@ -74,7 +75,7 @@ const analyzeEssay = async (text, model, instruction, context, signal) => {
 
 
 function App() {
-  // App Mode: 'landing' | 'selection' | 'upload' | 'canvas'
+  // App State: 'landing', 'login', 'canvas', 'privacy', 'terms', 'pricing', 'campus-match'
   const [appMode, setAppMode] = useState(() => localStorage.getItem('scholarStory_appMode') || 'landing');
 
   // Persist App Mode
@@ -107,6 +108,7 @@ function App() {
   const [essayText, setEssayText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
+  const [showCampusMatch, setShowCampusMatch] = useState(false); // Modal Toggle
 
   // New State for Reader Mode & Chat
   const [isAnalyzed, setIsAnalyzed] = useState(false);
@@ -694,13 +696,24 @@ function App() {
 
   if (appMode === 'landing') {
     return (
-      <LandingPage
-        onStart={handleStart}
-        onPrivacy={() => setAppMode('privacy')}
-        onTerms={() => setAppMode('terms')}
-        onLogin={() => setAppMode('login')}
-        onPricing={() => setAppMode('pricing')}
-      />
+      <>
+        <LandingPage
+          onStart={handleStart}
+          onPrivacy={() => setAppMode('privacy')}
+          onTerms={() => setAppMode('terms')}
+          onLogin={() => setAppMode('login')}
+          onPricing={() => setAppMode('pricing')}
+          onCampusMatch={() => setShowCampusMatch(true)} // Toggle Modal
+        />
+        {/* Global Campus Match Modal */}
+        {showCampusMatch && (
+          <CampusMatchModal
+            isOpen={showCampusMatch}
+            onClose={() => setShowCampusMatch(false)}
+            user={session?.user}
+          />
+        )}
+      </>
     );
   }
 
@@ -731,6 +744,7 @@ function App() {
       <>
         <CanvasWorkspace
           onBack={() => setAppMode('landing')}
+          onCampusMatch={() => setShowCampusMatch(true)}
           onRequireAuth={() => {
             if (!session) {
               setAppMode('login');
@@ -761,6 +775,14 @@ function App() {
             setAppMode('login');
           }}
         />
+        {/* Global Campus Match Modal */}
+        {showCampusMatch && (
+          <CampusMatchModal
+            isOpen={showCampusMatch}
+            onClose={() => setShowCampusMatch(false)}
+            user={session?.user}
+          />
+        )}
       </>
     );
   }
@@ -771,6 +793,15 @@ function App() {
 
   return (
     <div className="flex h-screen bg-paper overflow-hidden font-sans selection:bg-bronze/30 selection:text-oxford-blue">
+
+      {/* Global Campus Match Modal */}
+      {showCampusMatch && (
+        <CampusMatchModal
+          isOpen={showCampusMatch}
+          onClose={() => setShowCampusMatch(false)}
+          user={session?.user}
+        />
+      )}
 
       {/* Sidebar ... */}
       {/* Sidebar ... */}
@@ -791,6 +822,13 @@ function App() {
           >
             <Layout size={16} />
             Switch Mode
+          </button>
+          <button
+            onClick={() => setShowCampusMatch(true)}
+            className="w-full flex items-center gap-2 text-oxford-blue/60 hover:text-bronze px-4 py-2 hover:bg-bronze/5 rounded-xl transition-colors text-sm font-medium"
+          >
+            <Sparkles size={16} />
+            Campus Match
           </button>
           <button
             onClick={handleNewChat} // UPDATED to use DB Handler

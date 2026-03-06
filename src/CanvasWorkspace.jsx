@@ -61,7 +61,7 @@ import {
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat } from './services/chatService';
-import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck } from 'lucide-react';
+import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
 import { PDFViewer } from './components/PDFViewer';
 import ChatMessagesList from './components/ChatMessagesList';
@@ -72,7 +72,7 @@ import { checkUsageQuota, incrementUsage } from './services/subscriptionService'
 
 
 
-const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings }) => {
+const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings, onCampusMatch }) => {
     // --- State ---
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -1162,6 +1162,19 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                         </button>
                         <button onClick={() => handleFormat('quote')} className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors" title="Quote">
                             <Quote size={16} />
+                        </button>
+
+                        <div className="w-px h-4 bg-gray-200 mx-1"></div>
+
+                        <button
+                            onClick={() => {
+                                if (onRequireAuth && onRequireAuth()) return;
+                                if (onCampusMatch) onCampusMatch();
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-bronze hover:bg-amber-50 rounded transition-colors flex items-center justify-center"
+                            title="Campus Match"
+                        >
+                            <GraduationCap size={16} />
                         </button>
                     </div>
 

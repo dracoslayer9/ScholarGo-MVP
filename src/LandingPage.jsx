@@ -6,11 +6,12 @@ import {
     ChevronRight,
     BookOpen,
     CheckCircle,
-    Youtube
+    Youtube,
+    Search
 } from 'lucide-react';
 import GuideModal from './components/GuideModal';
 
-const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
+const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampusMatch }) => {
     const [showGuide, setShowGuide] = React.useState(false);
 
     return (
@@ -75,7 +76,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing }) => {
                         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto relative z-20">
                             <button
                                 onClick={onStart}
-                                className="w-full sm:w-auto px-6 py-3 bg-bronze text-white rounded-xl font-bold hover:brightness-90 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg shadow-bronze/20"
+                                className="w-full px-8 py-4 bg-bronze text-white rounded-xl font-bold hover:brightness-90 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg shadow-bronze/20 text-lg"
                             >
                                 Mulai Menulis
                             </button>
