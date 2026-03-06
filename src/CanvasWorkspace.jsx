@@ -580,7 +580,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
         const baseUserMessage = inputToUse.trim() || "Analyze this essay";
         // Apply Research Mode prompt wrapping if active (Neutralized per user request)
         const userMessage = isResearchMode
-            ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query.\n\nUSER PROMPT:\n${baseUserMessage}`
+            ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${baseUserMessage}`
             : baseUserMessage;
         // precise context: The essay content combined with any uploaded file context
         const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n[Current Essay Content]\n${essayContent}` : essayContent;
