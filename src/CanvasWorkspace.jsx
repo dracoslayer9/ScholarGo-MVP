@@ -168,7 +168,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [showDocumentPreview, setShowDocumentPreview] = useState(false);
 
     // Analysis State
-    const [analysisResult, setAnalysisResult] = useState(null);
+    // (Analysis results are now directly fed into the chat history)
 
     const [currentChatId, setCurrentChatId] = useState(null); // Canvas Chat Persistence
     const [savedChats, setSavedChats] = useState([]); // History List
