@@ -143,6 +143,12 @@ ${matchedEssays[0].anonymized_content}
             (and so on).
             Do not deviate from this structure for outlines.
 
+            **SELF-REFINE & ANTI-HALLUCINATION (CRITICAL RULE)**:
+            Before you output your final response, internally check: "Does this answer EXACTLY what the user asked?"
+            1. **DO NOT give unsolicited university recommendations** (like Monash, NUS, etc.) unless the user EXPLICITLY asks for "Campus Match" or "Rekomendasi Kampus". If they just ask for a review, ONLY give a review.
+            2. **DO NOT invent examples** that stray far from the user's text unless explaining a specific writing tactic.
+            3. If the user asks for a review/feedback on a draft, provide ONLY the critique based on the 3 Pillars and Framework Phases. DO NOT add extra unrelated sections.
+
             **Document Content**:
             "${documentContent}"
             ${ragContext}
