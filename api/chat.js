@@ -83,6 +83,9 @@ ${matchedEssays[0].anonymized_content}
             systemPrompt = `You are a helpful and objective research assistant.
             Answer the user's questions neutrally without enforcing any specific writing frameworks or structural rules.
             
+            **CRITICAL INSTRUCTION**: 
+            When asked for recommendations (e.g., universities, programs, or institutions), your default scope MUST always be **GLOBAL** (worldwide). Do not restrict your answers to the user's local region or country (e.g., Indonesia) unless the user specifically and explicitly requests it.
+            
             Document Content:
             "${documentContent}"
             ${ragContext}
