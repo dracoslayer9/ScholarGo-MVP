@@ -168,7 +168,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [showDocumentPreview, setShowDocumentPreview] = useState(false);
 
     // Analysis State
-    // (Analysis results are now directly fed into the chat history)
+    const [analysisResult, setAnalysisResult] = useState(null);
 
     const [currentChatId, setCurrentChatId] = useState(null); // Canvas Chat Persistence
     const [savedChats, setSavedChats] = useState([]); // History List
@@ -392,32 +392,42 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         setShowDocumentPreview(false); // Close preview
         if (!isChatOpen) setIsChatOpen(true);
 
+        // Check if document is an awardee sample before sending to get specific dissection
+        const isAwardee = contentToAnalyze.toLowerCase().includes("award") || contentToAnalyze.toLowerCase().includes("winner") || contentToAnalyze.toLowerCase().includes("lpdp");
+        const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
+
         // Add a "dummy" message to show intent in history
-        const userMsg = { role: 'user', content: "Analyze this document completely." };
+        const actionVerb = isAwardee ? "Dissect" : "Analyze";
+        const userMsg = { role: 'user', content: `${actionVerb} this document completely.` };
         setChatHistory(prev => [...prev, userMsg]);
 
         try {
-            const result = await runRealAnalysis(contentToAnalyze, 'openai', null, null, controller.signal);
+            // Pass the detected type to the backend so it knows whether to dissect or critique
+            const result = await runRealAnalysis(contentToAnalyze, detectedType, null, null, controller.signal);
             if (result) {
-                const isAwardee = contentToAnalyze.toLowerCase().includes("award") || contentToAnalyze.toLowerCase().includes("winner");
-                const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
+                // Determine headers based on document type
+                const strengthHeader = isAwardee ? "✨ Strategi Sukses" : "💪 Kekuatan Utama";
+                const weaknessHeader = isAwardee ? "📐 Anatomi Struktur" : "🎯 Area Perbaikan";
+                const suggestionHeader = isAwardee ? "💡 Pelajaran untuk Esaimu" : "💡 Saran Strategis";
+
+                const strengthData = isAwardee ? result.deepAnalysis?.strategicImprovements : result.strengths; // use improvements for takeaways if needed, or fallback
 
                 const markdownResponse = `### 📊 Analisis Dokumen Selesai
 
 **Skor Keseluruhan:** ${result.totalScore || 'N/A'}/100
 **Tipe Dokumen:** ${detectedType}
 
-#### 💪 Kekuatan Utama
+#### ${strengthHeader}
 ${(result.strengths || []).length > 0 ? result.strengths.map(s => `- ${s}`).join('\n') : '- Belum ditemukan kekuatan yang menonjol.'}
 
-#### 🎯 Area Perbaikan
-${(result.weaknesses || []).length > 0 ? result.weaknesses.map(w => `- ${w}`).join('\n') : '- Tidak ada kelemahan mayor.'}
+#### ${weaknessHeader}
+${(result.weaknesses || []).length > 0 ? result.weaknesses.map(w => `- ${w}`).join('\n') : '- Tidak ada catatan spesifik.'}
 
-#### 💡 Saran Strategis
+#### ${suggestionHeader}
 ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
 ---
-*${result.feedback || 'Terus semangat merevisi esaimu!'}*`;
+*${result.feedback || (isAwardee ? 'Pelajari dan terapkan strategi ini di esaimu!' : 'Terus semangat merevisi esaimu!')}*`;
 
                 // Keep the flow continuous without wiping the document by piping the analysis into the chat
                 setChatHistory(prev => [...prev, {
@@ -1352,7 +1362,10 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                             </div>
                         )}
 
-                        {/* Analysis Result (Now rendered within ChatMessagesList) */}
+                        {/* Analysis Result */}
+                        {analysisResult && (
+                            <AnalysisResultView result={analysisResult} />
+                        )}
 
                         <ChatMessagesList
                             messages={chatHistory}
@@ -1483,7 +1496,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                                             className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
                                         >
                                             <Sparkles size={18} />
-                                            {isAnalyzing ? "Menganalisis..." : "Analyze Document"}
+                                            {isAnalyzing ? "Membedah..." : "Dissect Document"}
                                         </button>
                                     </div>
                                 )}

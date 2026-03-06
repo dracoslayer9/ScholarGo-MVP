@@ -23,6 +23,26 @@ export const runRealAnalysis = async (
 
             let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
 
+            **LANGUAGE INSTRUCTION**:
+            DETECT the language of the provided document. You MUST provide your analysis and response in the **SAME LANGUAGE** as the document. 
+            - If the document is in **Indonesian**, reply in **Indonesian**.
+            - If the document is in **English**, reply in **English**.
+            - Do not mix languages unless necessary for terminology.
+        
+            ${type === "Awardee Sample" ? `
+            **AWARDEE DISSECTION MODE**:
+            This document is a PROVEN, SUCCESSFUL awardee essay. DO NOT critique it or look for weaknesses.
+            Your job is to **DECONSTRUCT** its winning anatomy so a student can learn from it.
+            
+            1. Identify its "Hook, Gap, Vision" structure.
+            2. Extract the specific narrative strategies that make it successful.
+            3. Instead of defining "Weaknesses", define its **Structural Anatomy** (how it flows).
+            4. Instead of giving "Strategic Improvements", give **Key Takeaways** (what the student should emulate).
+            ` : `
+            **CRITIQUE MODE**:
+            This is a student draft. Analyze it rigorously. Look for weaknesses in narrative, flow, and value alignment.
+            `}
+
             **TWO-PHASE PROTOCOL**:
             
             **PHASE 1: Paragraph Extraction**
@@ -71,7 +91,7 @@ export const runRealAnalysis = async (
                   "authenticity": { "strengths": "...", "evidence": "..." },
                   "structure": { "type": "...", "flow": "..." },
                   "values": { "detectedValues": "...", "alignment": "..." },
-                  "strategicImprovements": ["Imp 1", "Imp 2", "Imp 3"]
+                  "strategicImprovements": ["${type === 'Awardee Sample' ? 'Takeaway 1' : 'Imp 1'}", "${type === 'Awardee Sample' ? 'Takeaway 2' : 'Imp 2'}"]
                 },
                 "globalSummary": "A 2-3 sentence global summary.",
                 "paragraphBreakdown": [
@@ -164,6 +184,10 @@ export const sendChatMessage = async (
 
             let systemPrompt = `You are an elite Scholarship Consultant for Scholarstory. Your goal is to guide the user to write a "Gold Standard" essay using the **Scholarstory Master Framework**.
             
+            **CRITICAL ASSUMPTION**:
+            - ALWAYS assume the user is applying for a Master's degree (S2) or a tertiary scholarship.
+            - EVERY response you provide MUST incorporate strong **academic values** (e.g., research potential, advanced theoretical application, academic contribution) to strengthen their scholarship application.
+
             **THE MASTER FRAMEWORK**:
             Winning essays must follow this **"Gap-Bridge-Vision"** narrative arc:
             

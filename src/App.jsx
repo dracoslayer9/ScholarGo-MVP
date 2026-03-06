@@ -1187,13 +1187,13 @@ function App() {
                         <button
                           onClick={() => {
                             setShowDocumentPreview(false);
-                            handleChatSubmit("Tolong analisis dokumen ini secara detail.", true);
+                            handleChatSubmit("Tolong bedah dokumen ini secara detail.", true);
                           }}
                           disabled={isAnalyzing}
                           className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
                         >
                           <Sparkles size={18} />
-                          {isAnalyzing ? "Menganalisis..." : "Analyze Document"}
+                          {isAnalyzing ? "Membedah..." : "Dissect Document"}
                         </button>
                       </div>
                     </div>

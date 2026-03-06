@@ -38,6 +38,19 @@ export default async function handler(req, res) {
     - If the document is in **English**, reply in **English**.
     - Do not mix languages unless necessary for terminology.
 
+    ${type === "Awardee Sample" ? `
+    **AWARDEE DISSECTION MODE**:
+    This document is a PROVEN, SUCCESSFUL awardee essay. DO NOT critique it or look for weaknesses.
+    Your job is to **DECONSTRUCT** its winning anatomy so a student can learn from it.
+    
+    1. Identify its "Hook, Gap, Vision" structure.
+    2. Extract the specific narrative strategies that make it successful.
+    3. Instead of defining "Weaknesses", define its **Structural Anatomy** (how it flows).
+    4. Instead of giving "Strategic Improvements", give **Key Takeaways** (what the student should emulate).
+    ` : `
+    **CRITIQUE MODE**:
+    This is a student draft. Analyze it rigorously. Look for weaknesses in narrative, flow, and value alignment.
+    `}
 
     **TWO-PHASE PROTOCOL**:
     
@@ -118,7 +131,7 @@ ${matchedEssays[0].anonymized_content}
           "authenticity": { "strengths": "...", "evidence": "..." },
           "structure": { "type": "...", "flow": "..." },
           "values": { "detectedValues": "...", "alignment": "..." },
-          "strategicImprovements": ["Imp 1", "Imp 2", "Imp 3"]
+          "strategicImprovements": ["${type === 'Awardee Sample' ? 'Takeaway 1' : 'Imp 1'}", "${type === 'Awardee Sample' ? 'Takeaway 2' : 'Imp 2'}"]
         },
         "globalSummary": "A 2-3 sentence global summary.",
         "paragraphBreakdown": [
