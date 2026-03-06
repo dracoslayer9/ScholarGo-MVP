@@ -157,6 +157,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isResearchMode, setIsResearchMode] = useState(false); // New State for Research Mode
     const [isChatModeMenuOpen, setIsChatModeMenuOpen] = useState(false); // Dropdown State
     const chatModeMenuRef = useRef(null);
+    const [selectedModel, setSelectedModel] = useState('auto'); // 'auto', 'openai', or 'perplexity'
 
     // File Upload State for Canvas Chat
     const [fileUrl, setFileUrl] = useState(null);
@@ -546,7 +547,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
     const generateSmartTitleLLM = async (userMessage) => {
         const prompt = `Buatlah judul chat history yang singkat (maksimal 3 kata), profesional, dan mencerminkan 'Awardee Logic' berdasarkan input berikut. Jika input tentang beasiswa spesifik, sebutkan nama beasiswanya (misal: 'Esai LPDP UCL', 'Motlet Chevening'). Hanya balas dengan judulnya saja tanpa tanda kutip. Input:\n"${userMessage}"`;
         try {
-            const response = await sendChatMessage(prompt, [], "", "auto", null);
+            const response = await sendChatMessage(prompt, [], "", selectedModel, null);
             return response.trim().replace(/^"|"$/g, '');
         } catch (e) {
             console.error("LLM Title Error:", e);
@@ -643,7 +644,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                 userMessage,
                 chatHistory, // Pass history for context
                 context,     // The essay content
-                "auto",      // Provider
+                selectedModel, // Provider
                 controller.signal // Signal
             );
 
@@ -1564,30 +1565,39 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                                             title="Select Chat Mode"
                                         >
                                             <ChevronUp size={16} className="text-oxford-blue/40" />
-                                            {isResearchMode ? 'Research' : 'Auto'}
+                                            {selectedModel === 'auto' ? 'Auto' : selectedModel === 'openai' ? 'GPT-4o' : 'Perplexity Pro'}
                                         </button>
 
                                         {/* Dropdown Menu */}
                                         {isChatModeMenuOpen && (
                                             <div className="absolute bottom-full left-0 mb-2 w-72 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden py-1 animate-fadeIn">
                                                 <button
-                                                    onClick={() => { setIsResearchMode(false); setIsChatModeMenuOpen(false); }}
+                                                    onClick={() => { setSelectedModel('auto'); setIsChatModeMenuOpen(false); }}
                                                     className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-center justify-between group transition-colors"
                                                 >
                                                     <div>
-                                                        <span className={!isResearchMode ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Auto</span>
+                                                        <span className={selectedModel === 'auto' ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Auto</span>
                                                         <span className="text-[10px] text-oxford-blue/50 font-medium leading-tight block">Tentukan model (GPT-4o / Perplexity) otomatis.</span>
                                                     </div>
-                                                    {!isResearchMode && <Check size={14} className="text-bronze shrink-0" />}
+                                                    {selectedModel === 'auto' && <Check size={14} className="text-bronze shrink-0" />}
                                                 </button>
                                                 <button
-                                                    onClick={() => { setIsResearchMode(true); setIsChatModeMenuOpen(false); }}
+                                                    onClick={() => { setSelectedModel('openai'); setIsChatModeMenuOpen(false); }}
                                                     className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-start justify-between group transition-colors"
                                                 >
                                                     <div className="pr-4">
-                                                        <span className={isResearchMode ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Research</span>
+                                                        <span className={selectedModel === 'openai' ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>GPT-4o</span>
                                                     </div>
-                                                    {isResearchMode && <Check size={14} className="text-bronze mt-1 shrink-0" />}
+                                                    {selectedModel === 'openai' && <Check size={14} className="text-bronze mt-1 shrink-0" />}
+                                                </button>
+                                                <button
+                                                    onClick={() => { setSelectedModel('perplexity'); setIsChatModeMenuOpen(false); }}
+                                                    className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-start justify-between group transition-colors"
+                                                >
+                                                    <div className="pr-4">
+                                                        <span className={selectedModel === 'perplexity' ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Perplexity Pro</span>
+                                                    </div>
+                                                    {selectedModel === 'perplexity' && <Check size={14} className="text-bronze mt-1 shrink-0" />}
                                                 </button>
                                             </div>
                                         )}
