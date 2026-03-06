@@ -19,18 +19,19 @@ serve(async (req) => {
             throw new Error('Query string is required.');
         }
 
-        // Initialize OpenAI
-        const openai = new OpenAI({
-            apiKey: Deno.env.get('OPENAI_API_KEY'),
+        // Initialize Perplexity API using the OpenAI SDK client structure
+        const perplexity = new OpenAI({
+            apiKey: Deno.env.get('PERPLEXITY_API_KEY'),
+            baseURL: "https://api.perplexity.ai",
         });
 
-        console.log("Asking GPT-4o for neutral, unrestricted global campus matches...");
+        console.log("Asking Perplexity Sonar Pro for global campus matches...");
 
         const systemPrompt = `You are an expert global scholarship counselor. The user will provide their background and dreams.
-Your task is to recommend the top 3 best universities GLOBALYY that perfectly match their profile. 
+Your task is to search the web and recommend the top 3 best universities GLOBALLY that perfectly match their profile. 
 You are NOT restricted to any specific database. Recommend the absolute best fit worldwide (e.g., US, UK, Europe, Asia, etc.).
 
-You MUST return your response ONLY as a JSON object containing an array of exactly 3 matches. 
+You MUST return your response ONLY as a RAW JSON string containing an array of exactly 3 matches. DO NOT use markdown, do not wrap in \`\`\`json. Just the raw JSON format.
 Format:
 {
   "matches": [
@@ -40,23 +41,29 @@ Format:
       "country": "Country",
       "major": "Specific Target Major/Department",
       "matchScore": 95, 
-      "reasoning": "A compelling 2-sentence reason why this is a perfect fit, mentioning specific professors, labs, or curriculum aligns with their dream. Keep reasoning strictly in Indonesian."
+      "reasoning": "A compelling 2-sentence reason why this is a perfect fit, mentioning specific professors, labs, or curriculum aligns with their dream. Keep reasoning strictly in Indonesian.",
+      "alumniCareers": "A brief sentence (in Indonesian) explaining common career paths for alumni of this program.",
+      "curriculumLink": "The official URL to the program's curriculum or course page.",
+      "applicationDeadline": "The typical or upcoming application deadline for this program."
     }
   ]
 }
-Note: Make sure matchScore is an integer between 85 and 99. The reasoning must be natural, enthusiastic, and strictly in Indonesian.`;
+Note: Make sure matchScore is an integer between 85 and 99. The reasoning and alumniCareers must be natural, enthusiastic, and strictly in Indonesian.`;
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+        const completion = await perplexity.chat.completions.create({
+            model: "sonar-pro",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: query }
             ],
-            temperature: 0.7,
-            response_format: { type: "json_object" }
+            temperature: 0.2
         });
 
-        const resultJson = JSON.parse(completion.choices[0].message.content || '{"matches":[]}');
+        // Try to parse out the JSON if perplexity wraps it in a code block
+        let rawContent = completion.choices[0].message.content || '{"matches":[]}';
+        rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        const resultJson = JSON.parse(rawContent);
 
         console.log(`Successfully generated ${resultJson.matches?.length || 0} unrestricted matches.`);
 

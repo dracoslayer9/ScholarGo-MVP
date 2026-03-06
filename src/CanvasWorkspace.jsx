@@ -158,10 +158,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isChatModeMenuOpen, setIsChatModeMenuOpen] = useState(false); // Dropdown State
     const chatModeMenuRef = useRef(null);
 
-    const [selectedModel, setSelectedModel] = useState('openai'); // 'openai' or 'perplexity'
-    const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
-    const modelMenuRef = useRef(null);
-
     // File Upload State for Canvas Chat
     const [fileUrl, setFileUrl] = useState(null);
     const [fileType, setFileType] = useState(null);
@@ -550,7 +546,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
     const generateSmartTitleLLM = async (userMessage) => {
         const prompt = `Buatlah judul chat history yang singkat (maksimal 3 kata), profesional, dan mencerminkan 'Awardee Logic' berdasarkan input berikut. Jika input tentang beasiswa spesifik, sebutkan nama beasiswanya (misal: 'Esai LPDP UCL', 'Motlet Chevening'). Hanya balas dengan judulnya saja tanpa tanda kutip. Input:\n"${userMessage}"`;
         try {
-            const response = await sendChatMessage(prompt, [], "", selectedModel, null);
+            const response = await sendChatMessage(prompt, [], "", "auto", null);
             return response.trim().replace(/^"|"$/g, '');
         } catch (e) {
             console.error("LLM Title Error:", e);
@@ -647,7 +643,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                 userMessage,
                 chatHistory, // Pass history for context
                 context,     // The essay content
-                selectedModel, // Provider
+                "auto",      // Provider
                 controller.signal // Signal
             );
 
@@ -1587,41 +1583,8 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                                                 >
                                                     <div className="pr-4">
                                                         <span className={isResearchMode ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Research</span>
-                                                        <span className="text-[10px] text-oxford-blue/50 font-medium leading-tight block">Explore strategic insights and align them with your dream goals.</span>
                                                     </div>
                                                     {isResearchMode && <Check size={14} className="text-bronze mt-1 shrink-0" />}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Model Indicator / Dropdown Toggle */}
-                                    <div className="relative" ref={modelMenuRef}>
-                                        <button
-                                            onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
-                                            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm text-oxford-blue/60 hover:bg-gray-100 hover:text-oxford-blue transition-colors font-medium"
-                                            title="Select AI Model"
-                                        >
-                                            <ChevronUp size={16} className="text-oxford-blue/40" />
-                                            {selectedModel === 'openai' ? 'GPT-4o' : 'Perplexity Pro'}
-                                        </button>
-
-                                        {/* Dropdown Menu */}
-                                        {isModelMenuOpen && (
-                                            <div className="absolute bottom-full left-0 mb-2 w-40 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden py-1 animate-fadeIn">
-                                                <button
-                                                    onClick={() => { setSelectedModel('openai'); setIsModelMenuOpen(false); }}
-                                                    className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-center justify-between group transition-colors"
-                                                >
-                                                    <span className={selectedModel === 'openai' ? "font-bold text-oxford-blue" : ""}>GPT-4o</span>
-                                                    {selectedModel === 'openai' && <Check size={14} className="text-bronze" />}
-                                                </button>
-                                                <button
-                                                    onClick={() => { setSelectedModel('perplexity'); setIsModelMenuOpen(false); }}
-                                                    className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-center justify-between group transition-colors"
-                                                >
-                                                    <span className={selectedModel === 'perplexity' ? "font-bold text-oxford-blue" : ""}>Perplexity Pro</span>
-                                                    {selectedModel === 'perplexity' && <Check size={14} className="text-bronze" />}
                                                 </button>
                                             </div>
                                         )}

@@ -15,10 +15,44 @@ export default async function handler(req, res) {
     try {
         const { message, history = [], documentContent = "", model = "gpt-4o" } = req.body;
 
+        if (!message) {
+            return res.status(400).json({ error: "Message is required" });
+        }
+
+        let resolvedModel = model;
+
+        // Auto-Routing: Classify user intent
+        if (model === "auto") {
+            try {
+                const classifierClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+                const classifierResponse = await classifierClient.chat.completions.create({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        { role: "system", content: "You are an intent router. Classify the user's message into one of two categories:\n'RESEARCH' if they are asking for facts, looking for university recommendations, searching for scholarships, asking about deadlines, or gathering external data.\n'WRITE' if they are asking you to review, edit, draft, outline, translate, or brainstorm ideas for an essay or personal statement.\nReply ONLY with the word RESEARCH or WRITE." },
+                        { role: "user", content: message }
+                    ],
+                    temperature: 0,
+                    max_tokens: 10
+                });
+
+                const intent = classifierResponse.choices[0].message.content.trim().toUpperCase();
+                console.log(`Auto-Router classified intent as: ${intent}`);
+
+                if (intent.includes("RESEARCH")) {
+                    resolvedModel = "perplexity";
+                } else {
+                    resolvedModel = "openai";
+                }
+            } catch (err) {
+                console.error("Auto-Router failed, defaulting to openai:", err);
+                resolvedModel = "openai";
+            }
+        }
+
         let openaiClient;
         let requestModel = "gpt-4o";
 
-        if (model === "perplexity") {
+        if (resolvedModel === "perplexity") {
             if (!process.env.PERPLEXITY_API_KEY) {
                 return res.status(500).json({ error: 'Missing PERPLEXITY_API_KEY in server environment variables.' });
             }
@@ -35,10 +69,6 @@ export default async function handler(req, res) {
                 apiKey: process.env.OPENAI_API_KEY,
             });
             requestModel = "gpt-4o";
-        }
-
-        if (!message) {
-            return res.status(400).json({ error: "Message is required" });
         }
 
         let ragContext = "";
