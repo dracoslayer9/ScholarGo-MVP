@@ -1564,21 +1564,24 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                                             title="Select Chat Mode"
                                         >
                                             <ChevronUp size={16} className="text-oxford-blue/40" />
-                                            {isResearchMode ? 'Research' : 'Normal'}
+                                            {isResearchMode ? 'Research' : 'Auto'}
                                         </button>
 
                                         {/* Dropdown Menu */}
                                         {isChatModeMenuOpen && (
                                             <div className="absolute bottom-full left-0 mb-2 w-72 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden py-1 animate-fadeIn">
                                                 <button
-                                                    onClick={() => { setIsResearchMode(false); setIsChatModeMenuOpen(false); setSelectedModel('openai'); }}
+                                                    onClick={() => { setIsResearchMode(false); setIsChatModeMenuOpen(false); }}
                                                     className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-center justify-between group transition-colors"
                                                 >
-                                                    <span className={!isResearchMode ? "font-bold text-oxford-blue" : ""}>Normal</span>
+                                                    <div>
+                                                        <span className={!isResearchMode ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Auto</span>
+                                                        <span className="text-[10px] text-oxford-blue/50 font-medium leading-tight block">Tentukan model (GPT-4o / Perplexity) otomatis.</span>
+                                                    </div>
                                                     {!isResearchMode && <Check size={14} className="text-bronze shrink-0" />}
                                                 </button>
                                                 <button
-                                                    onClick={() => { setIsResearchMode(true); setIsChatModeMenuOpen(false); setSelectedModel('perplexity'); }}
+                                                    onClick={() => { setIsResearchMode(true); setIsChatModeMenuOpen(false); }}
                                                     className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-start justify-between group transition-colors"
                                                 >
                                                     <div className="pr-4">
