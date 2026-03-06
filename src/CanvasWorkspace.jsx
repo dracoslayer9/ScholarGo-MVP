@@ -401,7 +401,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             if (result) {
                 const isAwardee = contentToAnalyze.toLowerCase().includes("award") || contentToAnalyze.toLowerCase().includes("winner");
                 const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
-                setAnalysisResult({ ...result, detectedType });
 
                 const markdownResponse = `### 📊 Analisis Dokumen Selesai
 
@@ -1353,10 +1352,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                             </div>
                         )}
 
-                        {/* Analysis Result */}
-                        {analysisResult && (
-                            <AnalysisResultView result={analysisResult} />
-                        )}
+                        {/* Analysis Result (Now rendered within ChatMessagesList) */}
 
                         <ChatMessagesList
                             messages={chatHistory}
