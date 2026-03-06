@@ -1575,10 +1575,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                                                     onClick={() => { setSelectedModel('auto'); setIsChatModeMenuOpen(false); }}
                                                     className="w-full text-left px-4 py-2 text-sm text-oxford-blue hover:bg-gray-50 flex items-center justify-between group transition-colors"
                                                 >
-                                                    <div>
-                                                        <span className={selectedModel === 'auto' ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Auto</span>
-                                                        <span className="text-[10px] text-oxford-blue/50 font-medium leading-tight block">Tentukan model (GPT-4o / Perplexity) otomatis.</span>
-                                                    </div>
+                                                    <span className={selectedModel === 'auto' ? "font-bold text-oxford-blue block mb-0.5" : "block mb-0.5"}>Auto</span>
                                                     {selectedModel === 'auto' && <Check size={14} className="text-bronze shrink-0" />}
                                                 </button>
                                                 <button
