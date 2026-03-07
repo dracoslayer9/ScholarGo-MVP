@@ -443,6 +443,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 ---
 *${result.feedback || (isAwardee ? 'Pelajari dan terapkan strategi ini di esaimu!' : 'Terus semangat merevisi esaimu!')}*`;
 
+                setAnalysisResult({ ...result, detectedType });
+
                 // Keep the flow continuous without wiping the document by piping the analysis into the chat
                 setChatHistory(prev => [...prev, {
                     role: 'assistant',
