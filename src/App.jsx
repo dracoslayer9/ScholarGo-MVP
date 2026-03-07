@@ -383,19 +383,33 @@ function App() {
         const weaknessHeader = isAwardee ? "📐 Anatomi Struktur" : "🎯 Area Perbaikan";
         const suggestionHeader = isAwardee ? "💡 Pelajaran untuk Esaimu" : "💡 Saran Strategis";
 
+        // Map data from actual API JSON response
+        const strengths = [];
+        if (result.deepAnalysis?.authenticity?.strengths) strengths.push(result.deepAnalysis.authenticity.strengths);
+        if (result.deepAnalysis?.values?.detectedValues) strengths.push("Nilai Utama: " + result.deepAnalysis.values.detectedValues);
+
+        const weaknesses = [];
+        if (result.documentClassification?.structuralSignals?.length) {
+          weaknesses.push(...result.documentClassification.structuralSignals);
+        } else if (result.deepAnalysis?.structure?.flow) {
+          weaknesses.push(result.deepAnalysis.structure.flow);
+        }
+
+        const suggestions = result.deepAnalysis?.strategicImprovements || [];
+
         const markdownResponse = `### 📊 Analisis Dokumen Selesai
 
-**Skor Keseluruhan:** ${result.totalScore || 'N/A'}/100
 **Tipe Dokumen:** ${detectedType}
+${result.deepAnalysis?.overallAssessment ? `\n*${result.deepAnalysis.overallAssessment}*\n` : ''}
 
 #### ${strengthHeader}
-${(result.strengths || []).length > 0 ? result.strengths.map(s => `- ${s}`).join('\n') : '- Belum ditemukan kekuatan yang menonjol.'}
+${strengths.length > 0 ? strengths.map(s => `- ${s}`).join('\n') : '- Belum ditemukan kekuatan yang menonjol.'}
 
 #### ${weaknessHeader}
-${(result.weaknesses || []).length > 0 ? result.weaknesses.map(w => `- ${w}`).join('\n') : '- Tidak ada catatan spesifik.'}
+${weaknesses.length > 0 ? weaknesses.map(w => `- ${w}`).join('\n') : '- Tidak ada catatan spesifik.'}
 
 #### ${suggestionHeader}
-${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).join('\n') : '-'}
+${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
 ---
 *${result.feedback || (isAwardee ? 'Pelajari dan terapkan strategi ini di esaimu!' : 'Terus semangat merevisi esaimu!')}*`;
