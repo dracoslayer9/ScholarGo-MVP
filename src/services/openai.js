@@ -110,7 +110,9 @@ export const runRealAnalysis = async (
                 ]
             }
 
-            IMPORTANT: Analyze EVERY paragraph.
+            IMPORTANT: Analyze EVERY SINGLE paragraph in the text. 
+            You MUST return an array containing one exact object for each paragraph.
+            DO NOT summarize multiple paragraphs into one. If there are 15 paragraphs in the text, you MUST output exactly 15 elements in the paragraphBreakdown array.
             
             Essay Content with Line Numbers:
             "${textWithLines}"

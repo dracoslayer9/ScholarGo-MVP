@@ -9,91 +9,62 @@ const AnalysisResultView = ({ result }) => {
         return null;
     }
     return (
-        <div className="space-y-8 animate-fadeIn pb-6 border-b border-oxford-blue/10">
-            {/* Header: Document Classification */}
-            <div className="p-6 border border-oxford-blue/10 bg-oxford-blue/5 rounded-xl">
-                {result.documentClassification ? (
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue">
-                                    {result.documentClassification.primaryType}
-                                </h3>
-                                {/* Evaluation Badge */}
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${result.documentClassification.confidence === 'High'
-                                    ? 'bg-green-100 text-green-700 border-green-200'
-                                    : 'bg-amber-100 text-amber-700 border-amber-200'
-                                    }`}>
-                                    {result.documentClassification.confidence} Confidence
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div>Analysis Result</div>
-                )}
-            </div>
-
-            {/* Global Summary */}
-            <div className="bg-gradient-to-br from-paper to-white p-6 rounded-xl border border-oxford-blue/10 shadow-sm">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-bronze mb-3 flex items-center gap-2">
-                    <Award size={16} /> Global Summary
-                </h3>
-                <p className="text-oxford-blue/80 leading-relaxed font-serif text-lg break-words">
-                    {result.globalSummary}
-                </p>
-            </div>
-
-            {/* Deep Analysis */}
-            {result.deepAnalysis && (
-                <div className="space-y-6 animate-fadeIn">
-                    <div className="bg-oxford-blue/5 p-4 rounded-lg border border-oxford-blue/10">
-                        <p className="text-oxford-blue font-serif italic text-center">"{result.deepAnalysis.overallAssessment}"</p>
-                    </div>
-                </div>
-            )}
-
+        <div className="space-y-6 animate-fadeIn pb-2 text-oxford-blue">
             {/* Structural Analysis breakdown */}
             <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/40 mb-4">Structural Analysis</h3>
-                <div className="space-y-6">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-oxford-blue/60 mb-4">Anatomi Struktur per Paragraf</h3>
+                <div className="space-y-4">
                     {Array.isArray(result.paragraphBreakdown) ? (
-                        result.paragraphBreakdown.map((item, idx) => (
-                            <div key={idx} className="bg-white rounded-xl border border-oxford-blue/5 shadow-sm p-6 hover:shadow-md transition-all group">
-                                <div className="flex items-center mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest">{item.paragraph_number ? `Para ${item.paragraph_number}` : ''}</span>
-                                        <h4 className="font-serif font-bold text-oxford-blue text-lg">{item.detected_subtitle || item.section_label || item.section}</h4>
+                        result.paragraphBreakdown.map((item, idx) => {
+                            // Ensure "null" string or actual null falls back to main idea
+                            const fallbackTitle = item.main_idea || `Bagian ${idx + 1}`;
+                            const rawTitle = item.detected_subtitle || item.section_label || item.section;
+                            const title = (rawTitle && String(rawTitle).toLowerCase() !== "null") ? rawTitle : fallbackTitle;
+
+                            return (
+                                <div key={idx} className="pl-4 border-l-2 border-oxford-blue/20 hover:border-bronze transition-colors py-1 group">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-[10px] font-bold text-oxford-blue/50 uppercase tracking-widest whitespace-nowrap">
+                                            {item.paragraph_number ? `Para ${item.paragraph_number}` : ''}
+                                        </span>
+                                        <h4 className="font-bold text-oxford-blue text-sm md:text-base leading-tight">
+                                            {title}
+                                        </h4>
+                                    </div>
+
+                                    <div className="space-y-2 mt-2">
+                                        {(item.analysis_current || item.purpose) && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-oxford-blue/60 mb-0.5">Fungsi Paragraf:</p>
+                                                <p className="text-sm text-oxford-blue/90">{item.analysis_current || item.purpose}</p>
+                                            </div>
+                                        )}
+
+                                        {item.main_idea && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-oxford-blue/60 mb-0.5">Gagasan Utama:</p>
+                                                <p className="text-sm text-oxford-blue/90">{item.main_idea}</p>
+                                            </div>
+                                        )}
+
+                                        {item.evidence_quote && (
+                                            <div className="mt-2 bg-oxford-blue/5 px-3 py-2 rounded-lg inline-block w-full">
+                                                <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest mb-1 flex items-center justify-between">
+                                                    <span>Kutipan Esai</span>
+                                                    {item.evidence_location && <span className="normal-case bg-white px-1.5 py-0.5 rounded shadow-sm">Baris: {item.evidence_location.replace('Lines', '')}</span>}
+                                                </p>
+                                                <p className="text-sm text-oxford-blue/70 italic font-serif leading-relaxed line-clamp-2 hover:line-clamp-none transition-all cursor-pointer">
+                                                    "{item.evidence_quote}"
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                                {(item.analysis_current || item.purpose) && (
-                                    <div className="mb-4">
-                                        <p className="text-[10px] font-bold text-oxford-blue/30 uppercase tracking-widest mb-1">Current Structure</p>
-                                        <p className="text-sm font-medium text-oxford-blue/80">{item.analysis_current || item.purpose}</p>
-                                    </div>
-                                )}
-                                <div className="space-y-4">
-                                    {item.main_idea && (
-                                        <div>
-                                            <p className="text-[10px] font-bold text-oxford-blue/20 uppercase tracking-widest mb-1">Main Idea</p>
-                                            <p className="text-sm md:text-base text-oxford-blue leading-relaxed font-medium">{item.main_idea}</p>
-                                        </div>
-                                    )}
-                                    {item.evidence_quote && (
-                                        <div className="pl-4 border-l-2 border-bronze/30">
-                                            <p className="text-[10px] font-bold text-bronze/50 uppercase tracking-widest mb-1">
-                                                Evidence {item.evidence_location && <span className="ml-2 text-oxford-blue/30 text-[9px] normal-case bg-oxford-blue/5 px-1.5 py-0.5 rounded">Re: {item.evidence_location}</span>}
-                                            </p>
-                                            <p className="text-sm text-oxford-blue/60 italic font-serif leading-relaxed">"{item.evidence_quote}"</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
-                        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg">
-                            <p>Analysis structure is incomplete or malformed.</p>
-                            <pre className="text-xs mt-2 overflow-auto max-h-40">{JSON.stringify(result.paragraphBreakdown, null, 2)}</pre>
+                        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg text-sm">
+                            <p>Struktur analisis belum lengkap.</p>
                         </div>
                     )}
                 </div>
