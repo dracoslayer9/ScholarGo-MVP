@@ -2,6 +2,7 @@
 import React from 'react';
 import { Sparkles, Pencil, BookOpen } from 'lucide-react';
 import MessageContent from './MessageContent';
+import AnalysisResultView from './AnalysisResultView';
 
 // Helper: Chat Messages List
 // Pure list component, specific styling for User vs AI
@@ -54,7 +55,11 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName }) => {
                                 </div>
                             </div>
                         ) : (
-                            <MessageContent content={msg.content} />
+                            msg.analysisData ? (
+                                <AnalysisResultView result={msg.analysisData} />
+                            ) : (
+                                <MessageContent content={msg.content} />
+                            )
                         )}
                     </div>
                 </div>

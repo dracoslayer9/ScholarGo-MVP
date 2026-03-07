@@ -451,7 +451,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 // Keep the flow continuous without wiping the document by piping the analysis into the chat
                 setChatHistory(prev => [...prev, {
                     role: 'assistant',
-                    content: markdownResponse
+                    content: markdownResponse,
+                    analysisData: { ...result, detectedType }
                 }]);
 
                 if (currentChatIdRef.current) {
@@ -1379,11 +1380,6 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                     </button>
                                 </div>
                             </div>
-                        )}
-
-                        {/* Analysis Result */}
-                        {analysisResult && (
-                            <AnalysisResultView result={analysisResult} />
                         )}
 
                         <ChatMessagesList

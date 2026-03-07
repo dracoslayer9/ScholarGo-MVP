@@ -421,7 +421,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         setChatHistory(prev => [...prev, {
           role: 'assistant',
-          content: markdownResponse
+          content: markdownResponse,
+          analysisData: { ...result, detectedType }
         }]);
 
         if (currentChatId) {
@@ -1178,11 +1179,6 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                         </button>
                       )}
                     </div>
-                  )}
-
-                  {/* Analysis Result */}
-                  {analysisResult && (
-                    <AnalysisResultView result={analysisResult} />
                   )}
 
                   {/* Chat History */}
