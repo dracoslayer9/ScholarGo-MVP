@@ -393,7 +393,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         if (!isChatOpen) setIsChatOpen(true);
 
         // Check if document is an awardee sample before sending to get specific dissection
-        const isAwardee = contentToAnalyze.toLowerCase().includes("award") || contentToAnalyze.toLowerCase().includes("winner") || contentToAnalyze.toLowerCase().includes("lpdp");
+        const isAwardee =
+            (fileName && (fileName.toLowerCase().includes("award") || fileName.toLowerCase().includes("winner") || fileName.toLowerCase().includes("lpdp"))) ||
+            (contentToAnalyze.toLowerCase().includes("award") || contentToAnalyze.toLowerCase().includes("winner") || contentToAnalyze.toLowerCase().includes("lpdp"));
         const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
 
         // Add a "dummy" message to show intent in history
@@ -1440,7 +1442,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                     )}
 
                     {/* Document Preview Modal */}
-                    {showDocumentPreview && fileUrl && (
+                    {showDocumentPreview && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-oxford-blue/60 backdrop-blur-sm animate-fadeIn" onClick={() => setShowDocumentPreview(false)}>
                             <div className="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] max-w-6xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                                 <div className="flex items-center justify-between px-6 py-4 border-b border-oxford-blue/10 bg-gray-50/50 shrink-0">

@@ -362,7 +362,9 @@ function App() {
 
     setIsAnalyzing(true);
     // Check if document is an awardee sample before sending to get specific dissection
-    const isAwardee = essayText.toLowerCase().includes("award") || essayText.toLowerCase().includes("winner") || essayText.toLowerCase().includes("lpdp");
+    const isAwardee =
+      (fileName && (fileName.toLowerCase().includes("award") || fileName.toLowerCase().includes("winner") || fileName.toLowerCase().includes("lpdp"))) ||
+      (essayText.toLowerCase().includes("award") || essayText.toLowerCase().includes("winner") || essayText.toLowerCase().includes("lpdp"));
     const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
 
     const actionVerb = isAwardee ? "Dissect" : "Analyze";
@@ -1176,7 +1178,7 @@ ${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).
                 </div>
 
                 {/* Document Preview Modal */}
-                {showDocumentPreview && fileUrl && (
+                {showDocumentPreview && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-oxford-blue/60 backdrop-blur-sm animate-fadeIn" onClick={() => setShowDocumentPreview(false)}>
                     <div className="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] max-w-6xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                       {/* Header */}

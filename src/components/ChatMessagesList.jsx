@@ -40,7 +40,7 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName }) => {
                             </div>
                         )}
 
-                        {msg.role === 'user' && msg.content === "Analyze this document completely." ? (
+                        {(msg.role === 'user' && (msg.content === "Analyze this document completely." || msg.content === "Dissect this document completely.")) ? (
                             <div
                                 onClick={() => onOpenFile && onOpenFile()}
                                 className="flex items-center gap-3 px-4 py-3 bg-white border border-oxford-blue/10 rounded-2xl shadow-sm cursor-pointer hover:bg-gray-50 hover:border-bronze/30 transition-all select-none"
