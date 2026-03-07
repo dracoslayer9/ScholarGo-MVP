@@ -361,18 +361,62 @@ function App() {
     abortControllerRef.current = controller;
 
     setIsAnalyzing(true);
+    // Check if document is an awardee sample before sending to get specific dissection
+    const isAwardee = essayText.toLowerCase().includes("award") || essayText.toLowerCase().includes("winner") || essayText.toLowerCase().includes("lpdp");
+    const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
+
+    const actionVerb = isAwardee ? "Dissect" : "Analyze";
+    const userMsg = { role: 'user', content: `${actionVerb} this document completely.` };
+    setChatHistory(prev => [...prev, userMsg]);
+
     try {
       console.log(`Analyzing essay...`);
       const instruction = instructionOverride || chatInput;
-      const result = await analyzeEssay(essayText, selectedProvider, instruction, contextText, controller.signal);
-      setAnalysisResult(result);
-      setIsAnalyzed(true);
+      // We are passing detectedType instead of 'General Essay' now for the core dissection feature.
+      const result = await runRealAnalysis(essayText, detectedType, instruction, contextText, controller.signal);
+
+      if (result) {
+        // Determine headers based on document type
+        const strengthHeader = isAwardee ? "✨ Strategi Sukses" : "💪 Kekuatan Utama";
+        const weaknessHeader = isAwardee ? "📐 Anatomi Struktur" : "🎯 Area Perbaikan";
+        const suggestionHeader = isAwardee ? "💡 Pelajaran untuk Esaimu" : "💡 Saran Strategis";
+
+        const markdownResponse = `### 📊 Analisis Dokumen Selesai
+
+**Skor Keseluruhan:** ${result.totalScore || 'N/A'}/100
+**Tipe Dokumen:** ${detectedType}
+
+#### ${strengthHeader}
+${(result.strengths || []).length > 0 ? result.strengths.map(s => `- ${s}`).join('\n') : '- Belum ditemukan kekuatan yang menonjol.'}
+
+#### ${weaknessHeader}
+${(result.weaknesses || []).length > 0 ? result.weaknesses.map(w => `- ${w}`).join('\n') : '- Tidak ada catatan spesifik.'}
+
+#### ${suggestionHeader}
+${(result.suggestions || []).length > 0 ? result.suggestions.map(s => `- ${s}`).join('\n') : '-'}
+
+---
+*${result.feedback || (isAwardee ? 'Pelajari dan terapkan strategi ini di esaimu!' : 'Terus semangat merevisi esaimu!')}*`;
+
+        setAnalysisResult({ ...result, detectedType });
+        setIsAnalyzed(true);
+
+        setChatHistory(prev => [...prev, {
+          role: 'assistant',
+          content: markdownResponse
+        }]);
+
+        if (currentChatId) {
+          saveMessage(currentChatId, 'assistant', markdownResponse).catch(err => console.error("Save Msg Error:", err));
+        }
+      }
     } catch (error) {
       if (error.name === 'AbortError') {
         console.log('Analysis aborted');
       } else {
         console.error("Narrative analysis failed", error);
         alert(`Analysis Failed: ${error.message}`);
+        setChatHistory(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
       }
     } finally {
       setIsAnalyzing(false);
@@ -1187,7 +1231,7 @@ function App() {
                         <button
                           onClick={() => {
                             setShowDocumentPreview(false);
-                            handleChatSubmit("Tolong bedah dokumen ini secara detail.", true);
+                            performAnalysis();
                           }}
                           disabled={isAnalyzing}
                           className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
