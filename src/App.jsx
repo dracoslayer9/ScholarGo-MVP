@@ -371,6 +371,10 @@ function App() {
     const userMsg = { role: 'user', content: `${actionVerb} this document completely.` };
     setChatHistory(prev => [...prev, userMsg]);
 
+    setFileUrl(null);
+    setFileName('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
     try {
       console.log(`Analyzing essay...`);
       const instruction = instructionOverride || chatInput;
@@ -379,9 +383,9 @@ function App() {
 
       if (result) {
         // Determine headers based on document type
-        const strengthHeader = isAwardee ? "✨ Strategi Sukses" : "💪 Kekuatan Utama";
-        const weaknessHeader = isAwardee ? "📐 Anatomi Struktur" : "🎯 Area Perbaikan";
-        const suggestionHeader = isAwardee ? "💡 Pelajaran untuk Esaimu" : "💡 Saran Strategis";
+        const strengthHeader = isAwardee ? "Strategi Sukses" : "Kekuatan Utama";
+        const weaknessHeader = isAwardee ? "Anatomi Struktur" : "Area Perbaikan";
+        const suggestionHeader = isAwardee ? "Pelajaran untuk Esaimu" : "Saran Strategis";
 
         // Map data from actual API JSON response
         const strengths = [];
@@ -397,18 +401,16 @@ function App() {
 
         const suggestions = result.deepAnalysis?.strategicImprovements || [];
 
-        const markdownResponse = `### 📊 Analisis Dokumen Selesai
-
-**Tipe Dokumen:** ${detectedType}
+        const markdownResponse = `**Tipe Dokumen:** ${detectedType}
 ${result.deepAnalysis?.overallAssessment ? `\n*${result.deepAnalysis.overallAssessment}*\n` : ''}
 
-#### ${strengthHeader}
+**${strengthHeader}**
 ${strengths.length > 0 ? strengths.map(s => `- ${s}`).join('\n') : '- Belum ditemukan kekuatan yang menonjol.'}
 
-#### ${weaknessHeader}
+**${weaknessHeader}**
 ${weaknesses.length > 0 ? weaknesses.map(w => `- ${w}`).join('\n') : '- Tidak ada catatan spesifik.'}
 
-#### ${suggestionHeader}
+**${suggestionHeader}**
 ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
 ---
