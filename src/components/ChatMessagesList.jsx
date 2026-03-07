@@ -32,14 +32,7 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName }) => {
 
                         {/* Only show "Scholarstory AI" header if it's the very first message or if previous was user? 
                             For now, keep it simple as requested: "Structure text" */}
-                        {msg.role === 'assistant' && (
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-5 h-5 rounded-full bg-bronze/10 flex items-center justify-center text-bronze">
-                                    <Sparkles size={10} />
-                                </div>
-                                <span className="text-xs font-bold text-bronze uppercase tracking-wider">Scholarstory AI</span>
-                            </div>
-                        )}
+                        {/* Removed AI Logo per user request */}
 
                         {(msg.role === 'user' && (msg.content === "Analyze this document completely." || msg.content === "Dissect this document completely.")) ? (
                             <div

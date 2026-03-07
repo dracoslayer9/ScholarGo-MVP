@@ -33,10 +33,10 @@ export default async function handler(req, res) {
     let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
     
     **LANGUAGE INSTRUCTION**:
-    DETECT the language of the provided document. You MUST provide your analysis and response in the **SAME LANGUAGE** as the document. 
-    - If the document is in **Indonesian**, reply in **Indonesian**.
-    - If the document is in **English**, reply in **English**.
-    - Do not mix languages unless necessary for terminology.
+    DETECT the language of the provided document or the user's instruction. You MUST provide your ENTIRE analysis and response in the **SAME LANGUAGE**. 
+    - If the document/query is in **Indonesian**, your entire JSON response (including 'main_idea', 'analysis_current', 'reasoning', 'overallAssessment') MUST be in **Indonesian**.
+    - If the document/query is in **English**, reply entirely in **English**.
+    - Do not mix languages. Match the user's language exactly.
 
     ${type === "Awardee Sample" ? `
     **AWARDEE DISSECTION MODE**:
