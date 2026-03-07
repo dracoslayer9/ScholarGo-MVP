@@ -83,9 +83,12 @@ serve(async (req) => {
 
         // 4. Create Xendit Invoice
         const externalId = `inv_${Date.now()}_${userId.substring(0, 8)}`
-        const amount = 49000
+        const amount = planType === 'cv_match' ? 7500 : 49000;
+        const description = planType === 'cv_match'
+            ? 'Scholarstory Campus Match (CV Upload)'
+            : `Upgrade to Scholarstory ${planType}`;
 
-        console.log("Creating Xendit Invoice...", { externalId, amount });
+        console.log("Creating Xendit Invoice...", { externalId, amount, description });
 
         const response = await fetch('https://api.xendit.co/v2/invoices', {
             method: 'POST',
@@ -97,7 +100,7 @@ serve(async (req) => {
                 external_id: externalId,
                 amount: amount,
                 payer_email: email,
-                description: `Upgrade to Scholarstory ${planType}`,
+                description: description,
                 success_redirect_url: 'http://localhost:5173/?payment=success',
                 failure_redirect_url: 'http://localhost:5173/?payment=failed'
             })
