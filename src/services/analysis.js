@@ -2,13 +2,15 @@ import * as OpenAI from './openai';
 import * as Gemini from './gemini';
 
 // Facade for Analysis
-export const runRealAnalysis = async (text, provider = "openai", instruction, context, signal = null) => {
-    console.log(`[Analysis] Using provider: ${provider}`);
-    if (provider === 'gemini') {
+export const runRealAnalysis = async (text, typeOrProvider = "openai", instruction, context, signal = null) => {
+    console.log(`[Analysis] Using type/provider: ${typeOrProvider}`);
+    // If the caller passes 'gemini' as the second arg, we route to gemini.
+    // Otherwise, we assume it's the document type (e.g. 'Awardee Sample') and route to OpenAI.
+    if (typeOrProvider === 'gemini') {
         return await Gemini.runRealAnalysis(text, instruction, context, signal);
     }
-    // Default to OpenAI
-    return await OpenAI.runRealAnalysis(text, "General Essay", instruction, context, signal);
+    // Default to OpenAI, passing typeOrProvider as the 'type'
+    return await OpenAI.runRealAnalysis(text, typeOrProvider === 'openai' ? 'General Essay' : typeOrProvider, instruction, context, signal);
 };
 
 // Facade for Chat
