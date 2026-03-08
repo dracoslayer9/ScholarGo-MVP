@@ -377,11 +377,13 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         const fileContent = fileContext || analyzedFile?.content || '';
         const contentToAnalyze = hasFile ? fileContent : essayContent;
 
-        console.log("Analysis Triggered:", {
+        console.log("[Dissect] Analysis Triggered:", {
             hasFile,
             contentSource: hasFile ? "File" : "Canvas",
             contentLength: contentToAnalyze?.length || 0,
-            fileName: fileName || analyzedFile?.name
+            fileName: fileName || analyzedFile?.name,
+            fileType: fileType || analyzedFile?.type,
+            hasContent: !!contentToAnalyze?.trim()
         });
 
         if (!contentToAnalyze?.trim()) {
@@ -810,7 +812,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 .then(text => {
                     setFileContext(text);
                     setIsFileParsing(false);
-                    console.log("Canvas file context extracted successfully");
+                    console.log("[FileUpload] Canvas file context extracted successfully. Length:", text?.length);
                 })
                 .catch(err => {
                     console.error("Extraction error:", err);

@@ -52,9 +52,15 @@ export const extractTextFromFile = async (file) => {
                 }
 
                 const pagesText = await Promise.all(pagePromises);
+                const totalText = pagesText.join('\n');
                 const totalTime = Math.round(performance.now() - startTime);
-                console.log(`[PDF] Extraction completed in ${totalTime}ms`);
-                return pagesText.join('\n');
+                console.log(`[PDF] Extraction completed in ${totalTime}ms. Text length: ${totalText.length}`);
+
+                if (!totalText.trim()) {
+                    console.warn("[PDF] Extracted text is empty. Might be a scanned document.");
+                }
+
+                return totalText;
             } catch (error) {
                 console.error("[PDF] Extraction Failed:", error);
                 throw error;
@@ -67,7 +73,8 @@ export const extractTextFromFile = async (file) => {
                 console.log(`[DOCX] Starting extraction for: ${file.name} (${file.size} bytes)`);
                 const arrayBuffer = await file.arrayBuffer();
                 const result = await mammoth.extractRawText({ arrayBuffer });
-                console.log(`[DOCX] Extraction completed in ${Math.round(performance.now() - startTime)}ms`);
+                const totalTime = Math.round(performance.now() - startTime);
+                console.log(`[DOCX] Extraction completed in ${totalTime}ms. Text length: ${result.value?.length || 0}`);
                 return result.value;
             } catch (error) {
                 console.error("[DOCX] Extraction Failed:", error);

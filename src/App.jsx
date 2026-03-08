@@ -365,7 +365,10 @@ function App() {
 
 
   const performAnalysis = async (instructionOverride = null) => {
-    if (!essayText.trim()) return;
+    if (!essayText.trim()) {
+      alert("Waduh! Tempel draf Anda terlebih dahulu atau unggah file untuk ditinjau.");
+      return;
+    }
 
     // Create AbortController
     const controller = new AbortController();
@@ -616,7 +619,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
           }
         }
 
-        const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedProvider, controller.signal);
+        const aiResponse = await sendChatMessage(messageToSend, newHistory, essayText, selectedModel, controller.signal);
         setChatHistory(prev => [...prev, { role: "assistant", content: aiResponse }]);
 
         // SAVE TO DB (AI Message)
@@ -646,7 +649,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
     // --- ANALYSIS MODE ---
     console.log("Starting Initial Analysis...");
-    posthog.capture('analysis_started', { provider: selectedProvider });
+    posthog.capture('analysis_started', { provider: selectedModel });
 
     // CHECK QUOTA: PDF Analysis (using pdf_analysis quota for General Analysis too, or creating a new one? 
     // Plan says "3 PDF Analysis". If this is text analysis, maybe it shares? 
@@ -700,7 +703,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
       const newHistory = [...chatHistory, { role: "user", content: userMsg }];
       setChatHistory(newHistory);
 
-      const aiResponse = await analyzeParagraphInsight(textToAnalyze, selectedProvider);
+      const aiResponse = await analyzeParagraphInsight(textToAnalyze, selectedModel);
 
       setChatHistory([...newHistory, { role: "assistant", content: aiResponse }]);
 
