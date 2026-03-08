@@ -1,9 +1,7 @@
-import * as pdfjsLib from 'pdfjs-dist';
-import mammoth from 'mammoth';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
-
-// Configure PDF.js worker using local bundle for reliability
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Configure PDF.js worker using CDN - match the version in package.json for perfect compatibility
+// Using .mjs for v5+ as it's the new standard
+const PDFJS_VERSION = '5.4.624';
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.mjs`;
 
 // Global error handler for worker failures
 if (typeof window !== 'undefined') {
@@ -23,9 +21,9 @@ export const extractTextFromFile = async (file) => {
     const lowerName = file.name.toLowerCase();
     const startTime = performance.now();
 
-    // Create a timeout promise to prevent hanging - expanded to 30s for large files
+    // Create a timeout promise to prevent hanging - expanded to 60s to confirm if it EVER finishes
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Waktu ekstraksi habis (30 detik). File mungkin terlalu besar.")), 30000);
+        setTimeout(() => reject(new Error("Waktu ekstraksi habis (60 detik). Mungkin ada kendala pada pemrosesan file.")), 60000);
     });
 
     const extractionPromise = (async () => {
@@ -37,33 +35,35 @@ export const extractTextFromFile = async (file) => {
                 const arrayBuffer = await file.arrayBuffer();
                 console.log(`[PDF] ArrayBuffer ready: ${Math.round(performance.now() - startTime)}ms`);
 
-                // Use a more robust document loading with range and stream disabled for speed
-                console.log(`[PDF] Loading document with worker: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`);
+                // Simplify loading options - some older browsers/hostings struggle with range/stream
+                console.log(`[PDF] Loading document...`);
                 const loadingTask = pdfjsLib.getDocument({
-                    data: arrayBuffer,
-                    workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc,
-                    disableRange: true,
-                    disableStream: true,
-                    useSystemFonts: true
+                    data: arrayBuffer
                 });
 
                 const pdf = await loadingTask.promise;
                 console.log(`[PDF] Document loaded. Pages: ${pdf.numPages}. Time: ${Math.round(performance.now() - startTime)}ms`);
 
-                // Parallelize page text extraction with chunking if needed, but for small files we just DO IT
-                const pagePromises = [];
+                // EXTRACTION: Sequential processing is much safer for memory and avoids worker hangs
+                let totalText = '';
                 for (let i = 1; i <= pdf.numPages; i++) {
-                    pagePromises.push(
-                        pdf.getPage(i).then(async (page) => {
-                            const textContent = await page.getTextContent();
-                            // Handle potential spacing issues between items
-                            return textContent.items.map(item => item.str).join(' ');
-                        })
-                    );
+                    try {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        totalText += pageText + '\n';
+
+                        // Log progress for large files
+                        if (i % 5 === 0 || i === pdf.numPages) {
+                            console.log(`[PDF] Extraction progress: ${i}/${pdf.numPages} pages`);
+                        }
+                    } catch (pageErr) {
+                        console.warn(`[PDF] Failed to extract page ${i}:`, pageErr);
+                        totalText += `\n[Error pada halaman ${i}]\n`;
+                    }
                 }
 
-                const pagesText = await Promise.all(pagePromises);
-                const totalText = pagesText.join('\n');
+                const totalTime = Math.round(performance.now() - startTime);
                 const totalTime = Math.round(performance.now() - startTime);
                 console.log(`[PDF] Extraction completed in ${totalTime}ms. Text length: ${totalText.length}`);
 
