@@ -17,14 +17,20 @@ export const extractTextFromFile = async (file) => {
         try {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            let fullText = '';
+
+            // Parallelize page text extraction
+            const pagePromises = [];
             for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + '\n';
+                pagePromises.push(
+                    pdf.getPage(i).then(async (page) => {
+                        const textContent = await page.getTextContent();
+                        return textContent.items.map(item => item.str).join(' ');
+                    })
+                );
             }
-            return fullText;
+
+            const pagesText = await Promise.all(pagePromises);
+            return pagesText.join('\n');
         } catch (error) {
             console.error("PDF Extraction Failed:", error);
             throw new Error("Gagal membaca file PDF.");
