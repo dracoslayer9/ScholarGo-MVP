@@ -1,3 +1,6 @@
+import * as pdfjsLib from 'pdfjs-dist';
+import mammoth from 'mammoth';
+
 // Configure PDF.js worker using CDN - match the version in package.json for perfect compatibility
 // Using .mjs for v5+ as it's the new standard
 const PDFJS_VERSION = '5.4.624';
@@ -63,7 +66,6 @@ export const extractTextFromFile = async (file) => {
                     }
                 }
 
-                const totalTime = Math.round(performance.now() - startTime);
                 const totalTime = Math.round(performance.now() - startTime);
                 console.log(`[PDF] Extraction completed in ${totalTime}ms. Text length: ${totalText.length}`);
 
