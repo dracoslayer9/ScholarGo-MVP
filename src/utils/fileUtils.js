@@ -1,19 +1,9 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 
-// Configure PDF.js worker using CDN - match the version in package.json for perfect compatibility
-// Using .mjs for v5+ as it's the new standard
-const PDFJS_VERSION = '5.4.624';
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.mjs`;
-
-// Global error handler for worker failures
-if (typeof window !== 'undefined') {
-    window.addEventListener('unhandledrejection', (event) => {
-        if (event.reason?.message?.includes('pdf.worker')) {
-            console.error('[PDF] Critical Worker Error detected:', event.reason);
-        }
-    });
-}
+// Reverting to the "prior formula" using a reliable CDN for the worker
+// Version 5.4.624 requires the .mjs extension for the worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs`;
 
 /**
  * Extracts text from a File object (PDF, DOCX, or TXT)
@@ -24,74 +14,46 @@ export const extractTextFromFile = async (file) => {
     const lowerName = file.name.toLowerCase();
     const startTime = performance.now();
 
-    // Create a timeout promise to prevent hanging - expanded to 60s to confirm if it EVER finishes
+    // Safety timeout expanded to 180s for large files
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Waktu ekstraksi habis (60 detik). Mungkin ada kendala pada pemrosesan file.")), 60000);
+        setTimeout(() => reject(new Error("Waktu ekstraksi habis (180 detik).")), 180000);
     });
 
     const extractionPromise = (async () => {
         // PDF
         if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
             try {
-                console.log(`[PDF] Starting extraction for: ${file.name} (${file.size} bytes)`);
-
+                console.log(`[PDF] Starting sequential extraction: ${file.name}`);
                 const arrayBuffer = await file.arrayBuffer();
-                console.log(`[PDF] ArrayBuffer ready: ${Math.round(performance.now() - startTime)}ms`);
-
-                // Simplify loading options - some older browsers/hostings struggle with range/stream
-                console.log(`[PDF] Loading document...`);
-                const loadingTask = pdfjsLib.getDocument({
-                    data: arrayBuffer
-                });
-
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
                 const pdf = await loadingTask.promise;
-                console.log(`[PDF] Document loaded. Pages: ${pdf.numPages}. Time: ${Math.round(performance.now() - startTime)}ms`);
 
-                // EXTRACTION: Sequential processing is much safer for memory and avoids worker hangs
-                let totalText = '';
+                let fullText = '';
                 for (let i = 1; i <= pdf.numPages; i++) {
-                    try {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        const pageText = textContent.items.map(item => item.str).join(' ');
-                        totalText += pageText + '\n';
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += pageText + '\n';
 
-                        // Log progress for large files
-                        if (i % 5 === 0 || i === pdf.numPages) {
-                            console.log(`[PDF] Extraction progress: ${i}/${pdf.numPages} pages`);
-                        }
-                    } catch (pageErr) {
-                        console.warn(`[PDF] Failed to extract page ${i}:`, pageErr);
-                        totalText += `\n[Error pada halaman ${i}]\n`;
+                    if (i % 5 === 0 || i === pdf.numPages) {
+                        console.log(`[PDF] Progress: ${i}/${pdf.numPages} pages`);
                     }
                 }
-
-                const totalTime = Math.round(performance.now() - startTime);
-                console.log(`[PDF] Extraction completed in ${totalTime}ms. Text length: ${totalText.length}`);
-
-                if (!totalText.trim()) {
-                    console.warn("[PDF] Extracted text is empty. Might be a scanned document.");
-                }
-
-                return totalText;
+                return fullText;
             } catch (error) {
-                console.error("[PDF] Extraction Failed:", error);
-                throw new Error(`Gagal membaca PDF: ${error.message || 'Error tidak dikenal'}`);
+                console.error("[PDF] Sequential Extraction Failed:", error);
+                throw new Error(`Gagal membaca PDF: ${error.message}`);
             }
         }
 
         // DOCX
         if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || lowerName.endsWith('.docx')) {
             try {
-                console.log(`[DOCX] Starting extraction for: ${file.name} (${file.size} bytes)`);
                 const arrayBuffer = await file.arrayBuffer();
                 const result = await mammoth.extractRawText({ arrayBuffer });
-                const totalTime = Math.round(performance.now() - startTime);
-                console.log(`[DOCX] Extraction completed in ${totalTime}ms. Text length: ${result.value?.length || 0}`);
                 return result.value;
             } catch (error) {
-                console.error("[DOCX] Extraction Failed:", error);
-                throw new Error(`Gagal membaca DOCX: ${error.message || 'Error tidak dikenal'}`);
+                throw new Error("Gagal membaca DOCX.");
             }
         }
 
@@ -100,7 +62,7 @@ export const extractTextFromFile = async (file) => {
             return await file.text();
         }
 
-        throw new Error("Format file tidak didukung. Gunakan PDF, DOCX, atau TXT.");
+        throw new Error("Format file tidak didukung.");
     })();
 
     return Promise.race([extractionPromise, timeoutPromise]);

@@ -124,7 +124,29 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         }
     };
 
-    // Close menu on click outside
+
+    // Chat State
+    const [chatHistory, setChatHistory] = useState([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isResearchMode, setIsResearchMode] = useState(false);
+    const [isChatModeMenuOpen, setIsChatModeMenuOpen] = useState(false);
+    const chatModeMenuRef = useRef(null);
+
+    const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+    const modelMenuRef = useRef(null);
+    const [selectedModel, setSelectedModel] = useState('auto'); // 'auto', 'openai', or 'perplexity'
+
+    const [fileUrl, setFileUrl] = useState(initialFileUrl || null);
+    const [fileType, setFileType] = useState(initialFileType || null);
+    const [fileName, setFileName] = useState(initialFileName || '');
+    const [fileContext, setFileContext] = useState(initialFileContext || '');
+    const [analyzedFile, setAnalyzedFile] = useState(null); // Stores file for preview history
+    const [isFileParsing, setIsFileParsing] = useState(false);
+    const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+
+    // Close menu on click outside - MOVED DOWN after all refs are defined
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -149,25 +171,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    // Chat State
-    const [chatHistory, setChatHistory] = useState([]);
-    const [chatInput, setChatInput] = useState('');
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isChatOpen, setIsChatOpen] = useState(false);
-    const [isResearchMode, setIsResearchMode] = useState(false); // New State for Research Mode
-    const [isChatModeMenuOpen, setIsChatModeMenuOpen] = useState(false); // Dropdown State
-    const chatModeMenuRef = useRef(null);
-    const [selectedModel, setSelectedModel] = useState('auto'); // 'auto', 'openai', or 'perplexity'
-
-    // File Upload State for Canvas Chat
-    const [fileUrl, setFileUrl] = useState(initialFileUrl || null);
-    const [fileType, setFileType] = useState(initialFileType || null);
-    const [fileName, setFileName] = useState(initialFileName || '');
-    const [fileContext, setFileContext] = useState(initialFileContext || '');
-    const [analyzedFile, setAnalyzedFile] = useState(null); // Stores file for preview history
-    const [isFileParsing, setIsFileParsing] = useState(false);
-    const [showDocumentPreview, setShowDocumentPreview] = useState(false);
 
     // Analysis State
     const [analysisResult, setAnalysisResult] = useState(null);
@@ -786,30 +789,45 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         setFileType(detectedType);
         setFileName(file.name);
         setIsFileParsing(true);
+        console.log(`[Canvas] Uploading file: ${file.name}, type: ${detectedType}`);
+
+        const safetyTimer = setTimeout(() => {
+            if (isFileParsing) {
+                console.warn(`[Canvas] Safety timeout reached! Forcing loading state off.`);
+                cleanup();
+            }
+        }, 60000);
+
+        const cleanup = () => {
+            clearTimeout(safetyTimer);
+            setIsFileParsing(false);
+        };
 
         if (detectedType === "text/plain" || lowerName.endsWith('.txt')) {
             const reader = new FileReader();
             reader.onload = (event) => {
                 setFileContext(event.target.result);
-                setIsFileParsing(false);
+                cleanup();
             };
+            reader.onerror = () => cleanup();
             reader.readAsText(file);
         }
         else if (detectedType === "application/pdf" || detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx") || lowerName.endsWith(".pdf")) {
             extractTextFromFile(file)
                 .then(text => {
                     setFileContext(text);
-                    setIsFileParsing(false);
                     console.log(`[Canvas] Extraction success. Text length: ${text?.length || 0}`);
                 })
                 .catch(err => {
-                    console.error("Extraction error:", err);
-                    setIsFileParsing(false);
+                    console.error("[Canvas] Extraction error:", err);
                     alert(`Gagal mengekstrak teks: ${err.message || 'Error tidak dikenal'}`);
+                })
+                .finally(() => {
+                    cleanup();
                 });
         }
         else {
-            setIsFileParsing(false);
+            cleanup();
         }
     };
 

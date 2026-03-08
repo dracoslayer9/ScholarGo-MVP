@@ -471,8 +471,6 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
     const url = URL.createObjectURL(file);
     setFileUrl(url);
-    setIsFileParsing(true);
-
     // Normalize file type based on extension if MIME type is missing or generic
     let detectedType = file.type;
     const lowerName = file.name.toLowerCase();
@@ -483,28 +481,42 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
     setFileType(detectedType);
     setFileName(file.name);
-    // REMOVED setIsAnalyzed(true) so we don't jump to the document view automatically
+
+    setIsFileParsing(true);
+    console.log(`[App] Uploading file: ${file.name}, type: ${detectedType}`);
+
+    const safetyTimer = setTimeout(() => {
+      // If still parsing after 60s, force it off
+      cleanup();
+    }, 60000);
+
+    const cleanup = () => {
+      clearTimeout(safetyTimer);
+      setIsFileParsing(false);
+    };
 
     if (detectedType === "text/plain" || lowerName.endsWith('.txt')) {
       const reader = new FileReader();
       reader.onload = (event) => {
         setEssayText(event.target.result);
-        setIsFileParsing(false);
+        cleanup();
       };
+      reader.onerror = () => cleanup();
       reader.readAsText(file);
     }
     else if (detectedType === "application/pdf" || detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx") || lowerName.endsWith(".pdf")) {
       extractTextFromFile(file)
         .then(text => {
           setEssayText(text);
-          setIsFileParsing(false);
           console.log(`[App] Extraction success. Text length: ${text?.length || 0}`);
         })
         .catch(err => {
-          console.error("Extraction error:", err);
-          setIsFileParsing(false);
+          console.error("[App] Extraction error:", err);
           alert(`Gagal mengekstrak teks: ${err.message || 'Error tidak dikenal'}`);
         })
+        .finally(() => {
+          cleanup();
+        });
     }
     else {
       // Fallback: If it's an image, we don't extract text
@@ -512,7 +524,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         setEssayText('');
         console.warn("Unsupported file type for text extraction:", detectedType);
       }
-      setIsFileParsing(false);
+      cleanup();
     }
   };
 
