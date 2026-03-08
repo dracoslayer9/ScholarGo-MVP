@@ -1077,6 +1077,9 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             }}
             initialContent={essayText}
             initialFileName={fileName}
+            initialFileUrl={fileUrl}
+            initialFileType={fileType}
+            initialFileContext={essayText}
           />
         )}
         {appMode !== 'canvas' && (

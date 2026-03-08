@@ -73,7 +73,7 @@ import { checkUsageQuota, incrementUsage } from './services/subscriptionService'
 
 
 
-const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings, onCampusMatch, initialContent = '', initialFileName = '' }) => {
+const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings, onCampusMatch, initialContent = '', initialFileName = '', initialFileUrl = null, initialFileType = null, initialFileContext = '' }) => {
     // --- State ---
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -161,10 +161,10 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [selectedModel, setSelectedModel] = useState('auto'); // 'auto', 'openai', or 'perplexity'
 
     // File Upload State for Canvas Chat
-    const [fileUrl, setFileUrl] = useState(null);
-    const [fileType, setFileType] = useState(null);
-    const [fileName, setFileName] = useState('');
-    const [fileContext, setFileContext] = useState('');
+    const [fileUrl, setFileUrl] = useState(initialFileUrl || null);
+    const [fileType, setFileType] = useState(initialFileType || null);
+    const [fileName, setFileName] = useState(initialFileName || '');
+    const [fileContext, setFileContext] = useState(initialFileContext || '');
     const [analyzedFile, setAnalyzedFile] = useState(null); // Stores file for preview history
     const [isFileParsing, setIsFileParsing] = useState(false);
     const [showDocumentPreview, setShowDocumentPreview] = useState(false);
@@ -542,11 +542,6 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         if (!userMessage) return;
 
         const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n[Current Essay Content]\n${currentContent}` : currentContent;
-        if (fileContext) {
-            setFileContext('');
-            setFileUrl(null);
-            setFileName('');
-        }
 
         setChatHistory(prev => [
             ...prev,
@@ -658,13 +653,6 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         // precise context: The essay content combined with any uploaded file context
         const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n[Current Essay Content]\n${currentEssay}` : currentEssay;
-
-        // Clear file context after sending to avoid attaching it to every message
-        if (fileContext) {
-            setFileContext('');
-            setFileUrl(null);
-            setFileName('');
-        }
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
         const displayMessage = { role: 'user', content: baseUserMessage };
@@ -1126,7 +1114,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                                         <div className="w-4 h-4">
                                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                                <path d="M18.5 2.5a2.121 2 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                             </svg>
                                                         </div>
                                                     </button>
