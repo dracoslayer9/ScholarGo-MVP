@@ -116,6 +116,7 @@ function App() {
   const [fileUrl, setFileUrl] = useState(null);
   const [fileType, setFileType] = useState(null);
   const [fileName, setFileName] = useState('');
+  const [analyzedFile, setAnalyzedFile] = useState(null); // Stores file for preview history
   const [chatInput, setChatInput] = useState('');
   const [isFileParsing, setIsFileParsing] = useState(false);
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
@@ -370,6 +371,14 @@ function App() {
     const actionVerb = isAwardee ? "Dissect" : "Analyze";
     const userMsg = { role: 'user', content: `${actionVerb} this document completely.` };
     setChatHistory(prev => [...prev, userMsg]);
+
+    // Preserve file info for preview modal before clearing attachment indicator
+    setAnalyzedFile({
+      url: fileUrl,
+      name: fileName,
+      type: fileType,
+      content: essayText
+    });
 
     setFileUrl(null);
     setFileName('');
@@ -1199,7 +1208,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                           <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                             <BookOpen size={20} />
                           </div>
-                          <h3 className="font-semibold text-oxford-blue truncate max-w-2xl">{fileName}</h3>
+                          <h3 className="font-semibold text-oxford-blue truncate max-w-2xl">{fileName || analyzedFile?.name}</h3>
                         </div>
                         <button
                           onClick={() => setShowDocumentPreview(false)}
@@ -1216,22 +1225,22 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                             <Loader className="animate-spin text-bronze" size={32} />
                             <p className="text-oxford-blue/60 font-medium">Membaca dokumen...</p>
                           </div>
-                        ) : fileType === 'application/pdf' ? (
+                        ) : (fileType || analyzedFile?.type) === 'application/pdf' ? (
                           <div className="absolute inset-0 w-full h-full bg-gray-100">
-                            <PDFViewer key={fileUrl} url={fileUrl} />
+                            <PDFViewer key={fileUrl || analyzedFile?.url} url={fileUrl || analyzedFile?.url} />
                           </div>
-                        ) : fileType?.startsWith('image/') ? (
+                        ) : (fileType || analyzedFile?.type)?.startsWith('image/') ? (
                           <div className="w-full h-full flex items-center justify-center p-8 bg-gray-50 overflow-y-auto">
                             <img
-                              src={fileUrl}
+                              src={fileUrl || analyzedFile?.url}
                               alt="Document"
                               className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg"
                               style={{ imageOrientation: 'from-image' }}
                             />
                           </div>
-                        ) : essayText ? (
+                        ) : (essayText || analyzedFile?.content) ? (
                           <div className="font-serif text-oxford-blue leading-relaxed whitespace-pre-wrap text-base md:text-lg overflow-y-auto p-8 md:p-12 w-full h-full">
-                            {essayText}
+                            {essayText || analyzedFile?.content}
                           </div>
                         ) : (
                           <div className="text-center text-oxford-blue/50 py-20 font-serif flex-1 flex items-center justify-center">

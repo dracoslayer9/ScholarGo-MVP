@@ -137,22 +137,28 @@ ${matchedEssays[0].anonymized_content}
         "paragraphBreakdown": [
           { 
             "paragraph_number": 1,
-            "detected_subtitle": "Introduction (or null)",
-            "functional_label": "Hook",
-            "section_label": "Introduction/Hook",
-            "analysis_current": "What the paragraph is currently trying to do (e.g. Introduce the candidate's background).",
-            "main_idea": "Summary of content.",
-            "evidence_quote": "Exact verbatim quote.",
-            "evidence_location": "Lines 12-15",
-            "strength": "What works well.",
+            "detected_subtitle": "Subtitle from text (or null)",
+            "functional_label": "e.g. Hook",
+            "section_label": "e.g. Introduction/Hook",
+            "analysis_current": "What this specific paragraph does.",
+            "main_idea": "Summary of this specific paragraph.",
+            "evidence_quote": "<EXTRACT_REAL_VERBATIM_QUOTE_FROM_THIS_PARAGRAPH>",
+            "evidence_location": "Lines X-Y",
+            "strength": "Observation.",
             "status": "strong" 
           }
         ]
       }
 
+      **STRICT DATA INTEGRITY RULES**:
+      1. **NO PLACEHOLDERS**: Never use the phrase "Exact verbatim quote." or any other filler text. You MUST extract the actual words from the "Essay Content" provide below.
+      2. **FULL PARAGRAPH ANALYSIS**: Analyze EVERY SINGLE paragraph in the text. DO NOT Skip. If there are 10 paragraphs, provide 10 objects in the array.
+      3. **LANGUAGE MATCHING**: Reply in the SAME language as the user's document or query. If document is Indonesian, JSON values must be Indonesian (keys stay English).
+
       IMPORTANT: Analyze EVERY SINGLE paragraph in the text. 
       You MUST return an array containing one exact object for each paragraph.
       DO NOT summarize multiple paragraphs into one. If there are 15 paragraphs in the text, you MUST output exactly 15 elements in the paragraphBreakdown array.
+      FAILURE to provide real quotes or complete paragraph analysis will be penalized.
       
       Essay Content with Line Numbers:
       "${textWithLines}"
