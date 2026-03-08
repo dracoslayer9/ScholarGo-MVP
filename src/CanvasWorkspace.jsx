@@ -812,7 +812,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 .then(text => {
                     setFileContext(text);
                     setIsFileParsing(false);
-                    console.log("[FileUpload] Canvas file context extracted successfully. Length:", text?.length);
+                    console.log(`[Canvas] Extraction success. Text length: ${text?.length || 0}`);
                 })
                 .catch(err => {
                     console.error("Extraction error:", err);

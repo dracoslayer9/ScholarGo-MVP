@@ -4,6 +4,15 @@ import mammoth from 'mammoth';
 // Configure PDF.js worker using CDN for maximum reliability across environments
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
 
+// Global error handler for worker failures
+if (typeof window !== 'undefined') {
+    window.addEventListener('unhandledrejection', (event) => {
+        if (event.reason?.message?.includes('pdf.worker')) {
+            console.error('[PDF] Critical Worker Error detected:', event.reason);
+        }
+    });
+}
+
 /**
  * Extracts text from a File object (PDF, DOCX, or TXT)
  * @param {File} file 
@@ -28,12 +37,13 @@ export const extractTextFromFile = async (file) => {
                 console.log(`[PDF] ArrayBuffer ready: ${Math.round(performance.now() - startTime)}ms`);
 
                 // Use a more robust document loading with range and stream disabled for speed
+                console.log(`[PDF] Loading document with worker: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`);
                 const loadingTask = pdfjsLib.getDocument({
                     data: arrayBuffer,
                     workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc,
                     disableRange: true,
                     disableStream: true,
-                    useSystemFonts: true // Speed up text fetching
+                    useSystemFonts: true
                 });
 
                 const pdf = await loadingTask.promise;
