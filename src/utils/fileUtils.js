@@ -23,30 +23,31 @@ export const extractTextFromFile = async (file) => {
         // PDF
         if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
             try {
-                console.log(`[PDF] Starting extraction for: ${file.name}`);
+                console.log(`[PDF] Starting extraction for: ${file.name} (${file.size} bytes)`);
 
                 const arrayBuffer = await file.arrayBuffer();
                 console.log(`[PDF] ArrayBuffer ready: ${Math.round(performance.now() - startTime)}ms`);
 
-                const pdf = await pdfjsLib.getDocument({
+                // Use a more robust document loading with range and stream disabled for speed
+                const loadingTask = pdfjsLib.getDocument({
                     data: arrayBuffer,
-                    workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc
-                }).promise;
+                    workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc,
+                    disableRange: true,
+                    disableStream: true,
+                    useSystemFonts: true // Speed up text fetching
+                });
 
+                const pdf = await loadingTask.promise;
                 console.log(`[PDF] Document loaded. Pages: ${pdf.numPages}. Time: ${Math.round(performance.now() - startTime)}ms`);
 
-                // Parallelize page text extraction
+                // Parallelize page text extraction with chunking if needed, but for small files we just DO IT
                 const pagePromises = [];
                 for (let i = 1; i <= pdf.numPages; i++) {
                     pagePromises.push(
-                        (async (pageNum) => {
-                            const p1 = performance.now();
-                            const page = await pdf.getPage(pageNum);
+                        pdf.getPage(i).then(async (page) => {
                             const textContent = await page.getTextContent();
-                            const text = textContent.items.map(item => item.str).join(' ');
-                            // console.log(`[PDF] Page ${pageNum} parsed in ${Math.round(performance.now() - p1)}ms`);
-                            return text;
-                        })(i)
+                            return textContent.items.map(item => item.str).join(' ');
+                        })
                     );
                 }
 
@@ -63,7 +64,7 @@ export const extractTextFromFile = async (file) => {
         // DOCX
         if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || lowerName.endsWith('.docx')) {
             try {
-                console.log(`[DOCX] Starting extraction for: ${file.name}`);
+                console.log(`[DOCX] Starting extraction for: ${file.name} (${file.size} bytes)`);
                 const arrayBuffer = await file.arrayBuffer();
                 const result = await mammoth.extractRawText({ arrayBuffer });
                 console.log(`[DOCX] Extraction completed in ${Math.round(performance.now() - startTime)}ms`);
