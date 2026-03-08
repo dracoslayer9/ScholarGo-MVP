@@ -27,6 +27,7 @@ import { runRealAnalysis, sendChatMessage, analyzeParagraphInsight } from './ser
 import { supabase } from './lib/supabaseClient';
 import { createChat, getUserChats, getChatMessages, saveMessage, updateChatTitle, deleteChat } from './services/chatService';
 import { generateSmartTitle } from './utils/chatUtils';
+import { extractTextFromFile } from './utils/fileUtils';
 import { PDFViewer } from './components/PDFViewer';
 
 import LoginPage from './LoginPage';
@@ -480,11 +481,18 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
       };
       reader.readAsText(file);
     }
-    else if (detectedType === "application/pdf") {
-      setIsFileParsing(false);
-    }
-    else if (detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx")) {
-      setIsFileParsing(false);
+    else if (detectedType === "application/pdf" || detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx") || lowerName.endsWith(".pdf")) {
+      extractTextFromFile(file)
+        .then(text => {
+          setEssayText(text);
+          setIsFileParsing(false);
+          console.log("File content extracted successfully");
+        })
+        .catch(err => {
+          console.error("Extraction error:", err);
+          setIsFileParsing(false);
+          alert("Gagal mengekstrak teks dari file ini.");
+        });
     }
     else {
       // Fallback: If it's an image, we don't extract text
@@ -1055,6 +1063,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
               }
               return false;
             }}
+            initialContent={essayText}
+            initialFileName={fileName}
           />
         )}
         {appMode !== 'canvas' && (

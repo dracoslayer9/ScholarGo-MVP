@@ -63,6 +63,7 @@ import { sendChatMessage, runRealAnalysis } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat } from './services/chatService';
 import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
+import { extractTextFromFile } from './utils/fileUtils';
 import { PDFViewer } from './components/PDFViewer';
 import ChatMessagesList from './components/ChatMessagesList';
 import AnalysisResultView from './components/AnalysisResultView';
@@ -72,13 +73,13 @@ import { checkUsageQuota, incrementUsage } from './services/subscriptionService'
 
 
 
-const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings, onCampusMatch }) => {
+const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings, onCampusMatch, initialContent = '', initialFileName = '' }) => {
     // --- State ---
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const userMenuRef = useRef(null);
 
-    const [essayContent, setEssayContent] = useState('');
+    const [essayContent, setEssayContent] = useState(initialContent || '');
     const [isAlignMenuOpen, setIsAlignMenuOpen] = useState(false);
     const alignMenuRef = useRef(null);
     const [lineSpacing, setLineSpacing] = useState('1.5');
@@ -86,7 +87,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const spacingMenuRef = useRef(null);
 
     // --- Version State ---
-    const [versions, setVersions] = useState([{ id: 1, content: '', title: 'Version 1' }]);
+    const [versions, setVersions] = useState([{ id: 1, content: initialContent || '', title: 'Version 1' }]);
     const [currentVersionId, setCurrentVersionId] = useState(1);
     const [isVersionMenuOpen, setIsVersionMenuOpen] = useState(false);
     const versionMenuRef = useRef(null);
@@ -178,7 +179,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [showInChatHistory, setShowInChatHistory] = useState(false);
 
     // Application State
-    const [essayTitle, setEssayTitle] = useState('Untitled Essay');
+    const [essayTitle, setEssayTitle] = useState(initialFileName || 'Untitled Essay');
 
     // History Management State
     const [editingChatId, setEditingChatId] = useState(null);
@@ -213,7 +214,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                 types: ['heading', 'paragraph'],
             }),
         ],
-        content: essayContent,
+        content: initialContent || '',
         editorProps: {
             attributes: {
                 class: 'prose prose-lg prose-oxford-blue max-w-none focus:outline-none min-h-screen whitespace-pre-wrap break-words text-oxford-blue font-serif px-16 py-12',
@@ -484,6 +485,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         if (onRequireAuth && onRequireAuth()) return;
         if (isAnalyzing) return;
 
+        // HARDEN: Pull directly from editor source of truth
+        let currentContent = essayContent;
+        if (editor) {
+            const html = editor.getHTML();
+            currentContent = html === '<p></p>' ? '' : html;
+        }
+
         if (user) {
             const { allowed } = await checkUsageQuota(user.id, 'chat');
             if (!allowed) {
@@ -504,19 +512,17 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             userMessage = "Can you help me draft a strong hook for my introduction?";
             assistantMessage = "Do you want to start with your 'Aha!' moment, or should we build a hook based on your resume?";
         } else if (type === 'review') {
-            const hasContent = essayContent.trim() !== '' || fileContext !== '';
-            if (!hasContent) {
-                userMessage = "Please review my current draft and provide feedback.";
-                assistantMessage = "Oops! Paste your draft first so I can analyze it.";
-            } else {
-                handleChatSubmit("Please review my current draft and provide feedback.");
+            if (!currentContent && !fileContext) {
+                alert("Waduh! Tempel draf Anda terlebih dahulu atau unggah file untuk ditinjau.");
                 return;
             }
+            handleChatSubmit("Gunakan Master Framework untuk review esai saya ini secara mendalam dan berikan saran strategis.");
+            return;
         }
 
         if (!userMessage) return;
 
-        const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n[Current Essay Content]\n${essayContent}` : essayContent;
+        const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n[Current Essay Content]\n${currentContent}` : currentContent;
         if (fileContext) {
             setFileContext('');
             setFileUrl(null);
@@ -597,9 +603,22 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         // Auth Check
         if (onRequireAuth && onRequireAuth()) return;
 
-        const inputToUse = typeof overrideMessage === 'string' ? overrideMessage : chatInput;
+        let inputToUse = typeof overrideMessage === 'string' ? overrideMessage : chatInput;
 
-        if ((!inputToUse.trim() && !essayContent.trim()) || isAnalyzing) return;
+        // Command Intercept: Detect manual "Review" or "Reviu"
+        const cleanInput = inputToUse.trim().toLowerCase();
+        if (cleanInput === 'review' || cleanInput === 'reviu') {
+            inputToUse = "Gunakan Master Framework untuk review esai saya ini secara mendalam dan berikan saran strategis.";
+        }
+
+        // 1. HARDEN: Capture current context securely from Tiptap source of truth
+        let currentEssay = essayContent;
+        if (editor) {
+            const html = editor.getHTML();
+            currentEssay = html === '<p></p>' ? '' : html;
+        }
+
+        if ((!inputToUse.trim() && !currentEssay.trim() && !fileContext) || isAnalyzing) return;
 
         // CHECK QUOTA: Chat
         if (user) {
@@ -617,8 +636,9 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         const userMessage = isResearchMode
             ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${baseUserMessage}`
             : baseUserMessage;
+
         // precise context: The essay content combined with any uploaded file context
-        const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n[Current Essay Content]\n${essayContent}` : essayContent;
+        const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n[Current Essay Content]\n${currentEssay}` : currentEssay;
 
         // Clear file context after sending to avoid attaching it to every message
         if (fileContext) {
@@ -768,13 +788,18 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             };
             reader.readAsText(file);
         }
-        else if (detectedType === "application/pdf") {
-            // User explicitly requested "dont parser" - we only attach visually
-            setIsFileParsing(false);
-        }
-        else if (detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx")) {
-            // User explicitly requested "dont parser" - we only attach visually
-            setIsFileParsing(false);
+        else if (detectedType === "application/pdf" || detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx") || lowerName.endsWith(".pdf")) {
+            extractTextFromFile(file)
+                .then(text => {
+                    setFileContext(text);
+                    setIsFileParsing(false);
+                    console.log("Canvas file context extracted successfully");
+                })
+                .catch(err => {
+                    console.error("Extraction error:", err);
+                    setIsFileParsing(false);
+                    alert("Gagal mengekstrak teks dari file ini.");
+                });
         }
         else {
             setIsFileParsing(false);
@@ -1390,12 +1415,35 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                 </div>
                             </div>
                         )}
+                        {(() => {
+                            const handleLineClick = (quote) => {
+                                if (!editor || !quote) return;
+                                const text = editor.getText();
+                                const index = text.indexOf(quote);
+                                if (index !== -1) {
+                                    editor.commands.focus();
+                                    editor.commands.setTextSelection({ from: index + 1, to: index + quote.length + 1 });
+                                    // Scroll into view
+                                    const element = editor.view.dom.querySelector('.ProseMirror-selectednode') || editor.view.dom;
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                            };
 
-                        <ChatMessagesList
-                            messages={chatHistory}
-                            fileName={fileName}
-                            onOpenFile={() => setShowDocumentPreview(true)}
-                        />
+                            const handleReferenceClick = (label) => {
+                                console.log("Reference clicked:", label);
+                                // For numeric references, we could scroll to the bottom of the current message where sources are usually listed
+                            };
+
+                            return (
+                                <ChatMessagesList
+                                    messages={chatHistory}
+                                    fileName={fileName}
+                                    onOpenFile={() => setShowDocumentPreview(true)}
+                                    onLineClick={handleLineClick}
+                                    onReferenceClick={handleReferenceClick}
+                                />
+                            );
+                        })()}
 
                         {/* Loading State */}
                         {isAnalyzing && (

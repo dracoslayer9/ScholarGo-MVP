@@ -6,7 +6,7 @@ import AnalysisResultView from './AnalysisResultView';
 
 // Helper: Chat Messages List
 // Pure list component, specific styling for User vs AI
-const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName }) => {
+const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceClick, onLineClick }) => {
     const safeMessages = Array.isArray(messages) ? messages : [];
 
     return (
@@ -49,9 +49,9 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName }) => {
                             </div>
                         ) : (
                             msg.analysisData ? (
-                                <AnalysisResultView result={msg.analysisData} />
+                                <AnalysisResultView result={msg.analysisData} onLineClick={onLineClick} />
                             ) : (
-                                <MessageContent content={msg.content} />
+                                <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
                             )
                         )}
                     </div>

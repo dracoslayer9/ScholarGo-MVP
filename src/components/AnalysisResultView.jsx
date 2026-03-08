@@ -2,7 +2,7 @@
 import React from 'react';
 import { Award } from 'lucide-react';
 
-const AnalysisResultView = ({ result }) => {
+const AnalysisResultView = ({ result, onLineClick }) => {
     if (!result) return null;
     // If this is a dummy result for Chat/Research mode, do not render the Analysis Dashboard.
     if (result.globalSummary === "Research / Chat Session Active" || result.globalSummary === "General Chat Session Started.") {
@@ -48,12 +48,19 @@ const AnalysisResultView = ({ result }) => {
                                         )}
 
                                         {item.evidence_quote && (
-                                            <div className="mt-2 bg-oxford-blue/5 px-3 py-2 rounded-lg inline-block w-full">
+                                            <div
+                                                className="mt-2 bg-oxford-blue/5 px-3 py-2 rounded-lg inline-block w-full cursor-pointer hover:bg-oxford-blue/10 transition-all border border-transparent hover:border-bronze/20"
+                                                onClick={() => onLineClick && onLineClick(item.evidence_quote, item.evidence_location)}
+                                            >
                                                 <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest mb-1 flex items-center justify-between">
                                                     <span>Kutipan Esai</span>
-                                                    {item.evidence_location && <span className="normal-case bg-white px-1.5 py-0.5 rounded shadow-sm">Baris: {item.evidence_location.replace('Lines', '')}</span>}
+                                                    {item.evidence_location && (
+                                                        <span className="normal-case bg-white px-1.5 py-0.5 rounded shadow-sm text-bronze font-bold">
+                                                            Baris: {item.evidence_location.replace('Lines', '')}
+                                                        </span>
+                                                    )}
                                                 </p>
-                                                <p className="text-sm text-oxford-blue/70 italic font-serif leading-relaxed line-clamp-2 hover:line-clamp-none transition-all cursor-pointer">
+                                                <p className="text-sm text-oxford-blue/70 italic font-serif leading-relaxed line-clamp-2 hover:line-clamp-none">
                                                     "{item.evidence_quote}"
                                                 </p>
                                             </div>

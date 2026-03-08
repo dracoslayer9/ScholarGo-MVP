@@ -2,7 +2,7 @@
 import React from 'react';
 import { Globe, Link as LinkIcon, CheckCircle, Sparkles } from 'lucide-react';
 
-const MessageContent = ({ content }) => {
+const MessageContent = ({ content, onReferenceClick }) => {
     // Standard Text: Enhanced Line-based Parser with Table Detection
 
     const formatLine = (text) => {
@@ -36,9 +36,14 @@ const MessageContent = ({ content }) => {
                 // Loose citation without a link 
                 const label = part.replace(/[\[\]\^]/g, '');
                 return (
-                    <span key={index} className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mx-1 text-[11px] font-bold text-gray-600 bg-gray-100 border border-gray-200 rounded-full align-top shadow-sm cursor-default">
+                    <button
+                        key={index}
+                        onClick={() => onReferenceClick && onReferenceClick(label)}
+                        className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mx-1 text-[11px] font-bold text-gray-600 bg-gray-100 border border-gray-200 rounded-full align-top shadow-sm cursor-pointer hover:bg-bronze/10 hover:text-bronze hover:border-bronze/30 transition-all"
+                        title="Click to view reference"
+                    >
                         {label}
-                    </span>
+                    </button>
                 );
             }
             return part;
