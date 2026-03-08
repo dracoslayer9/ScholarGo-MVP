@@ -84,11 +84,11 @@ export const getChatMessages = async (chatId) => {
  * @param {string} content 
  * @returns {Promise<Object>} - The created message object.
  */
-export const saveMessage = async (chatId, role, content) => {
+export const saveMessage = async (chatId, role, content, payload = null) => {
     try {
         const { data, error } = await supabase
             .from('chat_messages')
-            .insert([{ session_id: chatId, role, content }]) // FIX: Changed from chat_id to session_id
+            .insert([{ session_id: chatId, role, content, payload }]) // FIX: Changed from chat_id to session_id
             .select()
             .single();
 

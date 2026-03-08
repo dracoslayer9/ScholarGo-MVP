@@ -488,7 +488,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 }]);
 
                 if (currentChatIdRef.current) {
-                    saveMessage(currentChatIdRef.current, 'assistant', markdownResponse).catch(err => console.error("Save Msg Error:", err));
+                    saveMessage(currentChatIdRef.current, 'assistant', markdownResponse, { ...result, detectedType }).catch(err => console.error("Save Msg Error:", err));
                 }
             }
         } catch (error) {
@@ -1036,7 +1036,11 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
             // 3. Load Messages
             const messages = await getChatMessages(chatId);
-            setChatHistory(messages.map(m => ({ role: m.role, content: m.content })));
+            setChatHistory(messages.map(m => ({
+                role: m.role,
+                content: m.content,
+                analysisData: m.payload // Restore analysis metadata
+            })));
 
             // Close Sidebar on mobile (optional)
         } catch (err) {

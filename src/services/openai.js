@@ -8,8 +8,6 @@ export const runRealAnalysis = async (
     signal = null // Add signal param
 ) => {
     // FALLBACK: Client-Side Execution for Local Development
-    // This runs if we are in DEV mode AND we have a VITE_OPENAI_API_KEY.
-    // This allows the app to work with `npm run dev` without a backend server.
     if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY) {
         try {
             console.log("Running Local Client-Side Analysis...");
@@ -18,61 +16,57 @@ export const runRealAnalysis = async (
                 dangerouslyAllowBrowser: true
             });
 
-            // Pre-process text with line numbers for accurate citation
-            const textWithLines = (text || '').split('\n').map((line, i) => `Line ${i + 1}: ${line}`).join('\n');
+            // --- IMPROVED PARAGRAPH SEGMENTATION ---
+            // 1. Normalize line breaks
+            const normalized = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+            // 2. Split into paragraphs (using double newline as primary separator)
+            let rawParagraphs = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+
+            // 3. Fallback: if very few paragraphs were found but text is long, use single newline
+            if (rawParagraphs.length < 3 && normalized.split('\n').filter(l => l.trim()).length > 5) {
+                rawParagraphs = normalized.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+            }
+
+            const totalParagraphCount = rawParagraphs.length;
+            console.log(`[Analysis] Pre-segmented into ${totalParagraphCount} paragraphs.`);
+
+            const textWithParagraphMarkers = rawParagraphs.map((p, i) => {
+                // Add internal line numbers for reference within the paragraph
+                const markedLines = p.split('\n').map((line, li) => `L${li + 1}: ${line}`).join('\n');
+                return `### PARAGRAPH ${i + 1} ###\n${markedLines}`;
+            }).join('\n\n');
 
             let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
+            You MUST analyze exactly ${totalParagraphCount} paragraphs.
 
             **LANGUAGE INSTRUCTION**:
             DETECT the language of the provided document or the user's instruction. You MUST provide your analysis in the **SAME LANGUAGE**. 
             - If the document/query is in **Indonesian**, the textual values of your JSON response MUST be in **Indonesian**.
             - If the document/query is in **English**, reply entirely in **English**.
-            - CRITICAL: DO NOT translate the JSON keys (e.g. keep "paragraphBreakdown", "main_idea", "analysis_current" EXACTLY as they are in English). Only translate the string content values!
+            - CRITICAL: DO NOT translate the JSON keys. Only translate the string content values!
         
             ${type === "Awardee Sample" ? `
             **AWARDEE DISSECTION MODE**:
-            This document is a PROVEN, SUCCESSFUL awardee essay. DO NOT critique it or look for weaknesses.
-            Your job is to **DECONSTRUCT** its winning anatomy so a student can learn from it.
-            
+            This document is a SUCCESSFUL awardee essay. deconstruct its winning anatomy.
             1. Identify its "Hook, Gap, Vision" structure.
-            2. Extract the specific narrative strategies that make it successful.
-            3. Instead of defining "Weaknesses", define its **Structural Anatomy** (how it flows).
-            4. Instead of giving "Strategic Improvements", give **Key Takeaways** (what the student should emulate).
+            2. Extract narrative strategies.
+            3. Define Structural Anatomy and Key Takeaways.
             ` : `
             **CRITIQUE MODE**:
-            This is a student draft. Analyze it rigorously. Look for weaknesses in narrative, flow, and value alignment.
+            This is a student draft. Analyze it rigorously for weaknesses in narrative, flow, and value alignment.
             `}
 
-            **TWO-PHASE PROTOCOL**:
-            
-            **PHASE 1: Paragraph Extraction**
-            1. Read the document (Pay attention to the provided Line Numbers).
-            2. Split it into paragraphs.
-            3. Number each paragraph sequentially.
-            4. Process ALL paragraphs.
-            
-            **PHASE 2: Paragraph Analysis**
-            For EACH paragraph, provide:
-            - **Paragraph Number**: Sequential integer.
-            - **Detected Subtitle**: Exact subtitle if present, else null.
-            - **Functional Label**: Infer role (e.g. Hook, Context, Challenge, Growth).
-            - **Main Idea**: One sentence summary of content.
-            - **Current Approach**: What is this paragraph trying to do structurally?
-            - **Evidence Location**: The specific Line Numbers where this main idea is generated (e.g. "Lines 12-15").
-
-            **Criteria**:
-            1. Narrative Authenticity
-            2. Structure & Flow
-            3. Value Alignment
+            **STRICT WORKFLOW**:
+            - You are provided with ${totalParagraphCount} paragraphs, each marked with ### PARAGRAPH X ###.
+            - You MUST return EXACTLY ${totalParagraphCount} objects in the "paragraphBreakdown" array.
+            - One object per paragraph. DO NOT combine them.
+            - Provide a real "evidence_quote" (verbatim) for EVERY paragraph.
             `;
 
             if (instruction) {
                 systemPrompt += `\n\nUser Instruction: ${instruction}`;
-                if (context) {
-                    systemPrompt += `\n\nSpecific Context/Excerpt to Apply Instruction to: "${context}"`;
-                }
             }
-
 
             const prompt = `
             ${systemPrompt}
@@ -81,64 +75,49 @@ export const runRealAnalysis = async (
             {
                 "documentClassification": {
                   "primaryType": "Personal Statement | Study Plan | Portfolio",
-                  "secondaryElements": ["e.g. Research Methodology"],
                   "reasoning": "Brief explanation.",
-                  "confidence": "High | Medium | Low",
-                  "structuralSignals": ["signal 1", "signal 2"]
+                  "confidence": "High | Medium | Low"
                 },
                 "deepAnalysis": {
-                  "overallAssessment": "High-level assessment.",
-                  "authenticity": { "strengths": "...", "evidence": "..." },
-                  "structure": { "type": "...", "flow": "..." },
-                  "values": { "detectedValues": "...", "alignment": "..." },
-                  "strategicImprovements": ["${type === 'Awardee Sample' ? 'Takeaway 1' : 'Imp 1'}", "${type === 'Awardee Sample' ? 'Takeaway 2' : 'Imp 2'}"]
+                  "overallAssessment": "High-level summary.",
+                  "strategicImprovements": ["${type === 'Awardee Sample' ? 'Takeaway 1' : 'Imp 1'}", "..."]
                 },
-                "globalSummary": "A 2-3 sentence global summary.",
+                "globalSummary": "A brief summary.",
                 "paragraphBreakdown": [
                 { 
                     "paragraph_number": 1,
-                    "detected_subtitle": "Subtitle from text (or null)",
                     "functional_label": "e.g. Hook",
-                    "section_label": "e.g. Introduction/Hook",
-                    "analysis_current": "What this specific paragraph does.",
-                    "main_idea": "Summary of this specific paragraph.",
-                    "evidence_quote": "<EXTRACT_REAL_VERBATIM_QUOTE_FROM_THIS_PARAGRAPH>",
-                    "evidence_location": "Lines X-Y",
-                    "strength": "Observation.",
+                    "analysis_current": "What this paragraph does.",
+                    "main_idea": "Summary of this paragraph.",
+                    "evidence_quote": "<VERBATIM_QUOTE>",
                     "status": "strong" 
                 }
                 ]
             }
 
-            **STRICT DATA INTEGRITY RULES**:
-            1. **NO PLACEHOLDERS**: Never use the phrase "Exact verbatim quote." or any other filler text. You MUST extract the actual words from the "Essay Content" provide below.
-            2. **FULL PARAGRAPH ANALYSIS**: Analyze EVERY SINGLE paragraph in the text. DO NOT Skip. If there are 10 paragraphs, provide 10 objects in the array.
-            3. **LANGUAGE MATCHING**: Reply in the SAME language as the user's document or query. If document is Indonesian, JSON values must be Indonesian (keys stay English).
-
-            IMPORTANT: Analyze EVERY SINGLE paragraph in the text. 
-            You MUST return an array containing one exact object for each paragraph.
-            DO NOT summarize multiple paragraphs into one. If there are 15 paragraphs in the text, you MUST output exactly 15 elements in the paragraphBreakdown array.
-            FAILURE to provide real quotes or complete paragraph analysis will be penalized.
-            
-            Essay Content with Line Numbers:
-            "${textWithLines}"
+            Essay Content with Paragraph Markers:
+            "${textWithParagraphMarkers}"
             `;
-
 
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o",
                 messages: [{ role: "user", content: prompt }],
                 response_format: { type: "json_object" },
-                temperature: 0.7,
-            }, { signal }); // Pass signal
-
+                temperature: 0.3, // Lower temperature for better adherence
+            }, { signal });
 
             const content = completion.choices[0].message.content;
-            return JSON.parse(content);
+            const parsed = JSON.parse(content);
+
+            // Safety Check: If AI still truncated, log it
+            if (parsed.paragraphBreakdown.length !== totalParagraphCount) {
+                console.warn(`[Analysis] AI returned ${parsed.paragraphBreakdown.length} paragraphs but expected ${totalParagraphCount}.`);
+            }
+
+            return parsed;
 
         } catch (error) {
             console.error("Local Analysis Failed:", error);
-            // Fall through to try server method or throw
             throw error;
         }
     }
