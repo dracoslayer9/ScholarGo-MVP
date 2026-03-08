@@ -1,9 +1,8 @@
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import mammoth from 'mammoth';
 
-// Configure PDF.js worker using local Vite asset URL for maximum speed
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Configure PDF.js worker using CDN for maximum reliability across environments
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
 
 /**
  * Extracts text from a File object (PDF, DOCX, or TXT)
@@ -46,6 +45,7 @@ export const extractTextFromFile = async (file) => {
                     pagePromises.push(
                         pdf.getPage(i).then(async (page) => {
                             const textContent = await page.getTextContent();
+                            // Handle potential spacing issues between items
                             return textContent.items.map(item => item.str).join(' ');
                         })
                     );
