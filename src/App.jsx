@@ -327,6 +327,7 @@ function App() {
   // --- LOAD CHAT HANDLER ---
   const handleLoadChat = async (chatId) => {
     console.log("Loading Chat ID:", chatId);
+    setChatHistory([]); // Clear staging to avoid flickering stale content
     try {
       // 1. Fetch messages
       const messages = await getChatMessages(chatId);
@@ -1230,16 +1231,11 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
                       {/* Content Area */}
                       <div className="p-0 overflow-hidden bg-white flex-1 flex flex-col relative">
-                        {isFileParsing ? (
-                          <div className="flex flex-col items-center justify-center py-20 gap-4 flex-1">
-                            <Loader className="animate-spin text-bronze" size={32} />
-                            <p className="text-oxford-blue/60 font-medium">Membaca dokumen...</p>
-                          </div>
-                        ) : (fileType || analyzedFile?.type) === 'application/pdf' ? (
+                        {(fileType || analyzedFile?.type) === 'application/pdf' && (fileUrl || analyzedFile?.url) ? (
                           <div className="absolute inset-0 w-full h-full bg-gray-100">
                             <PDFViewer key={fileUrl || analyzedFile?.url} url={fileUrl || analyzedFile?.url} />
                           </div>
-                        ) : (fileType || analyzedFile?.type)?.startsWith('image/') ? (
+                        ) : (fileType || analyzedFile?.type)?.startsWith('image/') && (fileUrl || analyzedFile?.url) ? (
                           <div className="w-full h-full flex items-center justify-center p-8 bg-gray-50 overflow-y-auto">
                             <img
                               src={fileUrl || analyzedFile?.url}
@@ -1247,6 +1243,11 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                               className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg"
                               style={{ imageOrientation: 'from-image' }}
                             />
+                          </div>
+                        ) : isFileParsing ? (
+                          <div className="flex flex-col items-center justify-center py-20 gap-4 flex-1">
+                            <Loader className="animate-spin text-bronze" size={32} />
+                            <p className="text-oxford-blue/60 font-medium">Membaca dokumen...</p>
                           </div>
                         ) : (essayText || analyzedFile?.content) ? (
                           <div className="font-serif text-oxford-blue leading-relaxed whitespace-pre-wrap text-base md:text-lg overflow-y-auto p-8 md:p-12 w-full h-full">

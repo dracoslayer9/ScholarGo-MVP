@@ -198,7 +198,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Advanced State Sync Refs
     const currentChatIdRef = useRef(currentChatId);
-    useEffect(() => { currentChatIdRef.current = currentChatId; }, [currentChatId]);
+    useEffect(() => {
+        currentChatIdRef.current = currentChatId;
+    }, [currentChatId]);
     const isCreatingChatRef = useRef(false);
 
     // --- TIPTAP EDITOR INIT ---
@@ -960,7 +962,9 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
     const handleLoadChat = async (chatId) => {
         if (currentChatId === chatId) return; // Prevent redundant loading
+        console.log("Loading chat session:", chatId);
         blockAutoSaveRef.current = true; // Lock auto-save
+        setChatHistory([]); // Clear current history to avoid flickering stale content
 
         try {
             // 0. Eagerly Auto-Save the CURRENT session before switching away!
@@ -1530,16 +1534,11 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                     </button>
                                 </div>
                                 <div className="p-0 overflow-hidden bg-white flex-1 flex flex-col relative">
-                                    {isFileParsing ? (
-                                        <div className="flex flex-col items-center justify-center py-20 gap-4 flex-1">
-                                            <Loader className="animate-spin text-bronze" size={32} />
-                                            <p className="text-oxford-blue/60 font-medium">Membaca dokumen...</p>
-                                        </div>
-                                    ) : (fileType || analyzedFile?.type) === 'application/pdf' ? (
+                                    {(fileType || analyzedFile?.type) === 'application/pdf' && (fileUrl || analyzedFile?.url) ? (
                                         <div className="absolute inset-0 w-full h-full bg-gray-100">
                                             <PDFViewer key={fileUrl || analyzedFile?.url} url={fileUrl || analyzedFile?.url} />
                                         </div>
-                                    ) : (fileType || analyzedFile?.type)?.startsWith('image/') ? (
+                                    ) : (fileType || analyzedFile?.type)?.startsWith('image/') && (fileUrl || analyzedFile?.url) ? (
                                         <div className="w-full h-full flex items-center justify-center p-8 bg-gray-50 overflow-y-auto flex-1">
                                             <img
                                                 src={fileUrl || analyzedFile?.url}
@@ -1547,6 +1546,11 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                                 className="max-w-full max-h-full object-contain drop-shadow-md rounded-lg"
                                                 style={{ imageOrientation: 'from-image' }}
                                             />
+                                        </div>
+                                    ) : isFileParsing ? (
+                                        <div className="flex flex-col items-center justify-center py-20 gap-4 flex-1">
+                                            <Loader className="animate-spin text-bronze" size={32} />
+                                            <p className="text-oxford-blue/60 font-medium">Membaca dokumen...</p>
                                         </div>
                                     ) : (fileContext || analyzedFile?.content) ? (
                                         <div className="font-serif text-oxford-blue leading-relaxed whitespace-pre-wrap text-base md:text-lg overflow-y-auto p-8 md:p-12 w-full h-full flex-1">
