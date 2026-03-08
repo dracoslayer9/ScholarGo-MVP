@@ -805,7 +805,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 .catch(err => {
                     console.error("Extraction error:", err);
                     setIsFileParsing(false);
-                    alert("Gagal mengekstrak teks dari file ini.");
+                    alert(`Gagal mengekstrak teks: ${err.message || 'Error tidak dikenal'}`);
                 });
         }
         else {

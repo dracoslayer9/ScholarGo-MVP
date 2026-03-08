@@ -1,8 +1,9 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
-// Configure PDF.js worker using CDN for maximum reliability across environments
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
+// Configure PDF.js worker using local bundle for reliability
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 // Global error handler for worker failures
 if (typeof window !== 'undefined') {
@@ -22,9 +23,9 @@ export const extractTextFromFile = async (file) => {
     const lowerName = file.name.toLowerCase();
     const startTime = performance.now();
 
-    // Create a timeout promise to prevent hanging
+    // Create a timeout promise to prevent hanging - expanded to 30s for large files
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Extraction timed out after 10 seconds")), 10000);
+        setTimeout(() => reject(new Error("Waktu ekstraksi habis (30 detik). File mungkin terlalu besar.")), 30000);
     });
 
     const extractionPromise = (async () => {
@@ -73,7 +74,7 @@ export const extractTextFromFile = async (file) => {
                 return totalText;
             } catch (error) {
                 console.error("[PDF] Extraction Failed:", error);
-                throw error;
+                throw new Error(`Gagal membaca PDF: ${error.message || 'Error tidak dikenal'}`);
             }
         }
 
@@ -88,7 +89,7 @@ export const extractTextFromFile = async (file) => {
                 return result.value;
             } catch (error) {
                 console.error("[DOCX] Extraction Failed:", error);
-                throw error;
+                throw new Error(`Gagal membaca DOCX: ${error.message || 'Error tidak dikenal'}`);
             }
         }
 
