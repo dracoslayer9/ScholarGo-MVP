@@ -344,6 +344,14 @@ function App() {
       setEssayText('');
       setAnalysisResult(null);
       setIsAnalyzed(false); // Maybe true if we want to show chat view immediately?
+
+      // Clear file attachments from previous session to ensure isolation
+      setFileUrl(null);
+      setFileName('');
+      setFileType(null);
+      setIsFileParsing(false);
+      setAnalyzedFile(null);
+
       // Actually, if we load simple chat history, we should probably be in a "Chat View" mode.
       // For now, staying in 'upload' mode (default) but with history visible is fine.
 
@@ -1261,19 +1269,25 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                       </div>
 
                       {/* Footer Actions */}
-                      <div className="px-6 py-4 border-t border-oxford-blue/10 bg-gray-50/50 shrink-0 flex justify-end">
-                        <button
-                          onClick={() => {
-                            setShowDocumentPreview(false);
-                            performAnalysis();
-                          }}
-                          disabled={isAnalyzing}
-                          className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
-                        >
-                          <Sparkles size={18} />
-                          {isAnalyzing ? "Membedah..." : "Dissect Document"}
-                        </button>
-                      </div>
+                      {(fileUrl || analyzedFile) && (
+                        <div className="px-6 py-4 border-t border-oxford-blue/10 bg-gray-50/50 shrink-0 flex justify-end">
+                          <button
+                            onClick={() => {
+                              setShowDocumentPreview(false);
+                              performAnalysis();
+                            }}
+                            disabled={isAnalyzing || isFileParsing}
+                            className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${(isAnalyzing || isFileParsing) ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
+                          >
+                            {(isAnalyzing || isFileParsing) ? (
+                              <Loader size={18} className="animate-spin" />
+                            ) : (
+                              <Sparkles size={18} />
+                            )}
+                            {isAnalyzing ? "Membedah..." : isFileParsing ? "Membaca..." : "Dissect Document"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

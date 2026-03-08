@@ -966,6 +966,14 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         blockAutoSaveRef.current = true; // Lock auto-save
         setChatHistory([]); // Clear current history to avoid flickering stale content
 
+        // Clear file attachments from previous session to ensure isolation
+        setFileUrl(null);
+        setFileName('');
+        setFileType(null);
+        setFileContext('');
+        setIsFileParsing(false);
+        setAnalyzedFile(null);
+
         try {
             // 0. Eagerly Auto-Save the CURRENT session before switching away!
             let activeEssay = essayContent;
@@ -1564,15 +1572,19 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                 </div>
 
                                 {/* Footer Actions - Analyze Button */}
-                                {(!isFileParsing && (fileContext?.trim() || fileUrl)) && (
+                                {(fileUrl || analyzedFile) && (
                                     <div className="px-6 py-4 border-t border-oxford-blue/10 bg-gray-50/50 shrink-0 flex justify-end">
                                         <button
                                             onClick={handleAnalyzeDocument}
-                                            disabled={isAnalyzing}
-                                            className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
+                                            disabled={isAnalyzing || isFileParsing}
+                                            className={`px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${(isAnalyzing || isFileParsing) ? 'bg-gray-200 text-gray-400' : 'bg-bronze text-white hover:brightness-90 hover:scale-[1.02] shadow-bronze/20'}`}
                                         >
-                                            <Sparkles size={18} />
-                                            {isAnalyzing ? "Membedah..." : "Dissect Document"}
+                                            {(isAnalyzing || isFileParsing) ? (
+                                                <Loader size={18} className="animate-spin" />
+                                            ) : (
+                                                <Sparkles size={18} />
+                                            )}
+                                            {isAnalyzing ? "Membedah..." : isFileParsing ? "Membaca..." : "Dissect Document"}
                                         </button>
                                     </div>
                                 )}
