@@ -367,13 +367,27 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             // Optional: setIsAnalyzing(false); // handleChatSubmit catch block handles this
         }
     };
-
     const handleAnalyzeDocument = async () => {
         if (onRequireAuth && onRequireAuth()) return;
         if (isAnalyzing) return;
 
-        const contentToAnalyze = fileContext || essayContent;
-        if (!contentToAnalyze.trim()) return;
+        // PRIORITIZE: File Content > Editor Content
+        // Use analyzedFile.content as a fallback if fileContext was already cleared (e.g. from history preview)
+        const hasFile = !!(fileUrl || analyzedFile?.url);
+        const fileContent = fileContext || analyzedFile?.content || '';
+        const contentToAnalyze = hasFile ? fileContent : essayContent;
+
+        console.log("Analysis Triggered:", {
+            hasFile,
+            contentSource: hasFile ? "File" : "Canvas",
+            contentLength: contentToAnalyze?.length || 0,
+            fileName: fileName || analyzedFile?.name
+        });
+
+        if (!contentToAnalyze?.trim()) {
+            if (hasFile) alert("Dokumen kosong atau teks tidak terbaca. Harap tunggu hingga proses 'Menyiapkan' selesai.");
+            return;
+        }
 
         // CHECK QUOTA: PDF Analysis
         if (user) {
@@ -399,6 +413,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         // Check if document is an awardee sample before sending to get specific dissection
         const isAwardee =
             (fileName && (fileName.toLowerCase().includes("award") || fileName.toLowerCase().includes("winner") || fileName.toLowerCase().includes("lpdp"))) ||
+            (analyzedFile?.name && (analyzedFile.name.toLowerCase().includes("award") || analyzedFile.name.toLowerCase().includes("winner") || analyzedFile.name.toLowerCase().includes("lpdp"))) ||
             (contentToAnalyze.toLowerCase().includes("award") || contentToAnalyze.toLowerCase().includes("winner") || contentToAnalyze.toLowerCase().includes("lpdp"));
         const detectedType = isAwardee ? "Awardee Sample" : "Student Draft";
 
@@ -409,10 +424,10 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
         // Preserve file info for preview modal before clearing attachment indicator
         setAnalyzedFile({
-            url: fileUrl,
-            name: fileName,
-            type: fileType,
-            content: fileContext
+            url: fileUrl || analyzedFile?.url,
+            name: fileName || analyzedFile?.name,
+            type: fileType || analyzedFile?.type,
+            content: fileContext || analyzedFile?.content
         });
 
         setFileContext('');
