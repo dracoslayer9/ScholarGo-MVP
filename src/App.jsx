@@ -496,9 +496,9 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
     else if (detectedType === "application/pdf" || detectedType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || lowerName.endsWith(".docx") || lowerName.endsWith(".pdf")) {
       extractTextFromFile(file)
         .then(text => {
-          setFileContext(text);
+          setEssayText(text);
           setIsFileParsing(false);
-          console.log(`[Canvas] Extraction success. Text length: ${text?.length || 0}`);
+          console.log(`[App] Extraction success. Text length: ${text?.length || 0}`);
         })
         .catch(err => {
           console.error("Extraction error:", err);
