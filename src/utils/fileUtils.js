@@ -12,58 +12,75 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
  */
 export const extractTextFromFile = async (file) => {
     const lowerName = file.name.toLowerCase();
+    const startTime = performance.now();
 
-    // PDF
-    if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
-        try {
-            const startTime = performance.now();
-            console.log(`Starting PDF extraction for: ${file.name}`);
+    // Create a timeout promise to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Extraction timed out after 10 seconds")), 10000);
+    });
 
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({
-                data: arrayBuffer,
-                workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc // Ensure it uses the set worker
-            }).promise;
+    const extractionPromise = (async () => {
+        // PDF
+        if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
+            try {
+                console.log(`[PDF] Starting extraction for: ${file.name}`);
 
-            console.log(`PDF Loaded. Pages: ${pdf.numPages}. Time: ${Math.round(performance.now() - startTime)}ms`);
+                const arrayBuffer = await file.arrayBuffer();
+                console.log(`[PDF] ArrayBuffer ready: ${Math.round(performance.now() - startTime)}ms`);
 
-            // Parallelize page text extraction
-            const pagePromises = [];
-            for (let i = 1; i <= pdf.numPages; i++) {
-                pagePromises.push(
-                    pdf.getPage(i).then(async (page) => {
-                        const textContent = await page.getTextContent();
-                        return textContent.items.map(item => item.str).join(' ');
-                    })
-                );
+                const pdf = await pdfjsLib.getDocument({
+                    data: arrayBuffer,
+                    workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc
+                }).promise;
+
+                console.log(`[PDF] Document loaded. Pages: ${pdf.numPages}. Time: ${Math.round(performance.now() - startTime)}ms`);
+
+                // Parallelize page text extraction
+                const pagePromises = [];
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    pagePromises.push(
+                        (async (pageNum) => {
+                            const p1 = performance.now();
+                            const page = await pdf.getPage(pageNum);
+                            const textContent = await page.getTextContent();
+                            const text = textContent.items.map(item => item.str).join(' ');
+                            // console.log(`[PDF] Page ${pageNum} parsed in ${Math.round(performance.now() - p1)}ms`);
+                            return text;
+                        })(i)
+                    );
+                }
+
+                const pagesText = await Promise.all(pagePromises);
+                const totalTime = Math.round(performance.now() - startTime);
+                console.log(`[PDF] Extraction completed in ${totalTime}ms`);
+                return pagesText.join('\n');
+            } catch (error) {
+                console.error("[PDF] Extraction Failed:", error);
+                throw error;
             }
-
-            const pagesText = await Promise.all(pagePromises);
-            const totalTime = Math.round(performance.now() - startTime);
-            console.log(`PDF extraction completed in ${totalTime}ms`);
-            return pagesText.join('\n');
-        } catch (error) {
-            console.error("PDF Extraction Failed:", error);
-            throw new Error("Gagal membaca file PDF.");
         }
-    }
 
-    // DOCX
-    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || lowerName.endsWith('.docx')) {
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer });
-            return result.value;
-        } catch (error) {
-            console.error("DOCX Extraction Failed:", error);
-            throw new Error("Gagal membaca file DOCX.");
+        // DOCX
+        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || lowerName.endsWith('.docx')) {
+            try {
+                console.log(`[DOCX] Starting extraction for: ${file.name}`);
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                console.log(`[DOCX] Extraction completed in ${Math.round(performance.now() - startTime)}ms`);
+                return result.value;
+            } catch (error) {
+                console.error("[DOCX] Extraction Failed:", error);
+                throw error;
+            }
         }
-    }
 
-    // TXT
-    if (file.type === 'text/plain' || lowerName.endsWith('.txt')) {
-        return await file.text();
-    }
+        // TXT
+        if (file.type === 'text/plain' || lowerName.endsWith('.txt')) {
+            return await file.text();
+        }
 
-    throw new Error("Format file tidak didukung. Gunakan PDF, DOCX, atau TXT.");
+        throw new Error("Format file tidak didukung. Gunakan PDF, DOCX, atau TXT.");
+    })();
+
+    return Promise.race([extractionPromise, timeoutPromise]);
 };
