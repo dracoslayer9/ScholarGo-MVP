@@ -1284,7 +1284,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                             ) : (
                               <Sparkles size={18} />
                             )}
-                            {isAnalyzing ? "Membedah..." : isFileParsing ? "Membaca..." : "Dissect Document"}
+                            {isAnalyzing ? "Membedah..." : isFileParsing ? "Menyiapkan..." : "Dissect Document"}
                           </button>
                         </div>
                       )}
