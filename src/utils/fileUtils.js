@@ -1,8 +1,9 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import mammoth from 'mammoth';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker using local Vite asset URL for maximum speed
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 /**
  * Extracts text from a File object (PDF, DOCX, or TXT)
@@ -15,8 +16,16 @@ export const extractTextFromFile = async (file) => {
     // PDF
     if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
         try {
+            const startTime = performance.now();
+            console.log(`Starting PDF extraction for: ${file.name}`);
+
             const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const pdf = await pdfjsLib.getDocument({
+                data: arrayBuffer,
+                workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc // Ensure it uses the set worker
+            }).promise;
+
+            console.log(`PDF Loaded. Pages: ${pdf.numPages}. Time: ${Math.round(performance.now() - startTime)}ms`);
 
             // Parallelize page text extraction
             const pagePromises = [];
@@ -30,6 +39,8 @@ export const extractTextFromFile = async (file) => {
             }
 
             const pagesText = await Promise.all(pagePromises);
+            const totalTime = Math.round(performance.now() - startTime);
+            console.log(`PDF extraction completed in ${totalTime}ms`);
             return pagesText.join('\n');
         } catch (error) {
             console.error("PDF Extraction Failed:", error);
