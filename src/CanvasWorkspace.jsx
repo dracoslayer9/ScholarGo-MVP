@@ -92,13 +92,23 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isVersionMenuOpen, setIsVersionMenuOpen] = useState(false);
     const versionMenuRef = useRef(null);
 
-    // Sync essayContent from current version when version changes
+    // Sync essayContent AND Tiptap editor from current version when version changes
     useEffect(() => {
         const currentVersion = versions.find(v => v.id === currentVersionId);
-        if (currentVersion) {
+        if (currentVersion && editor) {
+            // Update the React state first
             setEssayContent(currentVersion.content);
+
+            // Only update Tiptap if the content is different to avoid cursor reset
+            const currentEditorHTML = editor.getHTML();
+            const versionHTML = currentVersion.content || '';
+
+            if (currentEditorHTML !== versionHTML) {
+                // Safety check: if currentVersion.content is empty/null, set it to empty string or <p></p>
+                editor.commands.setContent(versionHTML || '');
+            }
         }
-    }, [currentVersionId]); // intentionally omitting versions dependency to prevent infinite loop on typing
+    }, [currentVersionId, editor]); // Add editor to dependency array
 
     // Sync essayContent to current version when typing
     useEffect(() => {
@@ -119,7 +129,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
             // If deleting the current version, fallback to the last available version
             if (currentVersionId === id) {
-                setCurrentVersionId(updatedVersions[updatedVersions.length - 1].id);
+                const nextVersion = updatedVersions[updatedVersions.length - 1];
+                setCurrentVersionId(nextVersion.id);
+                // The useEffect will handle updating the editor content
             }
         }
     };
@@ -353,8 +365,12 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // --- Version Helpers ---
     const handleCreateVersion = () => {
-        const newId = versions.length + 1;
-        const newVersion = { id: newId, content: essayContent, title: `Version ${newId}` };
+        const newId = versions.length > 0 ? Math.max(...versions.map(v => v.id)) + 1 : 1;
+        // User said: "Jika versi 2 kosong, display kosong". 
+        // We'll create it with empty content if the user wants to start fresh, 
+        // or copy current content? The user said "jika versi 2 kosong display kosong".
+        // Let's make it start fresh (empty) to satisfy the "display kosong" requirement.
+        const newVersion = { id: newId, content: '', title: `Version ${newId}` };
         setVersions([...versions, newVersion]);
         setCurrentVersionId(newId);
         setIsVersionMenuOpen(false);
