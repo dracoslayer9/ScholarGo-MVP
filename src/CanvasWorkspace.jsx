@@ -200,10 +200,15 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Advanced State Sync Refs
     const currentChatIdRef = useRef(currentChatId);
+    const versionsRef = useRef(versions);
+    const currentVersionIdRef = useRef(currentVersionId);
+    const isCreatingChatRef = useRef(false);
+
     useEffect(() => {
         currentChatIdRef.current = currentChatId;
-    }, [currentChatId]);
-    const isCreatingChatRef = useRef(false);
+        versionsRef.current = versions;
+        currentVersionIdRef.current = currentVersionId;
+    }, [currentChatId, versions, currentVersionId]);
 
     // --- TIPTAP EDITOR INIT ---
     const editor = useEditor({
@@ -238,11 +243,21 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             // Eagerly snap the content state when clicking outside the editor
             const html = editor.getHTML();
             const contentToSave = html === '<p></p>' ? '' : html;
+
+            // Sync to version state immediately even if no chatId (for local session feel)
+            if (currentVersionIdRef.current) {
+                setVersions(prev => prev.map(v =>
+                    String(v.id) === String(currentVersionIdRef.current) ? { ...v, content: contentToSave } : v
+                ));
+            }
+
             if (currentChatIdRef.current && contentToSave) {
                 // Correctly save versions and content separately from AI context
                 updateChatPayload(currentChatIdRef.current, {
                     essayContent: contentToSave,
-                    versions: versionsRef.current.map(v => String(v.id) === String(currentVersionIdRef.current) ? { ...v, content: contentToSave } : v),
+                    versions: versionsRef.current.map(v =>
+                        String(v.id) === String(currentVersionIdRef.current) ? { ...v, content: contentToSave } : v
+                    ),
                     currentVersionId: currentVersionIdRef.current
                 }).catch(console.error);
             }
