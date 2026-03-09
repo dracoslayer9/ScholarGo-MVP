@@ -222,8 +222,10 @@ export const sendChatMessage = async (
             (and so on).
             Do not deviate from this structure for outlines.
 
-            **Document Content**:
-            "${documentContent}"
+            Document Content:
+            ---
+            ${documentContent || '(Empty)'}
+            ---
             `;
 
             // PATTERN COMMAND INTERCEPT

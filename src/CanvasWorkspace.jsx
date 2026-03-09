@@ -649,7 +649,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         }
     };
 
-    const handleChatSubmit = async (overrideMessage = null) => {
+    const handleChatSubmit = async (overrideMessage = null, historyOverride = null) => {
         // Auth Check
         if (onRequireAuth && onRequireAuth()) return;
 
@@ -690,7 +690,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         // Construct context: Include ALL versions clearly labeled so AI can answer about "Version 1" etc.
         const versionsContext = versions.map(v => {
-            const contentToUse = v.id === currentVersionId ? currentEssay : v.content;
+            // Use loose equality (==) or Number() as currentVersionId might be a string from DB
+            const contentToUse = String(v.id) === String(currentVersionId) ? currentEssay : v.content;
             return `[${v.title}]\n${contentToUse || '(Empty)'}`;
         }).join('\n\n---\n\n');
 
@@ -760,12 +761,14 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
+        const historyToUse = historyOverride || chatHistory;
+
         try {
             // Call Chat Service (using sendChatMessage to leverage Master Framework)
             // sendChatMessage(message, history, documentContent, provider, signal)
             const aiResponse = await sendChatMessage(
                 userMessage,
-                chatHistory.map(m => ({ role: m.role, content: m.content })), // Map to role/content for AI
+                historyToUse.map(m => ({ role: m.role, content: m.content })), // Map to role/content for AI
                 context,     // The essay content
                 selectedModel, // Provider
                 controller.signal // Signal
@@ -853,8 +856,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         setEditingMessageIndex(null);
         setEditingMessageText("");
 
-        // 3. Trigger new submit with the updated text
-        handleChatSubmit(newText);
+        // 3. Trigger new submit with the updated text and TRUNCATED history
+        handleChatSubmit(newText, newHistory);
     };
 
     const handleKeyDown = (e) => {

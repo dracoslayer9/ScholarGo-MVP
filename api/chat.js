@@ -117,7 +117,9 @@ ${matchedEssays[0].anonymized_content}
             When asked for recommendations (e.g., universities, programs, or institutions), your default scope MUST always be **GLOBAL** (worldwide). Do not restrict your answers to the user's local region or country (e.g., Indonesia) unless the user specifically and explicitly requests it.
             
             Document Content:
-            "${documentContent}"
+            ---
+            ${documentContent || '(Empty)'}
+            ---
             ${ragContext}
             `;
         } else {
@@ -180,7 +182,9 @@ ${matchedEssays[0].anonymized_content}
             3. If the user asks for a review/feedback on a draft, provide ONLY the critique based on the 3 Pillars and Framework Phases. DO NOT add extra unrelated sections.
 
             **Document Content**:
-            "${documentContent}"
+            ---
+            ${documentContent || '(Empty)'}
+            ---
             ${ragContext}
             `;
         }
