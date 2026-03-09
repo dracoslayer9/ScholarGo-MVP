@@ -94,7 +94,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Sync essayContent to current version when typing
     useEffect(() => {
-        setVersions(prev => prev.map(v => v.id === currentVersionId ? { ...v, content: essayContent } : v));
+        // HACK: Use loose equality (==) because currentVersionId can be a string from DB
+        setVersions(prev => prev.map(v => v.id == currentVersionId ? { ...v, content: essayContent } : v));
     }, [essayContent]);
 
 
@@ -241,7 +242,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                 // Correctly save versions and content separately from AI context
                 updateChatPayload(currentChatIdRef.current, {
                     essayContent: contentToSave,
-                    versions: versionsRef.current.map(v => v.id === currentVersionIdRef.current ? { ...v, content: contentToSave } : v),
+                    versions: versionsRef.current.map(v => String(v.id) === String(currentVersionIdRef.current) ? { ...v, content: contentToSave } : v),
                     currentVersionId: currentVersionIdRef.current
                 }).catch(console.error);
             }
@@ -250,7 +251,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Sync essayContent AND Tiptap editor from current version when version changes
     useEffect(() => {
-        const currentVersion = versions.find(v => v.id === currentVersionId);
+        const currentVersion = versions.find(v => String(v.id) === String(currentVersionId));
         if (currentVersion && editor) {
             // Update the React state first
             setEssayContent(currentVersion.content);
@@ -305,7 +306,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                         // Fire network request
                         await updateChatPayload(activeId, {
                             essayContent: currentEssay,
-                            versions: versions.map(v => v.id === currentVersionId ? { ...v, content: currentEssay } : v),
+                            versions: versions.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: currentEssay } : v),
                             currentVersionId
                         });
                     } catch (err) {
@@ -322,7 +323,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                         setSavedChats(prev => [newBlankChat, ...prev]);
                         await updateChatPayload(newBlankChat.id, {
                             essayContent: currentEssay,
-                            versions: versions.map(v => v.id === currentVersionId ? { ...v, content: currentEssay } : v),
+                            versions: versions.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: currentEssay } : v),
                             currentVersionId
                         });
                         setEssayTitle("Untitled Essay");
@@ -383,8 +384,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // --- Version Helpers ---
     const handleCreateVersion = () => {
         const newId = versions.length > 0 ? Math.max(...versions.map(v => v.id)) + 1 : 1;
-        // User said: "Jika versi 2 kosong, display kosong". 
-        // We'll create it with empty content if the user wants to start fresh, 
+        // User said: "Jika versi 2 kosong, display kosong".
+        // We'll create it with empty content if the user wants to start fresh,
         // or copy current content? The user said "jika versi 2 kosong display kosong".
         // Let's make it start fresh (empty) to satisfy the "display kosong" requirement.
         const newVersion = { id: newId, content: '', title: `Version ${newId}` };
@@ -696,6 +697,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         }).join('\n\n---\n\n');
 
         const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n${versionsContext}` : versionsContext;
+        console.log("Context sent to AI:", context); // Added console log
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
         const displayMessage = { role: 'user', content: baseUserMessage };
@@ -732,7 +734,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         // 2. SAVE USER MESSAGE
         if (activeChatId) {
-            // saveMessage(activeChatId, 'user', baseUserMessage).catch(err => console.error("Save Msg Error:", err)); 
+            // saveMessage(activeChatId, 'user', baseUserMessage).catch(err => console.error("Save Msg Error:", err));
             // ^ Moved up to get ID/timestamp
 
             if (chatHistory.length === 0) {
@@ -752,7 +754,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             // CRITICAL: Save the actual essay content and versions, NOT the AI context string
             updateChatPayload(activeChatId, {
                 essayContent: currentEssay,
-                versions: versions.map(v => v.id === currentVersionId ? { ...v, content: currentEssay } : v),
+                versions: versions.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: currentEssay } : v),
                 currentVersionId
             }).catch(err => console.error("Payload Save Error:", err));
         }
@@ -951,7 +953,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 // CRITICAL: Save Essay Content to Payload
                 await updateChatPayload(activeChatId, {
                     essayContent: essayContent,
-                    versions: versions.map(v => v.id === currentVersionId ? { ...v, content: essayContent } : v),
+                    versions: versions.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: essayContent } : v),
                     currentVersionId
                 });
 
@@ -996,7 +998,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             if ((previousEssay.trim() || chatHistory.length > 0) && previousChatId) {
                 updateChatPayload(previousChatId, {
                     essayContent: previousEssay,
-                    versions: versions.map(v => v.id === currentVersionId ? { ...v, content: previousEssay } : v),
+                    versions: versions.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: previousEssay } : v),
                     currentVersionId
                 }).catch(err => console.error(err));
                 setSavedChats(prev => prev.map(c => c.id === previousChatId ? {
@@ -1108,7 +1110,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             if (currentChatId && (activeEssay.trim() || chatHistory.length > 0)) {
                 const payloadToSave = {
                     essayContent: activeEssay,
-                    versions: versions.map(v => v.id === currentVersionId ? { ...v, content: activeEssay } : v),
+                    versions: versions.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: activeEssay } : v),
                     currentVersionId
                 };
                 updateChatPayload(currentChatId, payloadToSave).catch(console.error);
@@ -1129,11 +1131,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             if (session.payload && session.payload.versions && Array.isArray(session.payload.versions)) {
                 // RESTORE VERSIONS
                 setVersions(session.payload.versions);
-                const restoredVersionId = session.payload.currentVersionId || 1;
+                // Ensure restored ID is cast correctly if it's a number-like string
+                const restoredVersionIdRaw = session.payload.currentVersionId || 1;
+                const restoredVersionId = isNaN(Number(restoredVersionIdRaw)) ? restoredVersionIdRaw : Number(restoredVersionIdRaw);
                 setCurrentVersionId(restoredVersionId);
 
                 // Find content of that active version
-                const activeVer = session.payload.versions.find(v => v.id === restoredVersionId) || session.payload.versions[0];
+                const activeVer = session.payload.versions.find(v => String(v.id) === String(restoredVersionId)) || session.payload.versions[0];
                 const contentToSet = activeVer.content || '';
                 setEssayContent(contentToSet);
                 if (editor) {
