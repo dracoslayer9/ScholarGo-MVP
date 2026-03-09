@@ -670,8 +670,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${baseUserMessage}`
             : baseUserMessage;
 
-        // precise context: The essay content combined with any uploaded file context
-        const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n[Current Essay Content]\n${currentEssay}` : currentEssay;
+        // Construct context: Include ALL versions clearly labeled so AI can answer about "Version 1" etc.
+        const versionsContext = versions.map(v => {
+            const contentToUse = v.id === currentVersionId ? currentEssay : v.content;
+            return `[${v.title}]\n${contentToUse || '(Empty)'}`;
+        }).join('\n\n---\n\n');
+
+        const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n${versionsContext}` : versionsContext;
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
         const displayMessage = { role: 'user', content: baseUserMessage };
