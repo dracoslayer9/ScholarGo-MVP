@@ -238,7 +238,12 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             const html = editor.getHTML();
             const contentToSave = html === '<p></p>' ? '' : html;
             if (currentChatIdRef.current && contentToSave) {
-                updateChatPayload(currentChatIdRef.current, { essayContent: contentToSave }).catch(console.error);
+                // Correctly save versions and content separately from AI context
+                updateChatPayload(currentChatIdRef.current, {
+                    essayContent: contentToSave,
+                    versions: versionsRef.current.map(v => v.id === currentVersionIdRef.current ? { ...v, content: contentToSave } : v),
+                    currentVersionId: currentVersionIdRef.current
+                }).catch(console.error);
             }
         }
     });
@@ -298,7 +303,11 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                             payload: { ...(c.payload || {}), essayContent: currentEssay }
                         } : c));
                         // Fire network request
-                        await updateChatPayload(activeId, { essayContent: currentEssay });
+                        await updateChatPayload(activeId, {
+                            essayContent: currentEssay,
+                            versions: versions.map(v => v.id === currentVersionId ? { ...v, content: currentEssay } : v),
+                            currentVersionId
+                        });
                     } catch (err) {
                         console.error("Auto-save Error:", err);
                     }
@@ -311,7 +320,11 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
                         // Inject Payload locally to prevent blank wipe on subsequent load
                         newBlankChat.payload = { ...(newBlankChat.payload || {}), essayContent: currentEssay };
                         setSavedChats(prev => [newBlankChat, ...prev]);
-                        await updateChatPayload(newBlankChat.id, { essayContent: currentEssay });
+                        await updateChatPayload(newBlankChat.id, {
+                            essayContent: currentEssay,
+                            versions: versions.map(v => v.id === currentVersionId ? { ...v, content: currentEssay } : v),
+                            currentVersionId
+                        });
                         setEssayTitle("Untitled Essay");
                     } catch (err) {
                         console.error("Auto-create Error:", err);
@@ -735,8 +748,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             }
 
             // AUTO-SAVE ESSAY CONTENT (Persistence)
-            // Every time we chat, we snapshot the essay content to the payload
-            updateChatPayload(activeChatId, { essayContent: context }).catch(err => console.error("Payload Save Error:", err));
+            // CRITICAL: Save the actual essay content and versions, NOT the AI context string
+            updateChatPayload(activeChatId, {
+                essayContent: currentEssay,
+                versions: versions.map(v => v.id === currentVersionId ? { ...v, content: currentEssay } : v),
+                currentVersionId
+            }).catch(err => console.error("Payload Save Error:", err));
         }
 
         // Create AbortController
@@ -929,7 +946,11 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 await updateChatTitle(activeChatId, finalTitle);
 
                 // CRITICAL: Save Essay Content to Payload
-                await updateChatPayload(activeChatId, { essayContent: essayContent });
+                await updateChatPayload(activeChatId, {
+                    essayContent: essayContent,
+                    versions: versions.map(v => v.id === currentVersionId ? { ...v, content: essayContent } : v),
+                    currentVersionId
+                });
 
                 // Update local list without triggering a network fetch race condition
                 setSavedChats(prev => prev.map(c => c.id === activeChatId ? {
@@ -970,7 +991,11 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
             // 4. Safely archive the previous session
             if ((previousEssay.trim() || chatHistory.length > 0) && previousChatId) {
-                updateChatPayload(previousChatId, { essayContent: previousEssay }).catch(err => console.error(err));
+                updateChatPayload(previousChatId, {
+                    essayContent: previousEssay,
+                    versions: versions.map(v => v.id === currentVersionId ? { ...v, content: previousEssay } : v),
+                    currentVersionId
+                }).catch(err => console.error(err));
                 setSavedChats(prev => prev.map(c => c.id === previousChatId ? {
                     ...c,
                     payload: { ...(c.payload || {}), essayContent: previousEssay }
@@ -1078,10 +1103,15 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 activeEssay = html === '<p></p>' ? '' : html;
             }
             if (currentChatId && (activeEssay.trim() || chatHistory.length > 0)) {
-                updateChatPayload(currentChatId, { essayContent: activeEssay }).catch(console.error);
+                const payloadToSave = {
+                    essayContent: activeEssay,
+                    versions: versions.map(v => v.id === currentVersionId ? { ...v, content: activeEssay } : v),
+                    currentVersionId
+                };
+                updateChatPayload(currentChatId, payloadToSave).catch(console.error);
                 setSavedChats(prev => prev.map(c => c.id === currentChatId ? {
                     ...c,
-                    payload: { ...(c.payload || {}), essayContent: activeEssay }
+                    payload: payloadToSave
                 } : c));
             }
 
@@ -1092,16 +1122,33 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             setCurrentChatId(chatId);
             setEssayTitle(session.title.replace("Canvas: ", ""));
 
-            // 2. Restore Target Essay Content from Payload
-            if (session.payload && typeof session.payload.essayContent === 'string') {
+            // 2. Restore Target Essay Content and Versions from Payload
+            if (session.payload && session.payload.versions && Array.isArray(session.payload.versions)) {
+                // RESTORE VERSIONS
+                setVersions(session.payload.versions);
+                const restoredVersionId = session.payload.currentVersionId || 1;
+                setCurrentVersionId(restoredVersionId);
+
+                // Find content of that active version
+                const activeVer = session.payload.versions.find(v => v.id === restoredVersionId) || session.payload.versions[0];
+                const contentToSet = activeVer.content || '';
+                setEssayContent(contentToSet);
+                if (editor) {
+                    editor.commands.setContent(contentToSet);
+                }
+            } else if (session.payload && typeof session.payload.essayContent === 'string') {
+                // FALLBACK: Older chats without multiple versions
                 setEssayContent(session.payload.essayContent);
+                setVersions([{ id: 1, content: session.payload.essayContent, title: 'Version 1' }]);
+                setCurrentVersionId(1);
                 if (editor) {
                     editor.commands.setContent(session.payload.essayContent);
                 }
             } else {
-                // If it's explicitly broken, don't wipe it completely if we already have text,
-                // just safely set it to empty. 
+                // If it's explicitly broken
                 setEssayContent('');
+                setVersions([{ id: 1, content: '', title: 'Version 1' }]);
+                setCurrentVersionId(1);
                 if (editor) {
                     editor.commands.setContent('');
                 }
