@@ -94,9 +94,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Sync essayContent to current version when typing
     useEffect(() => {
-        // HACK: Use loose equality (==) because currentVersionId can be a string from DB
-        setVersions(prev => prev.map(v => v.id == currentVersionId ? { ...v, content: essayContent } : v));
-    }, [essayContent]);
+        if (!currentVersionId) return;
+        setVersions(prev => prev.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: essayContent } : v));
+    }, [essayContent, currentVersionId]);
 
 
 
@@ -233,11 +233,10 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         },
         onUpdate: ({ editor }) => {
             const html = editor.getHTML();
-            if (html !== '<p></p>') {
-                setEssayContent(html);
-            } else {
-                setEssayContent('');
-            }
+            // Robust check for empty content
+            const isEmpty = html === '<p></p>' || html === '<p><br></p>' || !html;
+            const contentToSet = isEmpty ? '' : html;
+            setEssayContent(contentToSet);
         },
         onBlur: ({ editor }) => {
             // Eagerly snap the content state when clicking outside the editor
@@ -682,7 +681,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         let currentEssay = essayContent;
         if (editor) {
             const html = editor.getHTML();
-            currentEssay = html === '<p></p>' ? '' : html;
+            const isEmpty = html === '<p></p>' || html === '<p><br></p>' || !html;
+            currentEssay = isEmpty ? '' : html;
         }
 
         if ((!inputToUse.trim() && !currentEssay.trim() && !fileContext) || isAnalyzing) return;
@@ -705,14 +705,18 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             : baseUserMessage;
 
         // Construct context: Include ALL versions clearly labeled so AI can answer about "Version 1" etc.
-        const versionsContext = versions.map(v => {
-            // Use loose equality (==) or Number() as currentVersionId might be a string from DB
+        let versionsContext = versions.map(v => {
             const contentToUse = String(v.id) === String(currentVersionId) ? currentEssay : v.content;
             return `[${v.title}]\n${contentToUse || '(Empty)'}`;
         }).join('\n\n---\n\n');
 
+        // DEFENSIVE: Fallback if everything is empty but we have an editor
+        if (!versionsContext.trim() && currentEssay.trim()) {
+            versionsContext = `[Current Draft]\n${currentEssay}`;
+        }
+
         const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n${versionsContext}` : versionsContext;
-        console.log("Context sent to AI:", context); // Added console log
+        console.log("Context sent to AI:", context);
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
         const displayMessage = { role: 'user', content: baseUserMessage };
