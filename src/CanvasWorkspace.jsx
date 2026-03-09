@@ -60,7 +60,7 @@ import {
     MoveVertical
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis } from './services/analysis';
-import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat } from './services/chatService';
+import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat, deleteMessagesAfter } from './services/chatService';
 import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
 import { extractTextFromFile } from './utils/fileUtils';
@@ -131,6 +131,10 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
     const modelMenuRef = useRef(null);
     const [selectedModel, setSelectedModel] = useState('auto'); // 'auto', 'openai', or 'perplexity'
+
+    // Message Editing State
+    const [editingMessageIndex, setEditingMessageIndex] = useState(null);
+    const [editingMessageText, setEditingMessageText] = useState('');
 
     const [fileUrl, setFileUrl] = useState(initialFileUrl || null);
     const [fileType, setFileType] = useState(initialFileType || null);
@@ -440,7 +444,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
         // Add a "dummy" message to show intent in history
         const actionVerb = isAwardee ? "Dissect" : "Analyze";
-        const userMsg = { role: 'user', content: `${actionVerb} this document completely.` };
+        const userMsg = { role: 'user', content: `${actionVerb} this document completely.`, created_at: new Date().toISOString() };
         setChatHistory(prev => [...prev, userMsg]);
 
         // Preserve file info for preview modal before clearing attachment indicator
@@ -504,7 +508,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 }]);
 
                 if (currentChatIdRef.current) {
-                    saveMessage(currentChatIdRef.current, 'assistant', markdownResponse, { ...result, detectedType }).catch(err => console.error("Save Msg Error:", err));
+                    saveMessage(currentChatIdRef.current, 'assistant', markdownResponse, { ...result, detectedType })
+                        .then(saved => {
+                            if (saved) {
+                                setChatHistory(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, created_at: saved.created_at } : m));
+                            }
+                        })
+                        .catch(err => console.error("Save Msg Error:", err));
                 }
             }
         } catch (error) {
@@ -564,8 +574,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         setChatHistory(prev => [
             ...prev,
-            { role: 'user', content: userMessage },
-            { role: 'assistant', content: assistantMessage }
+            { role: 'user', content: userMessage, created_at: new Date().toISOString() },
+            { role: 'assistant', content: assistantMessage, created_at: new Date().toISOString() }
         ]);
         if (!isChatOpen) setIsChatOpen(true);
 
@@ -679,7 +689,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n${versionsContext}` : versionsContext;
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
-        const displayMessage = { role: 'user', content: baseUserMessage };
+        const displayMessage = { role: 'user', content: baseUserMessage, created_at: new Date().toISOString() };
         setChatHistory(prev => [...prev, displayMessage]);
         setChatInput('');
         setIsAnalyzing(true);
@@ -702,7 +712,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         // 2. SAVE USER MESSAGE
         if (activeChatId) {
-            saveMessage(activeChatId, 'user', baseUserMessage).catch(err => console.error("Save Msg Error:", err));
+            saveMessage(activeChatId, 'user', baseUserMessage)
+                .then(saved => {
+                    if (saved) {
+                        setChatHistory(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, created_at: saved.created_at } : m));
+                    }
+                })
+                .catch(err => console.error("Save Msg Error:", err));
 
             if (chatHistory.length === 0) {
                 // Background async task so UI unblocks instantly
@@ -739,12 +755,19 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
             setChatHistory(prev => [...prev, {
                 role: 'assistant',
-                content: aiResponse
+                content: aiResponse,
+                created_at: new Date().toISOString()
             }]);
 
             // 3. SAVE AI MESSAGE
             if (activeChatId) {
-                saveMessage(activeChatId, 'assistant', aiResponse).catch(err => console.error("Save Msg Error:", err));
+                saveMessage(activeChatId, 'assistant', aiResponse)
+                    .then(saved => {
+                        if (saved) {
+                            setChatHistory(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, created_at: saved.created_at } : m));
+                        }
+                    })
+                    .catch(err => console.error("Save Msg Error:", err));
             }
 
             // AUTO-OUTLINE FEATURE
@@ -786,6 +809,38 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             setIsAnalyzing(false);
             abortControllerRef.current = null;
         }
+    };
+
+    const handleEditMessage = (idx) => {
+        setEditingMessageIndex(idx);
+        setEditingMessageText(chatHistory[idx].content);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingMessageIndex(null);
+        setEditingMessageText('');
+    };
+
+    const handleSaveEdit = async (idx, newText) => {
+        if (!newText.trim()) return;
+
+        const messageToEdit = chatHistory[idx];
+
+        // 1. Database Cleanup: Delete everything after the edited message
+        if (currentChatIdRef.current && messageToEdit.created_at) {
+            deleteMessagesAfter(currentChatIdRef.current, messageToEdit.created_at).catch(console.error);
+        }
+
+        // 2. Update history: Truncate everything after this message to "re-roll" the conversation
+        const updatedHistory = chatHistory.slice(0, idx);
+
+        // 3. Clear state
+        setEditingMessageIndex(null);
+        setEditingMessageText('');
+        setChatHistory(updatedHistory);
+
+        // 4. Trigger new submit with updated text
+        handleChatSubmit(newText);
     };
 
     const handleKeyDown = (e) => {
@@ -1060,7 +1115,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             setChatHistory(messages.map(m => ({
                 role: m.role,
                 content: m.content,
-                analysisData: m.payload // Restore analysis metadata
+                created_at: m.created_at,
+                analysisData: m.payload?.analysisData // Preserving analysisData if present
             })));
 
             // Close Sidebar on mobile (optional)
@@ -1501,6 +1557,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                     onOpenFile={() => setShowDocumentPreview(true)}
                                     onLineClick={handleLineClick}
                                     onReferenceClick={handleReferenceClick}
+                                    onEdit={handleEditMessage}
+                                    editingIndex={editingMessageIndex}
+                                    editingText={editingMessageText}
+                                    setEditingText={setEditingMessageText}
+                                    onSaveEdit={handleSaveEdit}
+                                    onCancelEdit={handleCancelEdit}
                                 />
                             );
                         })()}

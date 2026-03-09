@@ -162,3 +162,21 @@ export const updateChatPayload = async (chatId, payload) => {
         console.error("Error updating chat payload:", error);
     }
 };
+/**
+ * Deletes all messages in a session that were created after a specific message.
+ * @param {string} sessionId 
+ * @param {string} afterTimestamp - ISO string of the message creation time.
+ */
+export const deleteMessagesAfter = async (sessionId, afterTimestamp) => {
+    try {
+        const { error } = await supabase
+            .from('chat_messages')
+            .delete()
+            .eq('session_id', sessionId)
+            .gt('created_at', afterTimestamp);
+
+        if (error) throw error;
+    } catch (error) {
+        console.error("Error deleting subsequent messages:", error);
+    }
+};
