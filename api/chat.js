@@ -181,10 +181,13 @@ ${matchedEssays[0].anonymized_content}
             2. **DO NOT invent examples** that stray far from the user's text unless explaining a specific writing tactic.
             3. If the user asks for a review/feedback on a draft, provide ONLY the critique based on the 3 Pillars and Framework Phases. DO NOT add extra unrelated sections.
 
-            **Document Content**:
+            **Document Content (THE SOURCE OF TRUTH)**:
             ---
-            ${documentContent || '(Empty)'}
+            ${documentContent || '(Empty document provided. Please ask the user to provide their draft.)'}
             ---
+            
+            **CRITICAL**: If the Document Content above is NOT empty, you MUST focus your primary analysis on it. If it IS empty, you MUST ask the user to provide their essay draft/paragraph before you can give specific feedback.
+            
             ${ragContext}
             `;
         }

@@ -181,10 +181,12 @@ export const sendChatMessage = async (
         (and so on).
         Do not deviate from this structure for outlines.
 
-        Document Content:
+        Document Content (THE SOURCE OF TRUTH):
         ---
-        ${documentContent || '(Empty)'}
+        ${documentContent || '(Empty document provided. Please ask the user to share their draft.)'}
         ---
+
+        CRITICAL: If the Document Content above is NOT empty, focus your analysis on it.
         `;
 
         // PATTERN COMMAND INTERCEPT

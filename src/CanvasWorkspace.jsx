@@ -677,12 +677,15 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             inputToUse = "Gunakan Master Framework untuk review esai saya ini secara mendalam dan berikan saran strategis.";
         }
 
-        // 1. HARDEN: Capture current context securely from Tiptap source of truth
-        let currentEssay = essayContent;
+        // 1. NUCLEAR FIX: Capture context directly from Tiptap instance (source of truth)
+        let currentEssay = '';
         if (editor) {
             const html = editor.getHTML();
-            const isEmpty = html === '<p></p>' || html === '<p><br></p>' || !html;
+            // Detect all variants of empty paragraph
+            const isEmpty = !html || html === '<p></p>' || html === '<p><br></p>' || html === '<p> </p>';
             currentEssay = isEmpty ? '' : html;
+        } else {
+            currentEssay = essayContent; // Fallback to state
         }
 
         if ((!inputToUse.trim() && !currentEssay.trim() && !fileContext) || isAnalyzing) return;
@@ -699,20 +702,26 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         }
 
         const baseUserMessage = inputToUse.trim() || "Analyze this essay";
-        // Apply Research Mode prompt wrapping if active (Neutralized per user request)
-        const userMessage = isResearchMode
-            ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${baseUserMessage}`
-            : baseUserMessage;
 
-        // Construct context: Include ALL versions clearly labeled so AI can answer about "Version 1" etc.
+        // 2. FORCED ATTENTION: If user asks for a review, inject a reminder and context into the user prompt itself
+        let augmentedUserMessage = baseUserMessage;
+        if (cleanInput.includes('review') || cleanInput.includes('reviu') || cleanInput.includes('periksa') || cleanInput.includes('evaluasi')) {
+            augmentedUserMessage = `[CRITICAL CONTEXT: PLEASE REVIEW THE DOCUMENT BELOW]\n\nUSER QUESTION: ${baseUserMessage}\n\nDOCUMENT TO REVIEW:\n${currentEssay || '(Empty)'}`;
+        }
+
+        const userMessage = isResearchMode
+            ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${augmentedUserMessage}`
+            : augmentedUserMessage;
+
+        // Construct context: Include ALL versions clearly labeled
         let versionsContext = versions.map(v => {
             const contentToUse = String(v.id) === String(currentVersionId) ? currentEssay : v.content;
-            return `[${v.title}]\n${contentToUse || '(Empty)'}`;
+            return `### [${v.title}]\n${contentToUse || '(Draft Empty)'}`;
         }).join('\n\n---\n\n');
 
-        // DEFENSIVE: Fallback if everything is empty but we have an editor
+        // DEFENSIVE: Fallback if everything is empty but we have a direct capture
         if (!versionsContext.trim() && currentEssay.trim()) {
-            versionsContext = `[Current Draft]\n${currentEssay}`;
+            versionsContext = `### [Current Draft]\n${currentEssay}`;
         }
 
         const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n${versionsContext}` : versionsContext;
@@ -735,7 +744,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         setChatHistory(prev => [...prev, finalUserMessage]);
         setChatInput('');
         setIsAnalyzing(true);
-        if (!isChatOpen) setIsChatOpen(true); // Auto-open chat when submitting
+        if (!isChatOpen) setIsChatOpen(true);
 
         // 1. LAZY CREATE CHAT SESSION
         if (!activeChatId && user) {

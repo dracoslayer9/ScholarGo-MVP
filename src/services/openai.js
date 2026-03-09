@@ -278,14 +278,8 @@ export const sendChatMessage = async (
                 sanitizedHistory.shift(); // Drop an orphaned assistant message at the start
             }
 
-            // 4. Ensure the sequence ends with 'user'
             if (sanitizedHistory.length > 0 && sanitizedHistory[sanitizedHistory.length - 1].role !== 'user') {
-                // Rather than dropping the assistant's previous answer, append a dummy user continuation 
-                // if absolutely necessary, but usually the last appended thing is the new `message` anyway.
-                // This is a safety catch.
-                if (msg.role !== 'user') {
-                    sanitizedHistory.push({ role: 'user', content: 'Continue' });
-                }
+                sanitizedHistory.push({ role: 'user', content: 'Please continue based on the document provided.' });
             }
 
             const messages = [
