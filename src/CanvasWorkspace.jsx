@@ -92,24 +92,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isVersionMenuOpen, setIsVersionMenuOpen] = useState(false);
     const versionMenuRef = useRef(null);
 
-    // Sync essayContent AND Tiptap editor from current version when version changes
-    useEffect(() => {
-        const currentVersion = versions.find(v => v.id === currentVersionId);
-        if (currentVersion && editor) {
-            // Update the React state first
-            setEssayContent(currentVersion.content);
-
-            // Only update Tiptap if the content is different to avoid cursor reset
-            const currentEditorHTML = editor.getHTML();
-            const versionHTML = currentVersion.content || '';
-
-            if (currentEditorHTML !== versionHTML) {
-                // Safety check: if currentVersion.content is empty/null, set it to empty string or <p></p>
-                editor.commands.setContent(versionHTML || '');
-            }
-        }
-    }, [currentVersionId, editor]); // Add editor to dependency array
-
     // Sync essayContent to current version when typing
     useEffect(() => {
         setVersions(prev => prev.map(v => v.id === currentVersionId ? { ...v, content: essayContent } : v));
@@ -256,6 +238,24 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             }
         }
     });
+
+    // Sync essayContent AND Tiptap editor from current version when version changes
+    useEffect(() => {
+        const currentVersion = versions.find(v => v.id === currentVersionId);
+        if (currentVersion && editor) {
+            // Update the React state first
+            setEssayContent(currentVersion.content);
+
+            // Only update Tiptap if the content is different to avoid cursor reset
+            const currentEditorHTML = editor.getHTML();
+            const versionHTML = currentVersion.content || '';
+
+            if (currentEditorHTML !== versionHTML) {
+                // Safety check: if currentVersion.content is empty/null, set it to empty string or <p></p>
+                editor.commands.setContent(versionHTML || '');
+            }
+        }
+    }, [currentVersionId, editor]); // Add editor to dependency array
 
     // Sync line spacing dynamically using inline styles
     useEffect(() => {
