@@ -640,6 +640,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         // Auth Check
         if (onRequireAuth && onRequireAuth()) return;
 
+        let activeChatId = currentChatId;
         let inputToUse = typeof overrideMessage === 'string' ? overrideMessage : chatInput;
 
         // Command Intercept: Detect manual "Review" or "Reviu"
@@ -702,7 +703,6 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         if (!isChatOpen) setIsChatOpen(true); // Auto-open chat when submitting
 
         // 1. LAZY CREATE CHAT SESSION
-        let activeChatId = currentChatId;
         if (!activeChatId && user) {
             try {
                 // Create Session for first message
