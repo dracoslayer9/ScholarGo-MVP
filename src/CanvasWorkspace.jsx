@@ -132,10 +132,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const modelMenuRef = useRef(null);
     const [selectedModel, setSelectedModel] = useState('auto'); // 'auto', 'openai', or 'perplexity'
 
-    // Message Editing State
-    const [editingMessageIndex, setEditingMessageIndex] = useState(null);
-    const [editingMessageText, setEditingMessageText] = useState('');
-
     const [fileUrl, setFileUrl] = useState(initialFileUrl || null);
     const [fileType, setFileType] = useState(initialFileType || null);
     const [fileName, setFileName] = useState(initialFileName || '');
@@ -189,6 +185,10 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // Subscription State
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [upgradeFeature, setUpgradeFeature] = useState('');
+
+    // Chat Editing State
+    const [editingMessageIndex, setEditingMessageIndex] = useState(null);
+    const [editingMessageText, setEditingMessageText] = useState("");
 
     // Refs
     // const textareaRef = useRef(null); // Deprecated by Tiptap
@@ -444,7 +444,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
         // Add a "dummy" message to show intent in history
         const actionVerb = isAwardee ? "Dissect" : "Analyze";
-        const userMsg = { role: 'user', content: `${actionVerb} this document completely.`, created_at: new Date().toISOString() };
+        const userMsg = { role: 'user', content: `${actionVerb} this document completely.` };
         setChatHistory(prev => [...prev, userMsg]);
 
         // Preserve file info for preview modal before clearing attachment indicator
@@ -508,13 +508,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 }]);
 
                 if (currentChatIdRef.current) {
-                    saveMessage(currentChatIdRef.current, 'assistant', markdownResponse, { ...result, detectedType })
-                        .then(saved => {
-                            if (saved) {
-                                setChatHistory(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, created_at: saved.created_at } : m));
-                            }
-                        })
-                        .catch(err => console.error("Save Msg Error:", err));
+                    saveMessage(currentChatIdRef.current, 'assistant', markdownResponse, { ...result, detectedType }).catch(err => console.error("Save Msg Error:", err));
                 }
             }
         } catch (error) {
@@ -574,8 +568,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         setChatHistory(prev => [
             ...prev,
-            { role: 'user', content: userMessage, created_at: new Date().toISOString() },
-            { role: 'assistant', content: assistantMessage, created_at: new Date().toISOString() }
+            { role: 'user', content: userMessage },
+            { role: 'assistant', content: assistantMessage }
         ]);
         if (!isChatOpen) setIsChatOpen(true);
 
@@ -689,8 +683,20 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n${versionsContext}` : versionsContext;
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
-        const displayMessage = { role: 'user', content: baseUserMessage, created_at: new Date().toISOString() };
-        setChatHistory(prev => [...prev, displayMessage]);
+        const displayMessage = { role: 'user', content: baseUserMessage };
+        let finalUserMessage = displayMessage;
+
+        // 2. SAVE USER MESSAGE EARLY if session exists
+        if (activeChatId) {
+            try {
+                const saved = await saveMessage(activeChatId, 'user', baseUserMessage);
+                if (saved) finalUserMessage = saved;
+            } catch (err) {
+                console.error("Save Msg Error:", err);
+            }
+        }
+
+        setChatHistory(prev => [...prev, finalUserMessage]);
         setChatInput('');
         setIsAnalyzing(true);
         if (!isChatOpen) setIsChatOpen(true); // Auto-open chat when submitting
@@ -712,13 +718,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         // 2. SAVE USER MESSAGE
         if (activeChatId) {
-            saveMessage(activeChatId, 'user', baseUserMessage)
-                .then(saved => {
-                    if (saved) {
-                        setChatHistory(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, created_at: saved.created_at } : m));
-                    }
-                })
-                .catch(err => console.error("Save Msg Error:", err));
+            // saveMessage(activeChatId, 'user', baseUserMessage).catch(err => console.error("Save Msg Error:", err)); 
+            // ^ Moved up to get ID/timestamp
 
             if (chatHistory.length === 0) {
                 // Background async task so UI unblocks instantly
@@ -747,27 +748,20 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             // sendChatMessage(message, history, documentContent, provider, signal)
             const aiResponse = await sendChatMessage(
                 userMessage,
-                chatHistory, // Pass history for context
+                chatHistory.map(m => ({ role: m.role, content: m.content })), // Map to role/content for AI
                 context,     // The essay content
                 selectedModel, // Provider
                 controller.signal // Signal
             );
 
-            setChatHistory(prev => [...prev, {
-                role: 'assistant',
-                content: aiResponse,
-                created_at: new Date().toISOString()
-            }]);
-
-            // 3. SAVE AI MESSAGE
             if (activeChatId) {
-                saveMessage(activeChatId, 'assistant', aiResponse)
-                    .then(saved => {
-                        if (saved) {
-                            setChatHistory(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, created_at: saved.created_at } : m));
-                        }
-                    })
-                    .catch(err => console.error("Save Msg Error:", err));
+                const savedAi = await saveMessage(activeChatId, 'assistant', aiResponse);
+                setChatHistory(prev => [...prev, savedAi || { role: 'assistant', content: aiResponse }]);
+            } else {
+                setChatHistory(prev => [...prev, {
+                    role: 'assistant',
+                    content: aiResponse
+                }]);
             }
 
             // AUTO-OUTLINE FEATURE
@@ -811,35 +805,38 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         }
     };
 
-    const handleEditMessage = (idx) => {
-        setEditingMessageIndex(idx);
-        setEditingMessageText(chatHistory[idx].content);
+    // --- Message Editing Handlers ---
+    const handleEditMessage = (index) => {
+        setEditingMessageIndex(index);
+        setEditingMessageText(chatHistory[index].content);
     };
 
     const handleCancelEdit = () => {
         setEditingMessageIndex(null);
-        setEditingMessageText('');
+        setEditingMessageText("");
     };
 
-    const handleSaveEdit = async (idx, newText) => {
+    const handleSaveEdit = async (index, newText) => {
         if (!newText.trim()) return;
 
-        const messageToEdit = chatHistory[idx];
+        const targetMessage = chatHistory[index];
 
-        // 1. Database Cleanup: Delete everything after the edited message
-        if (currentChatIdRef.current && messageToEdit.created_at) {
-            deleteMessagesAfter(currentChatIdRef.current, messageToEdit.created_at).catch(console.error);
+        // 1. Truncate database if session active
+        if (currentChatId && targetMessage.created_at) {
+            try {
+                await deleteMessagesAfter(currentChatId, targetMessage.created_at);
+            } catch (err) {
+                console.error("Failed to truncate DB history:", err);
+            }
         }
 
-        // 2. Update history: Truncate everything after this message to "re-roll" the conversation
-        const updatedHistory = chatHistory.slice(0, idx);
-
-        // 3. Clear state
+        // 2. Truncate history after the edited message in UI
+        const newHistory = chatHistory.slice(0, index);
+        setChatHistory(newHistory);
         setEditingMessageIndex(null);
-        setEditingMessageText('');
-        setChatHistory(updatedHistory);
+        setEditingMessageText("");
 
-        // 4. Trigger new submit with updated text
+        // 3. Trigger new submit with the updated text
         handleChatSubmit(newText);
     };
 
@@ -1112,12 +1109,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
             // 3. Load Messages
             const messages = await getChatMessages(chatId);
-            setChatHistory(messages.map(m => ({
-                role: m.role,
-                content: m.content,
-                created_at: m.created_at,
-                analysisData: m.payload?.analysisData // Preserving analysisData if present
-            })));
+            setChatHistory(messages); // Store full objects (role, content, payload, created_at, etc)
 
             // Close Sidebar on mobile (optional)
         } catch (err) {
@@ -1561,8 +1553,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                     editingIndex={editingMessageIndex}
                                     editingText={editingMessageText}
                                     setEditingText={setEditingMessageText}
-                                    onSaveEdit={handleSaveEdit}
-                                    onCancelEdit={handleCancelEdit}
+                                    onSave={handleSaveEdit}
+                                    onCancel={handleCancelEdit}
                                 />
                             );
                         })()}
