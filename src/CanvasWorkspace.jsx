@@ -762,10 +762,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
                 setComments(prev => [...prev, newComment]);
 
-                // Permanent highlight for active comments
-                editor.commands.setHighlight({
-                    color: actionType === 'polish' ? '#dcfce7' : '#fee2e2'
-                }); // Green for polish, red for grammar
+                // Highlight will use the blue underline style from index.css
+                editor.commands.setHighlight();
             } else {
                 // Clear highlight if no errors
                 editor.commands.unsetHighlight();
@@ -1667,7 +1665,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                     className="absolute z-50 flex flex-col gap-1 p-1 bg-white border border-gray-200 shadow-xl rounded-xl transition-all duration-200 ease-out animate-in fade-in zoom-in-95 overflow-hidden"
                                     style={{
                                         top: `${menuPosition.top}px`,
-                                        right: '-65px', // Move further from canvas
+                                        right: isChatOpen ? '-30px' : '-65px', // Shift closer if chat is open
                                         transform: 'translateY(-50%)'
                                     }}
                                 >
@@ -1693,45 +1691,56 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                 </div>
                             )}
 
-                            {/* Comments Side Panel (Floating Cards) - Positioned further right */}
+                            {/* Comments Side Panel (Floating Cards) - Positioned with collision avoidance */}
                             {comments.length > 0 && (
-                                <div className="absolute top-0 right-[-360px] w-72 flex flex-col gap-4 py-4 animate-fadeIn pointer-events-auto">
+                                <div
+                                    className="absolute top-0 w-72 flex flex-col gap-4 py-4 animate-fadeIn pointer-events-auto transition-all duration-300"
+                                    style={{
+                                        right: isChatOpen ? '-300px' : '-360px', // Shift left when chat is open
+                                        zIndex: 40
+                                    }}
+                                >
                                     {comments.map(comment => (
                                         <div
                                             key={comment.id}
-                                            className={`p-4 bg-white border shadow-lg rounded-xl transition-all hover:shadow-xl animate-slideInRight border-blue-100 bg-blue-50/5`}
+                                            className="p-5 bg-white border border-gray-100 shadow-xl rounded-2xl transition-all hover:shadow-2xl animate-slideInRight"
                                         >
-                                            <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-2">
-                                                    {comment.type === 'polish' ? <Sparkles size={14} className="text-blue-600" /> : <Languages size={14} className="text-blue-600" />}
+                                                    {comment.type === 'polish' ? <Sparkles size={14} className="text-blue-500" /> : <Languages size={14} className="text-blue-500" />}
                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                                                         AI {comment.type === 'polish' ? 'Polish' : 'Grammar'}
                                                     </span>
                                                 </div>
                                                 <button
                                                     onClick={() => handleDismissComment(comment.id)}
-                                                    className="p-1 hover:bg-gray-100 rounded-full text-gray-400"
+                                                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
                                                 >
-                                                    <X size={12} />
+                                                    <X size={14} />
                                                 </button>
                                             </div>
 
-                                            <p className="text-[10px] text-gray-400 italic mb-3 line-clamp-1">Selection: "{comment.original}"</p>
+                                            <p className="text-[10px] text-gray-400 italic mb-3 line-clamp-1 opacity-60">Selection: "{comment.original}"</p>
 
-                                            <div className="p-3 bg-white border-2 border-blue-500 rounded-full mb-4 shadow-sm">
-                                                <p className="text-sm text-oxford-blue leading-relaxed text-center font-medium">{comment.suggestion}</p>
+                                            {/* Scrollable Suggestion Area */}
+                                            <div className="max-h-[200px] overflow-y-auto custom-scrollbar-mini px-1 mb-4">
+                                                <div className="p-4 bg-white border border-blue-100 rounded-2xl shadow-inner-sm">
+                                                    <p className="text-sm text-oxford-blue leading-relaxed font-medium">
+                                                        {comment.suggestion}
+                                                    </p>
+                                                </div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
                                                 <button
                                                     onClick={() => handleDismissComment(comment.id)}
-                                                    className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-blue-600 border border-gray-300 hover:bg-gray-50 transition-all"
+                                                    className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-transparent"
                                                 >
                                                     Ok
                                                 </button>
                                                 <button
                                                     onClick={() => handleApplySuggestion(comment.id)}
-                                                    className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-blue-600 border border-gray-300 hover:bg-blue-50 transition-all"
+                                                    className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-200"
                                                 >
                                                     Replace
                                                 </button>
