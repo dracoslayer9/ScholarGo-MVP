@@ -786,6 +786,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 status: isCorrect ? 'correct' : 'suggested',
                 from,
                 to,
+                topOffset: menuPosition.top, // Store current selection offset
                 createdAt: new Date().toISOString()
             };
 
@@ -1743,19 +1744,23 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                 </div>
                             )}
 
-                            {/* Comments Side Panel (Floating Cards) - Positioned with collision avoidance */}
+                            {/* Comments Side Panel - Individual Absolute Positioning */}
                             {comments.length > 0 && (
                                 <div
-                                    className="absolute top-12 w-72 flex flex-col gap-4 py-4 animate-fadeIn pointer-events-auto transition-all duration-300"
+                                    className="absolute top-0 w-80 pointer-events-none transition-all duration-300 h-full"
                                     style={{
-                                        right: isChatOpen ? '-300px' : '-360px', // Shift left when chat is open
+                                        right: isChatOpen ? '-320px' : '-380px', // Shift left when chat is open
                                         zIndex: 40
                                     }}
                                 >
                                     {comments.map(comment => (
                                         <div
                                             key={comment.id}
-                                            className="p-5 bg-white border border-gray-100 shadow-xl rounded-2xl transition-all hover:shadow-2xl animate-slideInRight"
+                                            className="absolute w-full p-5 bg-white border border-gray-100 shadow-xl rounded-2xl transition-all hover:shadow-2xl animate-slideInRight pointer-events-auto"
+                                            style={{
+                                                top: `${comment.topOffset}px`,
+                                                transform: 'translateY(-50%)' // Center card on the selection line
+                                            }}
                                         >
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-2">
