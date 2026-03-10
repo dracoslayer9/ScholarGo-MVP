@@ -6,6 +6,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import { Extension, InputRule } from '@tiptap/core';
 import { Markdown } from 'tiptap-markdown';
+import Highlight from '@tiptap/extension-highlight';
 
 // Define the custom AutoCapitalize Extension to securely enforce capital letters on all devices
 const AutoCapitalize = Extension.create({
@@ -57,7 +58,13 @@ import {
     Share,
     History,
     ChevronUp,
-    MoveVertical
+    MoveVertical,
+    CheckCircle2,
+    MessageSquareMore,
+    AlertCircle,
+    RotateCw,
+    SpellCheck,
+    Languages
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat, deleteMessagesAfter } from './services/chatService';
@@ -141,6 +148,13 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isFileParsing, setIsFileParsing] = useState(false);
     const [showDocumentPreview, setShowDocumentPreview] = useState(false);
 
+    // --- Selection and Comments State ---
+    const [comments, setComments] = useState([]);
+    const [selectionRange, setSelectionRange] = useState(null);
+    const [isFloatingMenuOpen, setIsFloatingMenuOpen] = useState(false);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const [isProcessingAction, setIsProcessingAction] = useState(false);
+
     // Close menu on click outside - MOVED DOWN after all refs are defined
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -222,6 +236,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             TextAlign.configure({
                 types: ['heading', 'paragraph'],
             }),
+            Highlight.configure({
+                multicolor: true,
+            }),
         ],
         content: initialContent || '',
         editorProps: {
@@ -237,6 +254,30 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             const isEmpty = html === '<p></p>' || html === '<p><br></p>' || !html;
             const contentToSet = isEmpty ? '' : html;
             setEssayContent(contentToSet);
+        },
+        onSelectionUpdate: ({ editor }) => {
+            const { selection } = editor.state;
+            const isTextSelected = !selection.empty && editor.isFocused;
+
+            if (isTextSelected) {
+                const { from, to } = selection;
+                setSelectionRange({ from, to });
+
+                // Get absolute position of the selection to place the vertical menu
+                const { view } = editor;
+                const start = view.coordsAtPos(from);
+                const end = view.coordsAtPos(to);
+
+                // Fixed vertical position relative to the editor container
+                const editorRect = view.dom.getBoundingClientRect();
+                const top = start.top - editorRect.top;
+
+                setMenuPosition({ top, left: editorRect.width + 10 }); // 10px to the right of the editor
+                setIsFloatingMenuOpen(true);
+            } else {
+                setIsFloatingMenuOpen(false);
+                setSelectionRange(null);
+            }
         },
         onBlur: ({ editor }) => {
             // Eagerly snap the content state when clicking outside the editor
@@ -662,6 +703,100 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             console.error("LLM Title Error:", e);
             return generateSmartTitle(userMessage); // Fallback
         }
+    };
+
+    // --- Polish & Grammar Actions ---
+    const handlePerformAction = async (actionType) => {
+        if (!editor || !selectionRange || isProcessingAction) return;
+
+        const { from, to } = selectionRange;
+        const selectedText = editor.state.doc.textBetween(from, to, ' ');
+
+        if (!selectedText.trim()) return;
+
+        setIsProcessingAction(true);
+        setIsFloatingMenuOpen(false);
+
+        try {
+            // Get parent paragraph context for logic awareness
+            const { $from } = editor.state.selection;
+            const parentParagraph = $from.parent.textContent;
+
+            // Apply a temporary highlight color while processing
+            editor.commands.setHighlight({ color: '#fef3c7' }); // Lighter yellow
+
+            const prompt = actionType === 'polish'
+                ? `You are an elite academic editor. Polish and professionalize the SELECTED TEXT below. 
+                   Ensure it flows perfectly within its PARENT PARAGRAPH for logical consistency.
+                   Maintain a "Scholarship Standard" (academic yet personal).
+                   RETURN ONLY THE POLISHED VERSION OF THE SELECTED TEXT.
+                   
+                   PARENT PARAGRAPH CONTEXT: "${parentParagraph}"
+                   SELECTED TEXT TO POLISH: "${selectedText}"`
+                : `You are an expert grammarian. Check the SELECTED TEXT below for grammar, spelling, and logical flow within its PARENT PARAGRAPH.
+                   If there are errors or logical inconsistencies, return the corrected version. 
+                   If it is already perfect, return ONLY "No grammar errors found."
+                   RETURN ONLY THE CORRECTED TEXT OR THE NO ERRORS MESSAGE.
+                   
+                   PARENT PARAGRAPH CONTEXT: "${parentParagraph}"
+                   SELECTED TEXT TO CHECK: "${selectedText}"`;
+
+            // Force high-quality model (GPT-4o) for linguistic tasks when 'auto' is selected
+            const modelToUse = (selectedModel === 'auto' || !selectedModel) ? 'gpt-4o' : selectedModel;
+
+            // Use the existing sendChatMessage
+            const response = await sendChatMessage(prompt, [], "", modelToUse);
+
+            const aiResult = typeof response === 'string' ? response : (response.result || response.content);
+
+            if (aiResult && !aiResult.includes("No grammar errors found")) {
+                const newComment = {
+                    id: Date.now(),
+                    original: selectedText,
+                    suggestion: aiResult,
+                    type: actionType,
+                    from,
+                    to,
+                    createdAt: new Date().toISOString()
+                };
+
+                setComments(prev => [...prev, newComment]);
+
+                // Permanent highlight for active comments
+                editor.commands.setHighlight({
+                    color: actionType === 'polish' ? '#dcfce7' : '#fee2e2'
+                }); // Green for polish, red for grammar
+            } else {
+                // Clear highlight if no errors
+                editor.commands.unsetHighlight();
+            }
+
+        } catch (err) {
+            console.error(`Action ${actionType} failed:`, err);
+            editor.commands.unsetHighlight();
+        } finally {
+            setIsProcessingAction(false);
+        }
+    };
+
+    const handleApplySuggestion = (commentId) => {
+        const comment = comments.find(c => c.id === commentId);
+        if (!comment || !editor) return;
+
+        editor.commands.setTextSelection({ from: comment.from, to: comment.to });
+        editor.commands.insertContent(comment.suggestion);
+
+        // Remove the comment after applying
+        setComments(prev => prev.filter(c => c.id !== commentId));
+    };
+
+    const handleDismissComment = (commentId) => {
+        const comment = comments.find(c => c.id === commentId);
+        if (comment && editor) {
+            editor.commands.setTextSelection({ from: comment.from, to: comment.to });
+            editor.commands.unsetHighlight();
+        }
+        setComments(prev => prev.filter(c => c.id !== commentId));
     };
 
     const handleChatSubmit = async (overrideMessage = null, historyOverride = null) => {
@@ -1519,13 +1654,92 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                         )}
                     </div>
 
-                    <div className="w-full max-w-[816px] bg-white min-h-[1056px] shadow-sm border border-gray-200 mt-2 mb-12 px-16 py-12 relative flex-shrink-0">
+                    <div className="relative flex justify-center w-full">
+                        <div className="w-full max-w-[816px] bg-white min-h-[1056px] shadow-sm border border-gray-200 mt-2 mb-12 px-16 py-12 relative flex-shrink-0">
+                            {/* TIPTAP EDITOR LAYER */}
+                            <div className="absolute inset-0 z-10 custom-tiptap-editor">
+                                <EditorContent editor={editor} className="h-full w-full outline-none" />
+                            </div>
 
-                        {/* TIPTAP EDITOR LAYER */}
-                        <div
-                            className="absolute inset-0 z-10 custom-tiptap-editor"
-                        >
-                            <EditorContent editor={editor} className="h-full w-full outline-none" />
+                            {/* Floating Selection Menu (Vertical Icons) - Positioned in the right margin */}
+                            {isFloatingMenuOpen && editor && (
+                                <div
+                                    className="absolute z-50 flex flex-col gap-1 p-1 bg-white border border-gray-200 shadow-xl rounded-xl transition-all duration-200 ease-out animate-in fade-in zoom-in-95 overflow-hidden"
+                                    style={{
+                                        top: `${menuPosition.top}px`,
+                                        right: '-65px', // Move further from canvas
+                                        transform: 'translateY(-50%)'
+                                    }}
+                                >
+                                    <button
+                                        onClick={() => handlePerformAction('polish')}
+                                        disabled={isProcessingAction}
+                                        className={`p-2.5 transition-colors group relative rounded-lg ${isProcessingAction ? 'opacity-50 cursor-not-allowed bg-blue-50 text-blue-600' : 'text-oxford-blue/40 hover:text-blue-600 hover:bg-blue-50'}`}
+                                        title="Polish Content"
+                                    >
+                                        {isProcessingAction ? <Loader size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                                        <span className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-[60]">Polish</span>
+                                    </button>
+                                    <div className="h-px bg-gray-100 mx-2"></div>
+                                    <button
+                                        onClick={() => handlePerformAction('grammar')}
+                                        disabled={isProcessingAction}
+                                        className={`p-2.5 transition-colors group relative rounded-lg ${isProcessingAction ? 'opacity-50 cursor-not-allowed bg-blue-50 text-blue-600' : 'text-oxford-blue/40 hover:text-blue-600 hover:bg-blue-50'}`}
+                                        title="Grammar Check"
+                                    >
+                                        {isProcessingAction ? <Loader size={18} className="animate-spin" /> : <Languages size={18} />}
+                                        <span className="absolute left-full ml-3 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-[60]">Grammar</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Comments Side Panel (Floating Cards) - Positioned further right */}
+                            {comments.length > 0 && (
+                                <div className="absolute top-0 right-[-360px] w-72 flex flex-col gap-4 py-4 animate-fadeIn pointer-events-auto">
+                                    {comments.map(comment => (
+                                        <div
+                                            key={comment.id}
+                                            className={`p-4 bg-white border shadow-lg rounded-xl transition-all hover:shadow-xl animate-slideInRight border-blue-100 bg-blue-50/5`}
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    {comment.type === 'polish' ? <Sparkles size={14} className="text-blue-600" /> : <Languages size={14} className="text-blue-600" />}
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                                        AI {comment.type === 'polish' ? 'Polish' : 'Grammar'}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDismissComment(comment.id)}
+                                                    className="p-1 hover:bg-gray-100 rounded-full text-gray-400"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+
+                                            <p className="text-[10px] text-gray-400 italic mb-3 line-clamp-1">Selection: "{comment.original}"</p>
+
+                                            <div className="p-3 bg-white border-2 border-blue-500 rounded-full mb-4 shadow-sm">
+                                                <p className="text-sm text-oxford-blue leading-relaxed text-center font-medium">{comment.suggestion}</p>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => handleDismissComment(comment.id)}
+                                                    className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-blue-600 border border-gray-300 hover:bg-gray-50 transition-all"
+                                                >
+                                                    Ok
+                                                </button>
+                                                <button
+                                                    onClick={() => handleApplySuggestion(comment.id)}
+                                                    className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-blue-600 border border-gray-300 hover:bg-blue-50 transition-all"
+                                                >
+                                                    Replace
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
