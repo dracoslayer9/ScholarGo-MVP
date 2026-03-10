@@ -733,13 +733,23 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                    
                    PARENT PARAGRAPH CONTEXT: "${parentParagraph}"
                    SELECTED TEXT TO POLISH: "${selectedText}"`
-                : `You are an expert grammarian. Check the SELECTED TEXT below for grammar, spelling, and logical flow within its PARENT PARAGRAPH.
-                   If there are errors or logical inconsistencies, return the corrected version. 
-                   If it is already perfect, return ONLY "No grammar errors found."
-                   RETURN ONLY THE CORRECTED TEXT OR THE NO ERRORS MESSAGE.
+                : `You are an expert grammarian and translator. Analyze the SELECTED TEXT below.
+                   
+                   1. If it's Indonesian, provide a grammar-corrected Indonesian version AND an academic English translation.
+                   2. If it's English, provide ONLY a grammar-corrected English version.
+                   
+                   Return your response strictly as a JSON object with this format:
+                   {
+                     "correction": "the grammar corrected text",
+                     "englishTranslate": "the english translation (only if original was Indonesian, otherwise null)",
+                     "status": "suggested" or "correct" (if no changes were needed in original language)
+                   }
+                   
+                   Ensure the academic level is "Scholarship Standard".
                    
                    PARENT PARAGRAPH CONTEXT: "${parentParagraph}"
                    SELECTED TEXT TO CHECK: "${selectedText}"`;
+
 
             // Force high-quality model (GPT-4o) for linguistic tasks when 'auto' is selected
             const modelToUse = (selectedModel === 'auto' || !selectedModel) ? 'gpt-4o' : selectedModel;
@@ -749,12 +759,29 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
             const aiResult = typeof response === 'string' ? response : (response.result || response.content);
 
-            const isCorrect = aiResult && aiResult.includes("No grammar errors found");
+            let aiData = { correction: aiResult, englishTranslate: null, status: 'suggested' };
+
+            if (actionType === 'grammar') {
+                try {
+                    // Try to extract JSON from the response
+                    const jsonMatch = aiResult.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        aiData = JSON.parse(jsonMatch[0]);
+                    } else if (aiResult.includes("No grammar errors found")) {
+                        aiData = { correction: selectedText, englishTranslate: null, status: 'correct' };
+                    }
+                } catch (e) {
+                    console.warn("Could not parse AI JSON response, falling back to plain text.");
+                }
+            }
+
+            const isCorrect = aiData.status === 'correct';
 
             const newComment = {
                 id: Date.now(),
                 original: selectedText,
-                suggestion: isCorrect ? selectedText : aiResult,
+                suggestion: aiData.correction || aiResult,
+                englishTranslate: aiData.englishTranslate,
                 type: actionType,
                 status: isCorrect ? 'correct' : 'suggested',
                 from,
@@ -799,13 +826,15 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         });
     };
 
-    const handleApplySuggestion = (commentId) => {
+    const handleApplySuggestion = (commentId, customValue = null) => {
         const comment = comments.find(c => c.id === commentId);
         if (!comment || !editor) return;
 
-        if (comment.status !== 'correct') {
+        const textToInsert = customValue || comment.suggestion;
+
+        if (comment.status !== 'correct' || customValue) {
             editor.commands.setTextSelection({ from: comment.from, to: comment.to });
-            editor.commands.insertContent(comment.suggestion);
+            editor.commands.insertContent(textToInsert);
         }
 
         // Remove the comment after applying
@@ -1750,41 +1779,67 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                             <p className="text-[10px] text-gray-400 italic mb-3 line-clamp-1 opacity-60">Selection: "{comment.original}"</p>
 
                                             {/* Scrollable Suggestion Area */}
-                                            <div className="max-h-[200px] overflow-y-auto custom-scrollbar-mini px-1 mb-4">
-                                                <div className={`p-4 bg-white border rounded-2xl shadow-inner-sm ${comment.status === 'correct' ? 'border-green-100 bg-green-50/10' : 'border-blue-100'}`}>
+                                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar-mini px-1 mb-4">
+                                                {/* Correction Block */}
+                                                <div className={`p-4 bg-white border rounded-2xl shadow-inner-sm transition-all ${comment.status === 'correct' ? 'border-green-100 bg-green-50/10' : 'border-blue-100'}`}>
+                                                    {comment.status !== 'correct' && (
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-2">Suggestion</p>
+                                                    )}
                                                     <p className="text-sm text-oxford-blue leading-relaxed font-medium">
                                                         {comment.status === 'correct' ? (
-                                                            <span className="text-green-600">Excellent! No improvements needed for this section.</span>
+                                                            <span className="text-green-600">Excellent! No improvements needed.</span>
                                                         ) : (
                                                             renderDiffText(comment.original, comment.suggestion)
                                                         )}
                                                     </p>
                                                 </div>
+
+                                                {/* English Translation Block */}
+                                                {comment.englishTranslate && (
+                                                    <div className="mt-3 p-4 bg-blue-50/30 border border-blue-100/50 rounded-2xl shadow-inner-sm animate-fadeIn">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500/60 mb-2">English Translation</p>
+                                                        <p className="text-sm text-oxford-blue leading-relaxed font-medium italic">
+                                                            {comment.englishTranslate}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            <div className="flex items-center gap-3">
-                                                {comment.status === 'correct' ? (
-                                                    <button
-                                                        onClick={() => handleDismissComment(comment.id)}
-                                                        className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-white bg-green-500 hover:bg-green-600 transition-all shadow-md shadow-green-100"
-                                                    >
-                                                        Awesome
-                                                    </button>
-                                                ) : (
-                                                    <>
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-center gap-3">
+                                                    {(comment.status === 'correct' && !comment.englishTranslate) ? (
                                                         <button
                                                             onClick={() => handleDismissComment(comment.id)}
-                                                            className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-transparent"
+                                                            className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-white bg-green-500 hover:bg-green-600 transition-all shadow-md shadow-green-100"
                                                         >
-                                                            Ok
+                                                            Awesome
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleApplySuggestion(comment.id)}
-                                                            className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-200"
-                                                        >
-                                                            Replace
-                                                        </button>
-                                                    </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleDismissComment(comment.id)}
+                                                                className="py-2.5 px-6 rounded-full text-sm font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-transparent whitespace-nowrap"
+                                                            >
+                                                                Ok
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleApplySuggestion(comment.id)}
+                                                                className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-200"
+                                                            >
+                                                                {comment.status === 'correct' ? 'Keep Original' : 'Replace'}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+
+                                                {comment.englishTranslate && (
+                                                    <button
+                                                        onClick={() => handleApplySuggestion(comment.id, comment.englishTranslate)}
+                                                        className="w-full py-2.5 px-4 rounded-full text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 transition-all border border-blue-100 flex items-center justify-center gap-2"
+                                                    >
+                                                        <Languages size={14} />
+                                                        Replace with English
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
