@@ -270,7 +270,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
                 // Fixed vertical position relative to the editor container
                 const editorRect = view.dom.getBoundingClientRect();
-                const top = start.top - editorRect.top;
+                const top = start.top - editorRect.top + 48; // +48px to account for paper's py-12 padding
 
                 setMenuPosition({ top, left: editorRect.width + 10 }); // 10px to the right of the editor
                 setIsFloatingMenuOpen(true);
@@ -1677,9 +1677,9 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
                     <div className="relative flex justify-center w-full">
                         <div className="w-full max-w-[816px] bg-white min-h-[1056px] shadow-sm border border-gray-200 mt-2 mb-12 px-16 py-12 relative flex-shrink-0">
-                            {/* TIPTAP EDITOR LAYER */}
-                            <div className="absolute inset-0 z-10 custom-tiptap-editor">
-                                <EditorContent editor={editor} className="h-full w-full outline-none" />
+                            {/* TIPTAP EDITOR LAYER - Changed from absolute to relative for natural paper expansion */}
+                            <div className="relative z-10 custom-tiptap-editor w-full h-auto">
+                                <EditorContent editor={editor} className="outline-none" />
                             </div>
 
                             {/* Floating Selection Menu (Vertical Icons) - Positioned in the right margin */}
@@ -1717,7 +1717,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                             {/* Comments Side Panel (Floating Cards) - Positioned with collision avoidance */}
                             {comments.length > 0 && (
                                 <div
-                                    className="absolute top-0 w-72 flex flex-col gap-4 py-4 animate-fadeIn pointer-events-auto transition-all duration-300"
+                                    className="absolute top-12 w-72 flex flex-col gap-4 py-4 animate-fadeIn pointer-events-auto transition-all duration-300"
                                     style={{
                                         right: isChatOpen ? '-300px' : '-360px', // Shift left when chat is open
                                         zIndex: 40
