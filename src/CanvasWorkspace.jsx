@@ -749,25 +749,23 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
             const aiResult = typeof response === 'string' ? response : (response.result || response.content);
 
-            if (aiResult && !aiResult.includes("No grammar errors found")) {
-                const newComment = {
-                    id: Date.now(),
-                    original: selectedText,
-                    suggestion: aiResult,
-                    type: actionType,
-                    from,
-                    to,
-                    createdAt: new Date().toISOString()
-                };
+            const isCorrect = aiResult && aiResult.includes("No grammar errors found");
 
-                setComments(prev => [...prev, newComment]);
+            const newComment = {
+                id: Date.now(),
+                original: selectedText,
+                suggestion: isCorrect ? selectedText : aiResult,
+                type: actionType,
+                status: isCorrect ? 'correct' : 'suggested',
+                from,
+                to,
+                createdAt: new Date().toISOString()
+            };
 
-                // Highlight will use the blue underline style from index.css
-                editor.commands.setHighlight();
-            } else {
-                // Clear highlight if no errors
-                editor.commands.unsetHighlight();
-            }
+            setComments(prev => [...prev, newComment]);
+
+            // No more canvas highlighting to keep it clean
+            editor.commands.unsetHighlight();
 
         } catch (err) {
             console.error(`Action ${actionType} failed:`, err);
@@ -777,21 +775,46 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         }
     };
 
+    // Helper to render text with internal underlines for changed words
+    const renderDiffText = (original, suggestion) => {
+        if (!original || !suggestion) return suggestion;
+
+        const origWords = original.split(/\s+/);
+        const suggWords = suggestion.split(/\s+/);
+
+        return suggWords.map((word, i) => {
+            // Very simple diff: if word at same index is different, underline it
+            // or if it's beyond the original length
+            const cleanWord = (w) => w.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+            const isDifferent = i >= origWords.length || cleanWord(word) !== cleanWord(origWords[i]);
+
+            return (
+                <React.Fragment key={i}>
+                    <span className={isDifferent ? "border-b-2 border-blue-500 pb-0.5" : ""}>
+                        {word}
+                    </span>
+                    {i < suggWords.length - 1 ? ' ' : ''}
+                </React.Fragment>
+            );
+        });
+    };
+
     const handleApplySuggestion = (commentId) => {
         const comment = comments.find(c => c.id === commentId);
         if (!comment || !editor) return;
 
-        editor.commands.setTextSelection({ from: comment.from, to: comment.to });
-        editor.commands.insertContent(comment.suggestion);
+        if (comment.status !== 'correct') {
+            editor.commands.setTextSelection({ from: comment.from, to: comment.to });
+            editor.commands.insertContent(comment.suggestion);
+        }
 
         // Remove the comment after applying
         setComments(prev => prev.filter(c => c.id !== commentId));
+        editor.commands.unsetHighlight();
     };
 
     const handleDismissComment = (commentId) => {
-        const comment = comments.find(c => c.id === commentId);
-        if (comment && editor) {
-            editor.commands.setTextSelection({ from: comment.from, to: comment.to });
+        if (editor) {
             editor.commands.unsetHighlight();
         }
         setComments(prev => prev.filter(c => c.id !== commentId));
@@ -1707,9 +1730,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                                         >
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-2">
-                                                    {comment.type === 'polish' ? <Sparkles size={14} className="text-blue-500" /> : <Languages size={14} className="text-blue-500" />}
+                                                    {comment.status === 'correct' ? (
+                                                        <CheckCircle2 size={14} className="text-green-500" />
+                                                    ) : (
+                                                        comment.type === 'polish' ? <Sparkles size={14} className="text-blue-500" /> : <Languages size={14} className="text-blue-500" />
+                                                    )}
                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                                        AI {comment.type === 'polish' ? 'Polish' : 'Grammar'}
+                                                        {comment.status === 'correct' ? 'Perfect' : `AI ${comment.type === 'polish' ? 'Polish' : 'Grammar'}`}
                                                     </span>
                                                 </div>
                                                 <button
@@ -1724,26 +1751,41 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
                                             {/* Scrollable Suggestion Area */}
                                             <div className="max-h-[200px] overflow-y-auto custom-scrollbar-mini px-1 mb-4">
-                                                <div className="p-4 bg-white border border-blue-100 rounded-2xl shadow-inner-sm">
+                                                <div className={`p-4 bg-white border rounded-2xl shadow-inner-sm ${comment.status === 'correct' ? 'border-green-100 bg-green-50/10' : 'border-blue-100'}`}>
                                                     <p className="text-sm text-oxford-blue leading-relaxed font-medium">
-                                                        {comment.suggestion}
+                                                        {comment.status === 'correct' ? (
+                                                            <span className="text-green-600">Excellent! No improvements needed for this section.</span>
+                                                        ) : (
+                                                            renderDiffText(comment.original, comment.suggestion)
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
-                                                <button
-                                                    onClick={() => handleDismissComment(comment.id)}
-                                                    className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-transparent"
-                                                >
-                                                    Ok
-                                                </button>
-                                                <button
-                                                    onClick={() => handleApplySuggestion(comment.id)}
-                                                    className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-200"
-                                                >
-                                                    Replace
-                                                </button>
+                                                {comment.status === 'correct' ? (
+                                                    <button
+                                                        onClick={() => handleDismissComment(comment.id)}
+                                                        className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-white bg-green-500 hover:bg-green-600 transition-all shadow-md shadow-green-100"
+                                                    >
+                                                        Awesome
+                                                    </button>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleDismissComment(comment.id)}
+                                                            className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all border border-transparent"
+                                                        >
+                                                            Ok
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleApplySuggestion(comment.id)}
+                                                            className="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-200"
+                                                        >
+                                                            Replace
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
