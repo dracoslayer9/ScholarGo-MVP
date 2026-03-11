@@ -1894,7 +1894,8 @@ User is asking for a comparison or seeking the "better" version.
 
             {/* RIGHT PANEL: AI ASSISTANT CHAT */}
             {isChatOpen && (
-                <div className="w-[400px] flex flex-col bg-white h-full shadow-xl shadow-oxford-blue/5 z-20 border-l border-oxford-blue/10 shrink-0">
+                <div className="w-[500px] flex flex-col bg-white h-full shadow-xl shadow-oxford-blue/5 z-20 border-l border-oxford-blue/10 shrink-0">
+
                     {/* Header / Quota Indicator */}
                     <div className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 shrink-0">
                         <QuotaDisplay userId={user?.id} visibleQuotas={['chat', 'deep_review']} minimal={true} />
