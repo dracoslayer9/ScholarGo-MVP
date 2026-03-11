@@ -31,7 +31,7 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
                         <div className={`max-w-[90%] ${msg.role === 'user'
                             ? (msg.content === "Analyze this document completely." || msg.content === "Dissect this document completely." ? 'bg-transparent text-oxford-blue' : 'bg-gray-100 text-oxford-blue rounded-3xl rounded-br-sm px-6 py-4') // User: Gray Box or Transparent for file icon
                             : 'bg-transparent text-oxford-blue px-2' // AI: Plain Text
-                            } ${isEditing ? 'w-full ring-2 ring-bronze/30 bg-white' : ''}`}>
+                            } ${isEditing ? 'w-full !bg-white border border-bronze/20 shadow-lg !rounded-2xl' : ''}`}>
 
                             {isEditing ? (
                                 <div className="flex flex-col gap-3">
