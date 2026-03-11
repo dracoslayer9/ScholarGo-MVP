@@ -31,29 +31,31 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
                         <div className={`max-w-[90%] ${msg.role === 'user'
                             ? (msg.content === "Analyze this document completely." || msg.content === "Dissect this document completely." ? 'bg-transparent text-oxford-blue' : 'bg-gray-100 text-oxford-blue rounded-3xl rounded-br-sm px-6 py-4') // User: Gray Box or Transparent for file icon
                             : 'bg-transparent text-oxford-blue px-2' // AI: Plain Text
-                            } ${isEditing ? 'w-full max-w-[440px] !bg-white border border-bronze/20 shadow-lg !rounded-2xl p-4' : ''}`}>
+                            } ${isEditing ? 'w-full max-w-full !bg-transparent !p-0' : ''}`}>
 
                             {isEditing ? (
-                                <div className="flex flex-col gap-3">
-                                    <textarea
-                                        value={editingText}
-                                        onChange={(e) => setEditingText(e.target.value)}
-                                        className="w-full bg-transparent border-none focus:ring-0 text-sm py-1 resize-none min-h-[60px]"
-                                        autoFocus
-                                    />
-                                    <div className="flex justify-end gap-3 items-center">
+                                <div className="flex flex-col gap-4 w-full">
+                                    <div className="w-full border-2 border-oxford-blue/10 focus-within:border-blue-500/50 rounded-[28px] px-6 py-4 transition-all bg-white">
+                                        <textarea
+                                            value={editingText}
+                                            onChange={(e) => setEditingText(e.target.value)}
+                                            className="w-full bg-transparent border-none focus:ring-0 text-sm py-1 resize-none min-h-[60px] text-oxford-blue font-medium"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="flex justify-start gap-4 items-center">
                                         <button
                                             onClick={onCancel}
-                                            className="text-[11px] font-bold text-oxford-blue/40 hover:text-red-500 transition-colors uppercase tracking-wider"
+                                            className="text-sm font-bold text-oxford-blue/60 hover:text-red-500 transition-colors"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             onClick={() => onSave(idx, editingText)}
                                             disabled={!editingText.trim()}
-                                            className="px-4 py-2 bg-bronze text-white text-[11px] font-bold rounded-xl shadow-md shadow-bronze/10 hover:bg-bronze/90 transition-all disabled:opacity-50 uppercase tracking-wider"
+                                            className="px-6 py-2 bg-oxford-blue/5 hover:bg-oxford-blue/10 text-oxford-blue text-sm font-bold rounded-full transition-all disabled:opacity-30"
                                         >
-                                            Save & Submit
+                                            Update
                                         </button>
                                     </div>
                                 </div>
