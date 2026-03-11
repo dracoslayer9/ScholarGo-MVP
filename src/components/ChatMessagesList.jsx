@@ -35,12 +35,13 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
 
                             {isEditing ? (
                                 <div className="flex flex-col gap-4 w-full">
-                                    <div className="w-full border-2 border-oxford-blue/10 focus-within:border-blue-500/50 rounded-[28px] px-6 py-4 transition-all bg-white">
+                                    <div className="w-full border-2 border-oxford-blue/10 focus-within:border-blue-500/50 rounded-[28px] px-6 py-4 transition-all bg-white relative overflow-hidden">
                                         <textarea
                                             value={editingText}
                                             onChange={(e) => setEditingText(e.target.value)}
-                                            className="w-full bg-transparent border-none focus:ring-0 text-sm py-1 resize-none min-h-[60px] text-oxford-blue font-medium"
+                                            className="w-full bg-transparent border-0 focus:border-0 focus:ring-0 outline-none text-sm py-1 resize-none min-h-[60px] text-oxford-blue font-medium placeholder-gray-400 shadow-none border-none"
                                             autoFocus
+                                            style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
                                         />
                                     </div>
                                     <div className="flex justify-start gap-4 items-center">
