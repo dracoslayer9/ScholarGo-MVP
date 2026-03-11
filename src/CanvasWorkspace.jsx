@@ -1730,7 +1730,11 @@ User is asking for a comparison or seeking the "better" version.
                     </div>
 
                     <div className="relative flex justify-center w-full">
-                        <div className="w-full max-w-[816px] bg-white min-h-[1056px] shadow-sm border border-gray-200 mt-2 mb-12 px-16 py-12 relative flex-shrink-0">
+                        <div
+                            onClick={() => editor?.commands.focus()}
+                            className="w-full max-w-[816px] bg-white min-h-[1056px] shadow-sm border border-gray-200 mt-2 mb-12 px-12 py-10 relative flex-shrink-0 cursor-text"
+                        >
+
                             {/* TIPTAP EDITOR LAYER - Changed from absolute to relative for natural paper expansion */}
                             <div className="relative z-10 custom-tiptap-editor w-full h-auto">
                                 <EditorContent editor={editor} className="outline-none" />
