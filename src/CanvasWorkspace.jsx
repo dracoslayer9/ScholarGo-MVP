@@ -1421,7 +1421,7 @@ User is asking for a comparison or seeking the "better" version.
 
 
     // Word and Page Count (Approx 250 words per page for standard 12pt Times)
-    const wordCount = essayContent.trim() ? essayContent.trim().split(/\s+/).length : 0;
+    const wordCount = essayContent.replace(/<[^>]*>?/gm, ' ').trim().split(/\s+/).filter(Boolean).length;
     const estimatedPages = Math.max(1, Math.ceil(wordCount / 250));
 
     return (
