@@ -1721,12 +1721,7 @@ User is asking for a comparison or seeking the "better" version.
                             )}
                         </div>
 
-                        {currentVersionId > 1 && (
-                            <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-200/50 hover:bg-gray-200 text-oxford-blue/60 hover:text-oxford-blue font-medium text-sm rounded-lg transition-colors animate-fadeIn">
-                                <ListChecks size={16} />
-                                Review Changes
-                            </button>
-                        )}
+
                     </div>
 
                     <div className="relative flex justify-center w-full">
