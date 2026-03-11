@@ -833,18 +833,23 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         const textToInsert = customValue || comment.suggestion;
 
+        // Force selection to the exact range of the highlight to ensure it clears
+        editor.commands.setTextSelection({ from: comment.from, to: comment.to });
+        editor.commands.unsetHighlight();
+
         if (comment.status !== 'correct' || customValue) {
-            editor.commands.setTextSelection({ from: comment.from, to: comment.to });
             editor.commands.insertContent(textToInsert);
         }
 
         // Remove the comment after applying
         setComments(prev => prev.filter(c => c.id !== commentId));
-        editor.commands.unsetHighlight();
     };
 
     const handleDismissComment = (commentId) => {
-        if (editor) {
+        const comment = comments.find(c => c.id === commentId);
+        if (editor && comment) {
+            // Force selection to the exact range to ensure highlight is cleared
+            editor.commands.setTextSelection({ from: comment.from, to: comment.to });
             editor.commands.unsetHighlight();
         }
         setComments(prev => prev.filter(c => c.id !== commentId));
