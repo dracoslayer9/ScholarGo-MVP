@@ -857,8 +857,15 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         let activeChatId = currentChatId;
         let inputToUse = typeof overrideMessage === 'string' ? overrideMessage : chatInput;
 
-        // Command Intercept: Detect manual "Review" or "Reviu"
+        // Command Intercept: Detect manual "Review" or "Comparison"
         const cleanInput = inputToUse.trim().toLowerCase();
+        const isComparisonRequest =
+            cleanInput.includes('compare') ||
+            cleanInput.includes('bandingkan') ||
+            cleanInput.includes('komparasi') ||
+            cleanInput.includes('versi') ||
+            cleanInput.includes('lebih baik');
+
         if (cleanInput === 'review' || cleanInput === 'reviu') {
             inputToUse = "Gunakan Master Framework untuk review esai saya ini secara mendalam dan berikan saran strategis.";
         }
@@ -905,12 +912,29 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             return `### [${v.title}]\n${contentToUse || '(Draft Empty)'}`;
         }).join('\n\n---\n\n');
 
-        // DEFENSIVE: Fallback if everything is empty but we have a direct capture
         if (!versionsContext.trim() && currentEssay.trim()) {
             versionsContext = `### [Current Draft]\n${currentEssay}`;
         }
 
-        const context = fileContext ? `[Attached Document Content]\n${fileContext}\n\n${versionsContext}` : versionsContext;
+        // 3. SMART COMPARISON & IDEA DEVELOPMENT: When user asks to compare/better, inject specific logic requirements
+        let customInstructions = "";
+        if (isComparisonRequest) {
+            customInstructions = `
+[SPECIAL INSTRUCTION: VERSION COMPARISON & IDEA DEVELOPMENT]
+User is asking for a comparison or seeking the "better" version.
+1. COMPARE all provided versions (### [Version Title]) objectively.
+2. IDENTIFY "Floating Ideas" (Ide Mengambang): Sections that are too vague, generic, or lack concrete evidence.
+3. PROVIDE "Idea Development" (Pengembangan Ide): Specific, proactive suggestions to expand on vague points to reach "Gold Standard" specificity.
+4. FORMAT: Use clear headers:
+   ## COMPARISON OF VERSIONS
+   ## IDEA DEVELOPMENT (POTENTIAL UPGRADES)
+   (Ensure you use Indonesian if the user/document is in Indonesian).
+`;
+        }
+
+        const context = fileContext
+            ? `[Attached Document Content]\n${fileContext}\n\n${customInstructions}\n\n${versionsContext}`
+            : `${customInstructions}\n\n${versionsContext}`;
         console.log("Context sent to AI:", context);
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
