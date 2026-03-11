@@ -38,20 +38,20 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
                                     <textarea
                                         value={editingText}
                                         onChange={(e) => setEditingText(e.target.value)}
-                                        className="w-full bg-transparent border-none focus:ring-0 text-sm py-1 resize-none min-h-[80px]"
+                                        className="w-full bg-transparent border-none focus:ring-0 text-sm py-1 resize-none min-h-[60px]"
                                         autoFocus
                                     />
-                                    <div className="flex justify-end gap-2">
+                                    <div className="flex justify-end gap-3 items-center">
                                         <button
                                             onClick={onCancel}
-                                            className="px-3 py-1 text-xs font-semibold text-oxford-blue/50 hover:text-oxford-blue transition-colors"
+                                            className="text-[11px] font-bold text-oxford-blue/40 hover:text-red-500 transition-colors uppercase tracking-wider"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             onClick={() => onSave(idx, editingText)}
                                             disabled={!editingText.trim()}
-                                            className="px-4 py-1.5 bg-bronze text-white text-xs font-bold rounded-lg shadow-sm hover:bg-bronze/90 transition-all disabled:opacity-50"
+                                            className="px-4 py-2 bg-bronze text-white text-[11px] font-bold rounded-xl shadow-md shadow-bronze/10 hover:bg-bronze/90 transition-all disabled:opacity-50 uppercase tracking-wider"
                                         >
                                             Save & Submit
                                         </button>
