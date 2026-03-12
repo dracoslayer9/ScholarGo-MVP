@@ -855,6 +855,26 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         setComments(prev => prev.filter(c => c.id !== commentId));
     };
 
+    // Helper to strip HTML and index paragraphs for better AI context awareness
+    const preprocessContextForAI = (htmlContent) => {
+        if (!htmlContent) return '(Draft Empty)';
+
+        // 1. Convert <p>, <h1>, etc into distinct sections
+        // We replace closing tags with double newlines to maintain structure
+        let text = htmlContent
+            .replace(/<\/p>/g, '\n\n')
+            .replace(/<\/h[1-6]>/g, '\n\n')
+            .replace(/<br\s*\/?>/g, '\n');
+
+        // 2. Strip all remaining HTML tags
+        text = text.replace(/<[^>]*>?/gm, '');
+
+        // 3. Split into paragraphs and index them
+        const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+
+        return paragraphs.map((p, i) => `### PARAGRAPH ${i + 1} ###\n${p}`).join('\n\n');
+    };
+
     const handleChatSubmit = async (overrideMessage = null, historyOverride = null) => {
         // Auth Check
         if (onRequireAuth && onRequireAuth()) return;
@@ -911,14 +931,14 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${augmentedUserMessage}`
             : augmentedUserMessage;
 
-        // Construct context: Include ALL versions clearly labeled
+        // Construct context: Include ALL versions clearly labeled and indexed by paragraph
         let versionsContext = versions.map(v => {
             const contentToUse = String(v.id) === String(currentVersionId) ? currentEssay : v.content;
-            return `### [${v.title}]\n${contentToUse || '(Draft Empty)'}`;
+            return `### [${v.title}]\n${preprocessContextForAI(contentToUse)}`;
         }).join('\n\n---\n\n');
 
         if (!versionsContext.trim() && currentEssay.trim()) {
-            versionsContext = `### [Current Draft]\n${currentEssay}`;
+            versionsContext = `### [Current Draft]\n${preprocessContextForAI(currentEssay)}`;
         }
 
         // 3. SMART COMPARISON & IDEA DEVELOPMENT: When user asks to compare/better, inject specific logic requirements
