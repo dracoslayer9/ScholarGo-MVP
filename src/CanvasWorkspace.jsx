@@ -189,6 +189,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // In-Chat History Navigator
     const [showInChatHistory, setShowInChatHistory] = useState(false);
+    const [collapsedHistoryGroups, setCollapsedHistoryGroups] = useState({});
 
     // Application State
     const [essayTitle, setEssayTitle] = useState(initialFileName || 'Untitled Essay');
@@ -209,6 +210,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // const textareaRef = useRef(null); // Deprecated by Tiptap
     const chatInputRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const historyListRef = useRef(null);
     const fileInputRef = useRef(null);
     const blockAutoSaveRef = useRef(false); // Mutex lock to prevent cross-session overwrite during load
 
@@ -335,6 +337,34 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatHistory]);
+
+    // Auto-scroll session history to bottom when opened or when history updates while open
+    useEffect(() => {
+        if (showInChatHistory && historyListRef.current) {
+            const container = historyListRef.current;
+            const scrollToBottom = () => {
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            };
+
+            // Initial scroll
+            scrollToBottom();
+
+            // Handle layout shifts with animation frames and multiple buffers
+            const rafId = requestAnimationFrame(() => {
+                scrollToBottom();
+                const t1 = setTimeout(scrollToBottom, 50);
+                const t2 = setTimeout(scrollToBottom, 250);
+                return () => {
+                    clearTimeout(t1);
+                    clearTimeout(t2);
+                };
+            });
+
+            return () => cancelAnimationFrame(rafId);
+        }
+    }, [showInChatHistory, chatHistory]);
 
     // Auto-save logic
     useEffect(() => {
@@ -2038,43 +2068,64 @@ User is asking for a comparison or seeking the "better" version.
                                     <X size={16} />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+                            <div ref={historyListRef} className="flex-1 overflow-y-auto p-2 custom-scrollbar">
                                 {chatHistory.filter(msg => msg.role === 'user').length === 0 ? (
                                     <p className="text-xs text-gray-400 text-center py-4">No topics discussed yet.</p>
                                 ) : (
-                                    <div className="space-y-1">
-                                        {chatHistory.map((msg, idx) => {
-                                            if (msg.role !== 'user') return null;
+                                    <div className="space-y-4">
+                                        {(() => {
+                                            // Enhanced Grouping Logic for Session History
+                                            const grouped = groupChatsByTime(chatHistory.filter(msg => msg.role === 'user').map((msg, idx) => ({
+                                                ...msg,
+                                                id: idx, // Assign temporary ID based on index for mapping back
+                                                originalIndex: chatHistory.indexOf(msg)
+                                            })));
 
-                                            // Create a short topic summary
-                                            const isAnalysis = msg.content === "Analyze this document completely.";
-                                            const topic = isAnalysis ? "Document Analysis" : msg.content.substring(0, 40) + (msg.content.length > 40 ? "..." : "");
+                                            return grouped.map((group) => (
+                                                <div key={group.label} className="space-y-1">
+                                                    <button
+                                                        onClick={() => setCollapsedHistoryGroups(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
+                                                        className="w-full flex items-center justify-between px-3 py-1 bg-gray-50 rounded-lg text-[10px] font-bold text-oxford-blue/40 uppercase tracking-wider hover:bg-gray-100 transition-colors"
+                                                    >
+                                                        <span>{group.label}</span>
+                                                        <ChevronUp size={12} className={`transition-transform duration-200 ${collapsedHistoryGroups[group.label] ? 'rotate-180' : ''}`} />
+                                                    </button>
+                                                    
+                                                    {!collapsedHistoryGroups[group.label] && (
+                                                        <div className="space-y-1 animate-fadeIn">
+                                                            {group.chats.map((msg) => {
+                                                                const isAnalysis = msg.content && (msg.content.includes("Analyze this document completely.") || msg.content.includes("Dissect this document completely."));
+                                                                const topic = isAnalysis ? "Document Analysis" : (msg.content || "").substring(0, 40) + ((msg.content || "").length > 40 ? "..." : "");
 
-                                            return (
-                                                <button
-                                                    key={`history-nav-${idx}`}
-                                                    onClick={() => {
-                                                        // Scroll to element with this ID
-                                                        const el = document.getElementById(`chat-msg-${idx}`);
-                                                        if (el) {
-                                                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                                        }
-                                                        setShowInChatHistory(false);
-                                                    }}
-                                                    className="w-full text-left p-3 rounded-lg hover:bg-gray-50 flex items-start gap-3 transition-colors group"
-                                                >
-                                                    <div className={`mt-0.5 w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${isAnalysis ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
-                                                        {isAnalysis ? <BookOpen size={12} /> : <MessageCircle size={12} />}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-oxford-blue group-hover:text-bronze transition-colors truncate">
-                                                            {topic}
-                                                        </p>
-                                                        <p className="text-xs text-gray-400 mt-0.5">Interaction {Math.floor(idx / 2) + 1}</p>
-                                                    </div>
-                                                </button>
-                                            )
-                                        })}
+                                                                return (
+                                                                    <button
+                                                                        key={`history-nav-${msg.originalIndex}`}
+                                                                        onClick={() => {
+                                                                            const el = document.getElementById(`chat-msg-${msg.originalIndex}`);
+                                                                            if (el) {
+                                                                                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                                            }
+                                                                            setShowInChatHistory(false);
+                                                                        }}
+                                                                        className="w-full text-left p-2.5 rounded-lg hover:bg-oxford-blue/5 flex items-start gap-3 transition-colors group"
+                                                                    >
+                                                                        <div className={`mt-0.5 w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${isAnalysis ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                                            {isAnalysis ? <BookOpen size={12} /> : <MessageCircle size={12} />}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-sm font-medium text-oxford-blue group-hover:text-bronze transition-colors truncate">
+                                                                                {topic}
+                                                                            </p>
+                                                                            <p className="text-[10px] text-gray-400 mt-0.5">Interaction {Math.floor(msg.originalIndex / 2) + 1}</p>
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ));
+                                        })()}
                                     </div>
                                 )}
                             </div>
