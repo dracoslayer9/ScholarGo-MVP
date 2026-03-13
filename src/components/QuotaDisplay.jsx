@@ -7,9 +7,14 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
     const [usage, setUsage] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [userEmail, setUserEmail] = useState('');
+
     const fetchUsage = async () => {
         if (!userId) return;
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) setUserEmail(session.user.email);
+
             const profile = await getUserSubscription(userId);
             setUsage(profile);
             setLoading(false);
@@ -36,18 +41,26 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
 
     const plan = usage.plan_type || 'free';
     const limits = PLAN_LIMITS[plan] || PLAN_LIMITS['free'];
-    const isPlus = plan === 'plus';
-
-    if (isPlus) return null;
+    const isAdmin = userEmail === 'ahmadfirdaus0407@gmail.com';
+    const isPlus = plan === 'plus' || isAdmin;
 
     const visible = visibleQuotas || ['pdf_analysis', 'chat', 'deep_review'];
 
     const formatLimit = (current, max) => isPlus ? 'Unlimited' : `${current} / ${max}`;
     const getProgress = (current, max) => isPlus ? 100 : Math.min((current / max) * 100, 100);
 
+    const headerText = isAdmin ? "ScholarGo Dev" : (isPlus ? "Plus Plan Active" : "Free Plan Usage");
+
     return (
         <div className={minimal ? "flex items-center gap-6 px-1" : "p-4 space-y-4"}>
-            {!minimal && <h3 className="text-xs font-bold text-oxford-blue/40 uppercase tracking-wider">Free Plan Usage</h3>}
+            {!minimal && (
+                <div className="flex items-center justify-between mb-1">
+                    <h3 className={`text-[10px] font-bold uppercase tracking-wider ${isPlus ? 'text-bronze' : 'text-oxford-blue/40'}`}>
+                        {headerText}
+                    </h3>
+                    {isPlus && <Sparkles size={12} className="text-bronze animate-pulse" />}
+                </div>
+            )}
 
             {/* PDF Analysis */}
             {visible.includes('pdf_analysis') && (

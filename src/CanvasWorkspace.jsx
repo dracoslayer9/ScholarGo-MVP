@@ -333,10 +333,24 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         }
     }, [editor, lineSpacing]);
 
-    // Auto-scroll chat
+    // Auto-scroll chat to bottom when history updates or analysis state changes
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [chatHistory]);
+        const scrollToBottom = () => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        };
+
+        // Attempt scroll immediately
+        scrollToBottom();
+
+        // Handle potential rendering delays or layout shifts (e.g. images, long text blocks)
+        const timeouts = [
+            setTimeout(scrollToBottom, 50),
+            setTimeout(scrollToBottom, 200),
+            setTimeout(scrollToBottom, 500)
+        ];
+
+        return () => timeouts.forEach(t => clearTimeout(t));
+    }, [chatHistory, isAnalyzing]);
 
     // Auto-scroll session history to bottom when opened or when history updates while open
     useEffect(() => {
@@ -752,16 +766,31 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             const { $from } = editor.state.selection;
             const parentParagraph = $from.parent.textContent;
 
+            // Get global context (limited for speed, but covers the essence)
+            const globalContext = preprocessContextForAI(editor.getHTML(), analysisResult);
+
             // Apply a temporary highlight color while processing
             editor.commands.setHighlight({ color: '#fef3c7' }); // Lighter yellow
 
             const prompt = actionType === 'polish'
-                ? `You are an elite academic editor. Polish and professionalize the SELECTED TEXT below. 
-                   Ensure it flows perfectly within its PARENT PARAGRAPH for logical consistency.
-                   Maintain a "Scholarship Standard" (academic yet personal).
-                   RETURN ONLY THE POLISHED VERSION OF THE SELECTED TEXT.
+                ? `You are an elite academic editor trained in "Awardee Logic" for top scholarships. 
                    
+                   **STRICT GOAL**: Polish and professionalize the SELECTED TEXT to meet "Gold Standard" scholarship criteria (authentic, specific, and impactful).
+                   
+                   **CONTEXTUAL RULES**:
+                   1. Maintain the flow of the PARENT PARAGRAPH.
+                   2. Ensure the tone aligns with the GLOBAL DOCUMENT CONTEXT provided below.
+                   3. If the document is an "Awardee Sample" (${analysisResult?.detectedType === 'Awardee Sample' ? 'YES' : 'NO'}), maintain its winning sophistication.
+                   
+                   **FORMAT**: RETURN ONLY THE POLISHED VERSION OF THE SELECTED TEXT. NO PREAMBLE.
+                   
+                   GLOBAL DOCUMENT CONTEXT:
+                   """
+                   ${globalContext}
+                   """
+
                    PARENT PARAGRAPH CONTEXT: "${parentParagraph}"
+                   
                    SELECTED TEXT TO POLISH: "${selectedText}"`
                 : `You are an expert grammarian and translator. Analyze the SELECTED TEXT below.
                    
@@ -886,7 +915,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
     };
 
     // Helper to strip HTML and index paragraphs for better AI context awareness
-    const preprocessContextForAI = (htmlContent) => {
+    const preprocessContextForAI = (htmlContent, analysisData = null) => {
         if (!htmlContent) return '(Draft Empty)';
 
         // 1. Convert <p>, <h1>, etc into distinct sections
@@ -902,7 +931,14 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         // 3. Split into paragraphs and index them
         const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
 
-        return paragraphs.map((p, i) => `### PARAGRAPH ${i + 1} ###\n${p}`).join('\n\n');
+        // 4. Map functional labels from analysisData if available
+        const paragraphBreakdown = analysisData?.paragraphBreakdown || [];
+
+        return paragraphs.map((p, i) => {
+            const label = paragraphBreakdown[i]?.functional_label || paragraphBreakdown[i]?.section_label || 'General Paragraph';
+            const subtitle = paragraphBreakdown[i]?.detected_subtitle ? ` (${paragraphBreakdown[i].detected_subtitle})` : '';
+            return `### PARAGRAPH ${i + 1} [Role: ${label}${subtitle}] ###\n${p}`;
+        }).join('\n\n');
     };
 
     const handleChatSubmit = async (overrideMessage = null, historyOverride = null) => {
@@ -962,13 +998,18 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             : augmentedUserMessage;
 
         // Construct context: Include ALL versions clearly labeled and indexed by paragraph
+        // Pass metadata about the document type and source
+        const docMetadata = `[DOCUMENT METADATA]\n- Filename: ${fileName || analyzedFile?.name || 'Untitled'}\n- Type: ${analysisResult?.detectedType || 'Student Draft'}\n\n`;
+
         let versionsContext = versions.map(v => {
             const contentToUse = String(v.id) === String(currentVersionId) ? currentEssay : v.content;
-            return `### [${v.title}]\n${preprocessContextForAI(contentToUse)}`;
+            // Only pass analysisData to the current active version context for focused logic
+            const isCurrent = String(v.id) === String(currentVersionId);
+            return `### [${v.title}]\n${preprocessContextForAI(contentToUse, isCurrent ? analysisResult : null)}`;
         }).join('\n\n---\n\n');
 
         if (!versionsContext.trim() && currentEssay.trim()) {
-            versionsContext = `### [Current Draft]\n${preprocessContextForAI(currentEssay)}`;
+            versionsContext = `### [Current Draft]\n${preprocessContextForAI(currentEssay, analysisResult)}`;
         }
 
         // 3. SMART COMPARISON & IDEA DEVELOPMENT: When user asks to compare/better, inject specific logic requirements
@@ -977,7 +1018,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             customInstructions = `
 [SPECIAL INSTRUCTION: VERSION COMPARISON & IDEA DEVELOPMENT]
 User is asking for a comparison or seeking the "better" version.
-1. COMPARE all provided versions (### [Version Title]) objectively.
+1. COMPARE all provided versions (### [Version Title]) objectively based on Scholarstory Master Framework.
 2. IDENTIFY "Floating Ideas" (Ide Mengambang): Sections that are too vague, generic, or lack concrete evidence.
 3. PROVIDE "Idea Development" (Pengembangan Ide): Specific, proactive suggestions to expand on vague points to reach "Gold Standard" specificity.
 4. FORMAT: Use clear headers:
@@ -988,8 +1029,8 @@ User is asking for a comparison or seeking the "better" version.
         }
 
         const context = fileContext
-            ? `[Attached Document Content]\n${fileContext}\n\n${customInstructions}\n\n${versionsContext}`
-            : `${customInstructions}\n\n${versionsContext}`;
+            ? `${docMetadata}[Attached Document Content]\n${fileContext}\n\n${customInstructions}\n\n${versionsContext}`
+            : `${docMetadata}${customInstructions}\n\n${versionsContext}`;
         console.log("Context sent to AI:", context);
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
