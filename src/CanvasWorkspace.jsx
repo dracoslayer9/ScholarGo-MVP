@@ -210,6 +210,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // const textareaRef = useRef(null); // Deprecated by Tiptap
     const chatInputRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const chatContainerRef = useRef(null);
     const historyListRef = useRef(null);
     const fileInputRef = useRef(null);
     const blockAutoSaveRef = useRef(false); // Mutex lock to prevent cross-session overwrite during load
@@ -336,6 +337,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // Auto-scroll chat to bottom when history updates or analysis state changes
     useEffect(() => {
         const scrollToBottom = () => {
+            if (chatContainerRef.current) {
+                chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
         };
 
@@ -720,19 +724,20 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         const sevenDaysAgo = new Date(today);
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+        // Grouping order: Oldest to Newest so that auto-scroll to bottom reveals newest topics
         const groups = [
-            { label: 'Hari Ini', chats: [] },
-            { label: 'Kemarin', chats: [] },
+            { label: 'Lebih Lama', chats: [] },
             { label: '7 Hari Terakhir', chats: [] },
-            { label: 'Lebih Lama', chats: [] }
+            { label: 'Kemarin', chats: [] },
+            { label: 'Hari Ini', chats: [] }
         ];
 
         chats.forEach(chat => {
             const chatDate = new Date(chat.created_at || Date.now());
-            if (chatDate >= today) groups[0].chats.push(chat);
-            else if (chatDate >= yesterday) groups[1].chats.push(chat);
-            else if (chatDate >= sevenDaysAgo) groups[2].chats.push(chat);
-            else groups[3].chats.push(chat);
+            if (chatDate >= today) groups[3].chats.push(chat);
+            else if (chatDate >= yesterday) groups[2].chats.push(chat);
+            else if (chatDate >= sevenDaysAgo) groups[1].chats.push(chat);
+            else groups[0].chats.push(chat);
         });
 
         return groups.filter(g => g.chats.length > 0);
@@ -2009,7 +2014,10 @@ User is asking for a comparison or seeking the "better" version.
                     </div>
 
                     {/* Chat History & Content */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F8FAFC] custom-scrollbar">
+                    <div 
+                        ref={chatContainerRef}
+                        className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F8FAFC] custom-scrollbar"
+                    >
                         {/* Welcome Message */}
                         {chatHistory.length === 0 && (
                             <div className="py-12 flex flex-col items-start px-2">
