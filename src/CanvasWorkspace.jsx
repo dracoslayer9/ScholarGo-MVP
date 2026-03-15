@@ -14,9 +14,20 @@ const AutoCapitalize = Extension.create({
     addInputRules() {
         return [
             new InputRule({
+                // Only capitalize after a sentence end or start of line, 
+                // but avoid interfering if it's clearly a manual list marker like "1. "
                 find: /(?:^|[\n.!?]\s+)([a-z])$/,
                 handler: ({ state, range, match }) => {
-                    const { tr } = state;
+                    const { tr, doc } = state;
+                    
+                    // Simple check: is this a numbered list trigger?
+                    // We look back a bit from the match to see if there's a number
+                    const textBefore = doc.textBetween(Math.max(0, range.from - 5), range.from, "\n");
+                    if (/\d\.$/.test(textBefore)) {
+                        // If it's "1.", let the list extension handle its thing or just insert normally
+                        return null; 
+                    }
+
                     const uppercaseLetter = match[1].toUpperCase();
                     const replacement = match[0].slice(0, -1) + uppercaseLetter;
                     tr.insertText(replacement, range.from, range.to);
@@ -230,18 +241,27 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // --- TIPTAP EDITOR INIT ---
     const editor = useEditor({
         extensions: [
-            StarterKit,
+            StarterKit.configure({
+                bulletList: {
+                    keepMarks: true,
+                    keepAttributes: false,
+                },
+                orderedList: {
+                    keepMarks: true,
+                    keepAttributes: false,
+                },
+            }),
             Placeholder.configure({
                 placeholder: 'Start writing or paste your essay here...',
             }),
-            Markdown,
-            AutoCapitalize,
             TextAlign.configure({
                 types: ['heading', 'paragraph'],
             }),
             Highlight.configure({
                 multicolor: true,
             }),
+            AutoCapitalize,
+            Markdown,
         ],
         content: initialContent || '',
         editorProps: {
@@ -337,10 +357,24 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // Auto-scroll chat to bottom when history updates or analysis state changes
     useEffect(() => {
         const scrollToBottom = () => {
-            if (chatContainerRef.current) {
-                chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            if (!chatContainerRef.current) return;
+            
+            const container = chatContainerRef.current;
+            // SMART STICKY SCROLL:
+            // Allow user to unscrolled to read. Only auto-scroll if user is already near the bottom.
+            // 150px threshold is usually enough for a line or two.
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+            
+            // If we are currently analyzing/streaming, we only scroll if they haven't manually scrolled up
+            if (isAnalyzing) {
+                if (isNearBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            } else {
+                // For new messages (user sent), we always scroll to bottom
+                container.scrollTop = container.scrollHeight;
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
             }
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
         };
 
         // Attempt scroll immediately
