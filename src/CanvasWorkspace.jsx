@@ -118,7 +118,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const settingsMenuRef = useRef(null);
     const [activeFont, setActiveFont] = useState('times'); // 'times', 'poppins', 'arial'
-    const [baseFontSize, setBaseFontSize] = useState(17);
+    const [baseFontSize, setBaseFontSize] = useState(12); // Default to standard 12pt
     const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
     const fontDropdownRef = useRef(null);
 
@@ -1616,8 +1616,12 @@ User is asking for a comparison or seeking the "better" version.
         const content = editor?.getText() || essayContent.replace(/<[^>]*>?/gm, '');
         const lines = doc.splitTextToSize(content, 170); // 170mm width for A4
         
-        doc.setFont("times", "normal");
-        doc.setFontSize(12);
+        // Map font family for jspdf
+        let pdfFont = "times";
+        if (activeFont === 'arial') pdfFont = "helvetica";
+        
+        doc.setFont(pdfFont, "normal");
+        doc.setFontSize(baseFontSize); // Uses the pt value directly
         doc.text(lines, 20, 20); // 20mm margin
         
         const fileNameToUse = (essayTitle || 'ScholarGo_Essay').replace(/\s+/g, '_');
@@ -1627,8 +1631,29 @@ User is asking for a comparison or seeking the "better" version.
 
     const handleExportWord = () => {
         const content = editor?.getHTML() || essayContent;
-        // Simple HTML to Word blob approach
-        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export Word</title></head><body>";
+        
+        // Map font family for Word
+        const fontMap = {
+            'times': "'Times New Roman', serif",
+            'poppins': "'Poppins', sans-serif",
+            'arial': 'Arial, sans-serif'
+        };
+        const activeFontFamily = fontMap[activeFont] || fontMap['times'];
+
+        // Simple HTML to Word blob approach with styles
+        const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>Export Word</title>
+                <style>
+                    body { 
+                        font-family: ${activeFontFamily}; 
+                        font-size: ${baseFontSize}pt; 
+                        line-height: 1.5;
+                    }
+                </style>
+            </head>
+            <body>`;
         const footer = "</body></html>";
         const sourceHTML = header + content + footer;
         
@@ -1649,7 +1674,9 @@ User is asking for a comparison or seeking the "better" version.
     };
 
     const getInlineFontStyle = () => {
-        const style = { fontSize: `${baseFontSize}px` };
+        // We use pt for font size to align with Word/PDF, 
+        // but it will automatically be handled by the browser correctly
+        const style = { fontSize: `${baseFontSize}pt` };
         if (activeFont === 'times') return { ...style, fontFamily: '"Times New Roman", Times, serif' };
         if (activeFont === 'poppins') return { ...style, fontFamily: '"Poppins", sans-serif' };
         if (activeFont === 'arial') return { ...style, fontFamily: 'Arial, Helvetica, sans-serif' };
@@ -1913,19 +1940,22 @@ User is asking for a comparison or seeking the "better" version.
                                         
                                         {/* Base Font Size */}
                                         <div className="flex items-center justify-between mb-4">
-                                            <span className="text-sm text-oxford-blue/70">Base font size</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm text-oxford-blue/70">Base font size</span>
+                                                <span className="text-[10px] text-oxford-blue/30 -mt-1">Standard 12pt</span>
+                                            </div>
                                             <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg overflow-hidden h-9">
                                                 <button 
-                                                    onClick={() => setBaseFontSize(Math.max(12, baseFontSize - 1))}
+                                                    onClick={() => setBaseFontSize(Math.max(8, baseFontSize - 1))}
                                                     className="w-9 h-full flex items-center justify-center hover:bg-gray-100 transition-colors text-oxford-blue/40 hover:text-oxford-blue"
                                                 >
                                                     <Minus size={14} />
                                                 </button>
-                                                <div className="w-10 h-full flex items-center justify-center text-sm font-semibold border-x border-gray-100 text-oxford-blue">
-                                                    {baseFontSize}
+                                                <div className="w-12 h-full flex items-center justify-center text-sm font-semibold border-x border-gray-100 text-oxford-blue">
+                                                    {baseFontSize}<span className="text-[10px] ml-0.5 font-normal text-oxford-blue/40">pt</span>
                                                 </div>
                                                 <button 
-                                                    onClick={() => setBaseFontSize(Math.min(30, baseFontSize + 1))}
+                                                    onClick={() => setBaseFontSize(Math.min(24, baseFontSize + 1))}
                                                     className="w-9 h-full flex items-center justify-center hover:bg-gray-100 transition-colors text-oxford-blue/40 hover:text-oxford-blue"
                                                 >
                                                     <Plus size={14} />
