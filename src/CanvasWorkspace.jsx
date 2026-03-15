@@ -77,7 +77,9 @@ import {
     AlertCircle,
     RotateCw,
     SpellCheck,
-    Languages
+    Languages,
+    Minus,
+    ChevronDown
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat, deleteMessagesAfter } from './services/chatService';
@@ -116,12 +118,19 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const settingsMenuRef = useRef(null);
     const [activeFont, setActiveFont] = useState('times'); // 'times', 'poppins', 'arial'
+    const [baseFontSize, setBaseFontSize] = useState(17);
+    const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
+    const fontDropdownRef = useRef(null);
 
     // Click Outside Handlers
     useEffect(() => {
         function handleClickOutside(event) {
             if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
                 setIsSettingsOpen(false);
+                setIsFontDropdownOpen(false);
+            }
+            if (fontDropdownRef.current && !fontDropdownRef.current.contains(event.target)) {
+                setIsFontDropdownOpen(false);
             }
             if (versionMenuRef.current && !versionMenuRef.current.contains(event.target)) {
                 setIsVersionMenuOpen(false);
@@ -1640,10 +1649,11 @@ User is asking for a comparison or seeking the "better" version.
     };
 
     const getInlineFontStyle = () => {
-        if (activeFont === 'times') return { fontFamily: '"Times New Roman", Times, serif' };
-        if (activeFont === 'poppins') return { fontFamily: '"Poppins", sans-serif' };
-        if (activeFont === 'arial') return { fontFamily: 'Arial, Helvetica, sans-serif' };
-        return {};
+        const style = { fontSize: `${baseFontSize}px` };
+        if (activeFont === 'times') return { ...style, fontFamily: '"Times New Roman", Times, serif' };
+        if (activeFont === 'poppins') return { ...style, fontFamily: '"Poppins", sans-serif' };
+        if (activeFont === 'arial') return { ...style, fontFamily: 'Arial, Helvetica, sans-serif' };
+        return style;
     };
 
     return (
@@ -1897,56 +1907,90 @@ User is asking for a comparison or seeking the "better" version.
                             </button>
 
                             {isSettingsOpen && (
-                                <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-200 shadow-xl rounded-xl py-3 z-50 animate-fadeIn overflow-hidden">
-                                    <div className="px-4 py-2 border-b border-gray-50 mb-1">
-                                        <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest">Font Style</p>
-                                    </div>
-                                    <div className="px-1.5 space-y-0.5">
-                                        {[
-                                            { id: 'times', name: 'Times New Roman', font: '"Times New Roman", serif' },
-                                            { id: 'poppins', name: 'Poppins', font: '"Poppins", sans-serif' },
-                                            { id: 'arial', name: 'Arial', font: 'Arial, sans-serif' }
-                                        ].map(f => (
-                                            <button
-                                                key={f.id}
-                                                onClick={() => { setActiveFont(f.id); setIsSettingsOpen(false); }}
-                                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all ${activeFont === f.id ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-oxford-blue/70 hover:bg-gray-50'}`}
-                                                style={{ fontFamily: f.font }}
+                                <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 shadow-2xl rounded-xl py-4 z-50 animate-fadeIn overflow-visible">
+                                    <div className="px-5 pb-3">
+                                        <h3 className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest mb-4">Typography</h3>
+                                        
+                                        {/* Base Font Size */}
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className="text-sm text-oxford-blue/70">Base font size</span>
+                                            <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg overflow-hidden h-9">
+                                                <button 
+                                                    onClick={() => setBaseFontSize(Math.max(12, baseFontSize - 1))}
+                                                    className="w-9 h-full flex items-center justify-center hover:bg-gray-100 transition-colors text-oxford-blue/40 hover:text-oxford-blue"
+                                                >
+                                                    <Minus size={14} />
+                                                </button>
+                                                <div className="w-10 h-full flex items-center justify-center text-sm font-semibold border-x border-gray-100 text-oxford-blue">
+                                                    {baseFontSize}
+                                                </div>
+                                                <button 
+                                                    onClick={() => setBaseFontSize(Math.min(30, baseFontSize + 1))}
+                                                    className="w-9 h-full flex items-center justify-center hover:bg-gray-100 transition-colors text-oxford-blue/40 hover:text-oxford-blue"
+                                                >
+                                                    <Plus size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Font Family Dropdown */}
+                                        <div className="flex items-center justify-between relative" ref={fontDropdownRef}>
+                                            <span className="text-sm text-oxford-blue/70">Font family</span>
+                                            <button 
+                                                onClick={() => setIsFontDropdownOpen(!isFontDropdownOpen)}
+                                                className="flex items-center justify-between gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-sm text-oxford-blue hover:bg-gray-100 transition-all min-w-[124px]"
                                             >
-                                                {f.name}
-                                                {activeFont === f.id && <Check size={14} />}
+                                                <span className="truncate">
+                                                    {activeFont === 'times' ? 'Times New Roman' : 
+                                                     activeFont === 'poppins' ? 'Poppins' : 'Arial'}
+                                                </span>
+                                                <ChevronDown size={14} className={`text-oxford-blue/40 transition-transform ${isFontDropdownOpen ? 'rotate-180' : ''}`} />
                                             </button>
-                                        ))}
+
+                                            {isFontDropdownOpen && (
+                                                <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-100 shadow-xl rounded-lg py-1 z-[60] animate-fadeIn">
+                                                    {[
+                                                        { id: 'times', name: 'Times New Roman' },
+                                                        { id: 'poppins', name: 'Poppins' },
+                                                        { id: 'arial', name: 'Arial' }
+                                                    ].map(f => (
+                                                        <button
+                                                            key={f.id}
+                                                            onClick={() => { setActiveFont(f.id); setIsFontDropdownOpen(false); }}
+                                                            className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 transition-colors ${activeFont === f.id ? 'text-blue-600 font-semibold bg-blue-50/30' : 'text-oxford-blue/70'}`}
+                                                        >
+                                                            {f.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
-                                    <div className="mt-3 px-4 py-2 border-b border-gray-50 mb-1">
-                                        <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest">Extract Document</p>
-                                    </div>
-                                    <div className="px-1.5 space-y-1">
-                                        <button
-                                            onClick={handleExportPDF}
-                                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-oxford-blue/70 hover:text-oxford-blue hover:bg-red-50 rounded-lg transition-all group"
-                                        >
-                                            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-500 group-hover:text-white transition-all">
-                                                <FileText size={16} />
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="font-semibold text-xs text-oxford-blue">PDF Document</p>
-                                                <p className="text-[10px] text-oxford-blue/40">Download as .pdf</p>
-                                            </div>
-                                        </button>
-                                        <button
-                                            onClick={handleExportWord}
-                                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-oxford-blue/70 hover:text-oxford-blue hover:bg-blue-50 rounded-lg transition-all group"
-                                        >
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                                                <FileText size={16} />
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="font-semibold text-xs text-oxford-blue">Word Document</p>
-                                                <p className="text-[10px] text-oxford-blue/40">Download as .doc</p>
-                                            </div>
-                                        </button>
+                                    <div className="h-px bg-gray-50 my-2"></div>
+
+                                    <div className="px-5 pt-2">
+                                        <h3 className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest mb-3">File export</h3>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={handleExportPDF}
+                                                className="flex flex-col items-center justify-center gap-2 p-3 bg-gray-50 hover:bg-red-50/50 border border-gray-100 rounded-xl transition-all group"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-500 group-hover:text-white transition-all">
+                                                    <FileText size={16} />
+                                                </div>
+                                                <span className="text-[10px] font-bold text-oxford-blue/60 group-hover:text-oxford-blue">PDF</span>
+                                            </button>
+                                            <button
+                                                onClick={handleExportWord}
+                                                className="flex flex-col items-center justify-center gap-2 p-3 bg-gray-50 hover:bg-blue-50/50 border border-gray-100 rounded-xl transition-all group"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                                    <FileText size={16} />
+                                                </div>
+                                                <span className="text-[10px] font-bold text-oxford-blue/60 group-hover:text-oxford-blue">Word</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
