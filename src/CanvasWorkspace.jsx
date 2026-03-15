@@ -920,8 +920,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
             setComments(prev => [...prev, newComment]);
 
-            // No more canvas highlighting to keep it clean
-            editor.commands.unsetHighlight();
+            // Clear the temporary highlight for the specific range
+            editor.commands.unsetHighlight({ from, to });
 
         } catch (err) {
             console.error(`Action ${actionType} failed:`, err);
@@ -962,8 +962,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         const textToInsert = customValue || comment.suggestion;
 
         // Force selection to the exact range of the highlight to ensure it clears
-        editor.commands.setTextSelection({ from: comment.from, to: comment.to });
+        // We use a small buffer (+1) to ensure we catch any shifted indices or marks at boundaries
+        editor.commands.setTextSelection({ from: Math.max(0, comment.from - 1), to: comment.to + 1 });
         editor.commands.unsetHighlight();
+        
+        // Reset selection back to exact range for insertion
+        editor.commands.setTextSelection({ from: comment.from, to: comment.to });
 
         if (comment.status !== 'correct' || customValue) {
             editor.commands.insertContent(textToInsert);
@@ -976,8 +980,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
     const handleDismissComment = (commentId) => {
         const comment = comments.find(c => c.id === commentId);
         if (editor && comment) {
-            // Force selection to the exact range to ensure highlight is cleared
-            editor.commands.setTextSelection({ from: comment.from, to: comment.to });
+            // Force selection to a slightly wider range to ensure highlight is cleared
+            editor.commands.setTextSelection({ from: Math.max(0, comment.from - 1), to: comment.to + 1 });
+            editor.commands.unsetHighlight();
+            
+            // Clear any marks at the specific 'from' point as well (failsafe)
+            editor.commands.setTextSelection(comment.from);
             editor.commands.unsetHighlight();
         }
         setComments(prev => prev.filter(c => c.id !== commentId));
