@@ -7,6 +7,8 @@ import TextAlign from '@tiptap/extension-text-align';
 import { Extension, InputRule } from '@tiptap/core';
 import { Markdown } from 'tiptap-markdown';
 import Highlight from '@tiptap/extension-highlight';
+import { jsPDF } from 'jspdf';
+import { saveAs } from 'file-saver';
 
 // Define the custom AutoCapitalize Extension to securely enforce capital letters on all devices
 const AutoCapitalize = Extension.create({
@@ -109,6 +111,25 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [currentVersionId, setCurrentVersionId] = useState(1);
     const [isVersionMenuOpen, setIsVersionMenuOpen] = useState(false);
     const versionMenuRef = useRef(null);
+
+    // --- Settings & Font State ---
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const settingsMenuRef = useRef(null);
+    const [activeFont, setActiveFont] = useState('times'); // 'times', 'poppins', 'arial'
+
+    // Click Outside Handlers
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
+                setIsSettingsOpen(false);
+            }
+            if (versionMenuRef.current && !versionMenuRef.current.contains(event.target)) {
+                setIsVersionMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // Sync essayContent to current version when typing
     useEffect(() => {
@@ -976,6 +997,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         return paragraphs.map((p, i) => {
             const label = paragraphBreakdown[i]?.functional_label || paragraphBreakdown[i]?.section_label || 'General Paragraph';
             const subtitle = paragraphBreakdown[i]?.detected_subtitle ? ` (${paragraphBreakdown[i].detected_subtitle})` : '';
+            // Ensure numbering is consistent and easy for AI to parse
             return `### PARAGRAPH ${i + 1} [Role: ${label}${subtitle}] ###\n${p}`;
         }).join('\n\n');
     };
@@ -1032,9 +1054,17 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             augmentedUserMessage = `[CRITICAL CONTEXT: PLEASE REVIEW THE DOCUMENT BELOW]\n\nUSER QUESTION: ${baseUserMessage}\n\nDOCUMENT TO REVIEW:\n${currentEssay || '(Empty)'}`;
         }
 
+        // Paragraph Focus Detection: Detect if user is asking about a specific paragraph number
+        const paraMatch = cleanInput.match(/paragraf\s*(\d+)/i) || cleanInput.match(/paragraph\s*(\d+)/i);
+        let focusTag = "";
+        if (paraMatch) {
+            const paraNum = paraMatch[1];
+            focusTag = `\n[FOCUS PARAGRAPH: ${paraNum}]\nUser is specifically asking about Paragraph ${paraNum}. Please prioritize this block while maintaining overall flow.`;
+        }
+
         const userMessage = isResearchMode
-            ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${augmentedUserMessage}`
-            : augmentedUserMessage;
+            ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${augmentedUserMessage}${focusTag}`
+            : `${augmentedUserMessage}${focusTag}`;
 
         // Construct context: Include ALL versions clearly labeled and indexed by paragraph
         // Pass metadata about the document type and source
@@ -1566,6 +1596,56 @@ User is asking for a comparison or seeking the "better" version.
     const wordCount = essayContent.replace(/<[^>]*>?/gm, ' ').trim().split(/\s+/).filter(Boolean).length;
     const estimatedPages = Math.max(1, Math.ceil(wordCount / 250));
 
+    // --- Export Handlers ---
+    const handleExportPDF = () => {
+        const doc = new jsPDF({
+            format: 'a4',
+            unit: 'mm'
+        });
+        
+        // Simple extraction of text
+        const content = editor?.getText() || essayContent.replace(/<[^>]*>?/gm, '');
+        const lines = doc.splitTextToSize(content, 170); // 170mm width for A4
+        
+        doc.setFont("times", "normal");
+        doc.setFontSize(12);
+        doc.text(lines, 20, 20); // 20mm margin
+        
+        const fileNameToUse = (essayTitle || 'ScholarGo_Essay').replace(/\s+/g, '_');
+        doc.save(`${fileNameToUse}.pdf`);
+        setIsSettingsOpen(false);
+    };
+
+    const handleExportWord = () => {
+        const content = editor?.getHTML() || essayContent;
+        // Simple HTML to Word blob approach
+        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export Word</title></head><body>";
+        const footer = "</body></html>";
+        const sourceHTML = header + content + footer;
+        
+        const blob = new Blob(['\ufeff', sourceHTML], {
+            type: 'application/msword'
+        });
+        
+        const fileNameToUse = (essayTitle || 'ScholarGo_Essay').replace(/\s+/g, '_');
+        saveAs(blob, `${fileNameToUse}.doc`);
+        setIsSettingsOpen(false);
+    };
+
+    const getFontStyles = () => {
+        if (activeFont === 'times') return 'font-serif';
+        if (activeFont === 'poppins') return 'font-sans'; // Assuming font-sans is Poppins via tailwind
+        if (activeFont === 'arial') return 'font-sans italic'; // or just use inline style below
+        return 'font-serif';
+    };
+
+    const getInlineFontStyle = () => {
+        if (activeFont === 'times') return { fontFamily: '"Times New Roman", Times, serif' };
+        if (activeFont === 'poppins') return { fontFamily: '"Poppins", sans-serif' };
+        if (activeFont === 'arial') return { fontFamily: 'Arial, Helvetica, sans-serif' };
+        return {};
+    };
+
     return (
         <div className="flex h-screen bg-[#F8FAFC] overflow-hidden animate-fadeIn">
 
@@ -1806,6 +1886,72 @@ User is asking for a comparison or seeking the "better" version.
                             <Sparkle size={18} />
                         </button>
 
+                        {/* Settings Gear Dropdown */}
+                        <div className="relative ml-1" ref={settingsMenuRef}>
+                            <button
+                                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                                className={`p-1.5 rounded transition-colors ${isSettingsOpen ? 'text-oxford-blue bg-gray-100' : 'text-gray-400 hover:text-oxford-blue hover:bg-gray-100'}`}
+                                title="Settings & Extract"
+                            >
+                                <Settings size={18} />
+                            </button>
+
+                            {isSettingsOpen && (
+                                <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-200 shadow-xl rounded-xl py-3 z-50 animate-fadeIn overflow-hidden">
+                                    <div className="px-4 py-2 border-b border-gray-50 mb-1">
+                                        <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest">Font Style</p>
+                                    </div>
+                                    <div className="px-1.5 space-y-0.5">
+                                        {[
+                                            { id: 'times', name: 'Times New Roman', font: '"Times New Roman", serif' },
+                                            { id: 'poppins', name: 'Poppins', font: '"Poppins", sans-serif' },
+                                            { id: 'arial', name: 'Arial', font: 'Arial, sans-serif' }
+                                        ].map(f => (
+                                            <button
+                                                key={f.id}
+                                                onClick={() => { setActiveFont(f.id); setIsSettingsOpen(false); }}
+                                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all ${activeFont === f.id ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-oxford-blue/70 hover:bg-gray-50'}`}
+                                                style={{ fontFamily: f.font }}
+                                            >
+                                                {f.name}
+                                                {activeFont === f.id && <Check size={14} />}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-3 px-4 py-2 border-b border-gray-50 mb-1">
+                                        <p className="text-[10px] font-bold text-oxford-blue/40 uppercase tracking-widest">Extract Document</p>
+                                    </div>
+                                    <div className="px-1.5 space-y-1">
+                                        <button
+                                            onClick={handleExportPDF}
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-oxford-blue/70 hover:text-oxford-blue hover:bg-red-50 rounded-lg transition-all group"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-500 group-hover:text-white transition-all">
+                                                <FileText size={16} />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="font-semibold text-xs text-oxford-blue">PDF Document</p>
+                                                <p className="text-[10px] text-oxford-blue/40">Download as .pdf</p>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={handleExportWord}
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-oxford-blue/70 hover:text-oxford-blue hover:bg-blue-50 rounded-lg transition-all group"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                                <FileText size={16} />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="font-semibold text-xs text-oxford-blue">Word Document</p>
+                                                <p className="text-[10px] text-oxford-blue/40">Download as .doc</p>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Essential Features Control */}
                         <div className="w-px h-4 bg-gray-200 mx-1"></div>
                     </div>
@@ -1874,7 +2020,8 @@ User is asking for a comparison or seeking the "better" version.
                     <div className="relative flex justify-center w-full">
                         <div
                             onClick={() => editor?.commands.focus()}
-                            className="w-full max-w-[816px] bg-white min-h-[1056px] shadow-sm border border-gray-200 mt-2 mb-12 px-12 py-10 relative flex-shrink-0 cursor-text"
+                            className={`w-full max-w-[816px] bg-white min-h-[1056px] shadow-sm border border-gray-200 mt-2 mb-12 px-12 py-10 relative flex-shrink-0 cursor-text ${getFontStyles()}`}
+                            style={{ ...getInlineFontStyle() }}
                         >
 
                             {/* TIPTAP EDITOR LAYER - Changed from absolute to relative for natural paper expansion */}

@@ -209,6 +209,9 @@ export const sendChatMessage = async (
             - If they provider text, identify its current purpose first, then score it against the pillars (Authenticity, Structure, Value Alignment).
 
             Document Content (Indexed by Paragraph - PRIMARY SOURCE OF TRUTH):
+            - Each section is marked with '### PARAGRAPH X ###'.
+            - If the user asks about a specific paragraph (e.g., "coba kembangkan paragraf 4"), you MUST locate that specific marker and focus your primary effort there.
+            - **Meaning of "Kembangkan"**: Proactively suggest additional specific details, "Show Don't Tell" observations, or stronger bridging to scholarship values to turn it into a high-impact narrative.
             ---
             ${documentContent || '(Empty draft provided. Encourage the user to share their text or upload a file.)'}
             ---

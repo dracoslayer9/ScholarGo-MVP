@@ -192,12 +192,15 @@ export const sendChatMessage = async (
         (and so on).
         Do not deviate from this structure for outlines.
 
-        Document Content (THE SOURCE OF TRUTH):
+        Document Content (PRIMARY SOURCE OF TRUTH):
+        - The document is indexed using markers like '### PARAGRAPH X ###'.
+        - If the user mentions a specific paragraph (e.g., "kembangkan paragraf 4"), you MUST cross-reference it with these markers and focus your specific analysis and improvements on that block.
+        - **"Mengembangkan" (Developing)**: This means identifying vague points in that paragraph and adding concrete evidence, micro-observations, or "Awardee Logic" (Why this matters for your contribution) to make it more specific and "Gold Standard".
         ---
         ${documentContent || '(Empty document provided. Please ask the user to share their draft.)'}
         ---
 
-        CRITICAL: If the Document Content above is NOT empty, focus your analysis on it.
+        CRITICAL: If the Document Content above is NOT empty, focus your analysis on it while maintaining understanding of the whole essay flow.
         `;
 
         // PATTERN COMMAND INTERCEPT
