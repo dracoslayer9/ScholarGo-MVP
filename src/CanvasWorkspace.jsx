@@ -4,7 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
-import { Extension, InputRule } from '@tiptap/core';
+import { Extension, InputRule, Mark, mergeAttributes } from '@tiptap/core';
 import { Markdown } from 'tiptap-markdown';
 import Highlight from '@tiptap/extension-highlight';
 import { jsPDF } from 'jspdf';
@@ -16,26 +16,85 @@ const AutoCapitalize = Extension.create({
     addInputRules() {
         return [
             new InputRule({
-                // Only capitalize after a sentence end or start of line, 
-                // but avoid interfering if it's clearly a manual list marker like "1. "
                 find: /(?:^|[\n.!?]\s+)([a-z])$/,
                 handler: ({ state, range, match }) => {
                     const { tr, doc } = state;
-                    
-                    // Simple check: is this a numbered list trigger?
-                    // We look back a bit from the match to see if there's a number
                     const textBefore = doc.textBetween(Math.max(0, range.from - 5), range.from, "\n");
-                    if (/\d\.$/.test(textBefore)) {
-                        // If it's "1.", let the list extension handle its thing or just insert normally
-                        return null; 
-                    }
-
+                    if (/\d\.$/.test(textBefore)) return null; 
                     const uppercaseLetter = match[1].toUpperCase();
                     const replacement = match[0].slice(0, -1) + uppercaseLetter;
                     tr.insertText(replacement, range.from, range.to);
                 },
             }),
         ];
+    },
+});
+
+const FontSize = Mark.create({
+    name: 'fontSize',
+    addAttributes() {
+        return {
+            size: {
+                default: null,
+                parseHTML: element => element.style.fontSize?.replace('pt', ''),
+                renderHTML: attributes => {
+                    if (!attributes.size) return {};
+                    return { style: `font-size: ${attributes.size}pt` };
+                },
+            },
+        };
+    },
+    parseHTML() {
+        return [{ tag: 'span[style*=font-size]' }];
+    },
+    renderHTML({ HTMLAttributes }) {
+        return ['span', mergeAttributes(HTMLAttributes), 0];
+    },
+    addCommands() {
+        return {
+            setFontSize: size => ({ commands }) => {
+                return commands.setMark(this.name, { size });
+            },
+            unsetFontSize: () => ({ commands }) => {
+                return commands.unsetMark(this.name);
+            },
+        };
+    },
+});
+
+const FontFamily = Mark.create({
+    name: 'fontFamily',
+    addAttributes() {
+        return {
+            family: {
+                default: null,
+                parseHTML: element => element.style.fontFamily,
+                renderHTML: attributes => {
+                    if (!attributes.family) return {};
+                    let familyStyle = attributes.family;
+                    if (familyStyle === 'times') familyStyle = '"Times New Roman", Times, serif';
+                    if (familyStyle === 'poppins') familyStyle = '"Poppins", sans-serif';
+                    if (familyStyle === 'arial') familyStyle = 'Arial, Helvetica, sans-serif';
+                    return { style: `font-family: ${familyStyle}` };
+                },
+            },
+        };
+    },
+    parseHTML() {
+        return [{ tag: 'span[style*=font-family]' }];
+    },
+    renderHTML({ HTMLAttributes }) {
+        return ['span', mergeAttributes(HTMLAttributes), 0];
+    },
+    addCommands() {
+        return {
+            setFontFamily: family => ({ commands }) => {
+                return commands.setMark(this.name, { family });
+            },
+            unsetFontFamily: () => ({ commands }) => {
+                return commands.unsetMark(this.name);
+            },
+        };
     },
 });
 import {
@@ -290,6 +349,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             Highlight.configure({
                 multicolor: true,
             }),
+            FontSize,
+            FontFamily,
             AutoCapitalize,
             Markdown,
         ],
@@ -1681,6 +1742,50 @@ User is asking for a comparison or seeking the "better" version.
         return 'font-serif';
     };
 
+    const handleFontSizeChange = (increase = true) => {
+        if (!editor) return;
+
+        const { from, to } = editor.state.selection;
+        const hasSelection = from !== to;
+        const currentSizeFromMark = editor.getAttributes('fontSize').size;
+        const currentEffectiveSize = currentSizeFromMark ? parseInt(currentSizeFromMark) : baseFontSize;
+        
+        const newSize = increase ? currentEffectiveSize + 1 : Math.max(8, currentEffectiveSize - 1);
+
+        if (hasSelection) {
+            editor.commands.setFontSize(newSize);
+        } else {
+            setBaseFontSize(newSize);
+        }
+    };
+
+    const handleFontFamilyChange = (newFamily) => {
+        if (!editor) return;
+
+        const { from, to } = editor.state.selection;
+        const hasSelection = from !== to;
+
+        if (hasSelection) {
+            editor.commands.setFontFamily(newFamily);
+        } else {
+            setActiveFont(newFamily);
+        }
+        setIsFontDropdownOpen(false);
+    };
+
+    // Helper to get current active font/size for UI display
+    const getCurrentUISize = () => {
+        if (!editor) return baseFontSize;
+        const markSize = editor.getAttributes('fontSize').size;
+        return markSize ? parseInt(markSize) : baseFontSize;
+    };
+
+    const getCurrentUIFont = () => {
+        if (!editor) return activeFont;
+        const markFont = editor.getAttributes('fontFamily').family;
+        return markFont || activeFont;
+    };
+
     const getInlineFontStyle = () => {
         // We use pt for font size to align with Word/PDF, 
         // but it will automatically be handled by the browser correctly
@@ -1954,16 +2059,16 @@ User is asking for a comparison or seeking the "better" version.
                                             </div>
                                             <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg overflow-hidden h-9">
                                                 <button 
-                                                    onClick={() => setBaseFontSize(Math.max(8, baseFontSize - 1))}
+                                                    onClick={() => handleFontSizeChange(false)}
                                                     className="w-9 h-full flex items-center justify-center hover:bg-gray-100 transition-colors text-oxford-blue/40 hover:text-oxford-blue"
                                                 >
                                                     <Minus size={14} />
                                                 </button>
                                                 <div className="w-12 h-full flex items-center justify-center text-sm font-semibold border-x border-gray-100 text-oxford-blue">
-                                                    {baseFontSize}<span className="text-[10px] ml-0.5 font-normal text-oxford-blue/40">pt</span>
+                                                    {getCurrentUISize()}<span className="text-[10px] ml-0.5 font-normal text-oxford-blue/40">pt</span>
                                                 </div>
                                                 <button 
-                                                    onClick={() => setBaseFontSize(Math.min(24, baseFontSize + 1))}
+                                                    onClick={() => handleFontSizeChange(true)}
                                                     className="w-9 h-full flex items-center justify-center hover:bg-gray-100 transition-colors text-oxford-blue/40 hover:text-oxford-blue"
                                                 >
                                                     <Plus size={14} />
@@ -1976,30 +2081,33 @@ User is asking for a comparison or seeking the "better" version.
                                             <span className="text-sm text-oxford-blue/70">Font family</span>
                                             <button 
                                                 onClick={() => setIsFontDropdownOpen(!isFontDropdownOpen)}
-                                                className="flex items-center justify-between gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-sm text-oxford-blue hover:bg-gray-100 transition-all min-w-[124px]"
+                                                className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm text-oxford-blue hover:bg-gray-100 transition-colors"
                                             >
-                                                <span className="truncate">
-                                                    {activeFont === 'times' ? 'Times New Roman' : 
-                                                     activeFont === 'poppins' ? 'Poppins' : 'Arial'}
-                                                </span>
-                                                <ChevronDown size={14} className={`text-oxford-blue/40 transition-transform ${isFontDropdownOpen ? 'rotate-180' : ''}`} />
+                                                <span className="capitalize">{getCurrentUIFont()}</span>
+                                                <ChevronDown size={14} className={`transition-transform duration-200 ${isFontDropdownOpen ? 'rotate-180' : ''}`} />
                                             </button>
 
                                             {isFontDropdownOpen && (
                                                 <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-100 shadow-xl rounded-lg py-1 z-[60] animate-fadeIn">
-                                                    {[
-                                                        { id: 'times', name: 'Times New Roman' },
-                                                        { id: 'poppins', name: 'Poppins' },
-                                                        { id: 'arial', name: 'Arial' }
-                                                    ].map(f => (
-                                                        <button
-                                                            key={f.id}
-                                                            onClick={() => { setActiveFont(f.id); setIsFontDropdownOpen(false); }}
-                                                            className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 transition-colors ${activeFont === f.id ? 'text-blue-600 font-semibold bg-blue-50/30' : 'text-oxford-blue/70'}`}
-                                                        >
-                                                            {f.name}
-                                                        </button>
-                                                    ))}
+                                                    <div className="py-1">
+                                                        {[
+                                                            { id: 'times', label: 'Times New Roman', desc: 'Serif (Academic Standard)' },
+                                                            { id: 'poppins', label: 'Poppins', desc: 'Sans-serif (Modern)' },
+                                                            { id: 'arial', label: 'Arial', desc: 'Sans-serif (Universal)' }
+                                                        ].map((font) => (
+                                                            <button
+                                                                key={font.id}
+                                                                onClick={() => handleFontFamilyChange(font.id)}
+                                                                className={`w-full flex flex-col items-start px-4 py-2 hover:bg-blue-50/50 transition-colors ${getCurrentUIFont() === font.id ? 'bg-blue-50/30' : ''}`}
+                                                            >
+                                                                <div className="flex items-center justify-between w-full">
+                                                                    <span className={`text-sm ${font.id === 'times' ? 'font-serif' : 'font-sans'} text-oxford-blue`}>{font.label}</span>
+                                                                    {getCurrentUIFont() === font.id && <Check size={14} className="text-blue-600" />}
+                                                                </div>
+                                                                <span className="text-[10px] text-oxford-blue/30 leading-none mt-0.5">{font.desc}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
