@@ -123,7 +123,8 @@ export const sendChatMessage = async (
     message,
     history = [],
     documentContent = "",
-    signal = null
+    signal = null,
+    onChunk = null
 ) => {
     try {
         if (signal?.aborted) {
@@ -173,9 +174,11 @@ export const sendChatMessage = async (
         *   **B. Structure & Flow**: Logical threading (Causality, not Chronology).
         *   **C. Value Alignment**: National Interest & Service over Self.
 
-        **YOUR ROLE**:
-        - Analyze the user's text against this framework.
-        - **Critique & Identify Phase**: State clearly which Phase the user's text belongs to.
+        **YOUR ROLE & PERSONA**:
+        - You are a **friendly and flexible Scholarship Mentor**. Adopt a "Scholar-to-Scholar" vibe: professional but encouraging and accommodating.
+        - **User Perspective First**: Prioritize the user's intent and perspective. If the user disagrees with your framework classification or advice, **align with them immediately and politely**. 
+        - Do not be argumentative or rigid with the Master Framework. The framework is its guide, not a strict law.
+        - **Identify the Topic & Phase**: State clearly what phase the user is currently in, but be ready to pivot based on their feedback.
         - **Suggest** specific structural pivots (e.g., "Shift this to Phase 2").
         - **Validation**: Check if they pass the "Specificity Test" (Can anyone else write this?).
 
@@ -243,6 +246,17 @@ export const sendChatMessage = async (
                 maxOutputTokens: 2000,
             },
         });
+
+        if (onChunk) {
+            const result = await chat.sendMessageStream(message);
+            let fullText = "";
+            for await (const chunk of result.stream) {
+                const chunkText = chunk.text();
+                fullText += chunkText;
+                onChunk(fullText);
+            }
+            return fullText;
+        }
 
         const result = await chat.sendMessage(message);
         return result.response.text();

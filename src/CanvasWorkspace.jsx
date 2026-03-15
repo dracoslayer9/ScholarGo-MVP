@@ -1105,24 +1105,36 @@ User is asking for a comparison or seeking the "better" version.
         const historyToUse = historyOverride || chatHistory;
 
         try {
-            // Call Chat Service (using sendChatMessage to leverage Master Framework)
-            // sendChatMessage(message, history, documentContent, provider, signal)
+            // Push an initial empty assistant message to chatHistory for streaming
+            const tempAiId = Date.now() + "-ai";
+            const initialAiMessage = { role: 'assistant', content: '', id: tempAiId, streaming: true };
+            setChatHistory(prev => [...prev, initialAiMessage]);
+
+            let accumulatedText = "";
+
             const aiResponse = await sendChatMessage(
                 userMessage,
-                historyToUse.map(m => ({ role: m.role, content: m.content })), // Map to role/content for AI
-                context,     // The essay content
-                selectedModel, // Provider
-                controller.signal // Signal
+                historyToUse.map(m => ({ role: m.role, content: m.content })),
+                context,
+                selectedModel,
+                controller.signal,
+                (chunkText) => {
+                    accumulatedText = chunkText;
+                    setChatHistory(prev => prev.map(msg => 
+                        msg.id === tempAiId ? { ...msg, content: chunkText } : msg
+                    ));
+                }
             );
 
             if (activeChatId) {
                 const savedAi = await saveMessage(activeChatId, 'assistant', aiResponse);
-                setChatHistory(prev => [...prev, savedAi || { role: 'assistant', content: aiResponse }]);
+                setChatHistory(prev => prev.map(msg => 
+                    msg.id === tempAiId ? { ...savedAi, streaming: false } : msg
+                ));
             } else {
-                setChatHistory(prev => [...prev, {
-                    role: 'assistant',
-                    content: aiResponse
-                }]);
+                setChatHistory(prev => prev.map(msg => 
+                    msg.id === tempAiId ? { ...msg, content: aiResponse, streaming: false } : msg
+                ));
             }
 
             // AUTO-OUTLINE FEATURE

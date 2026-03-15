@@ -158,7 +158,8 @@ export const sendChatMessage = async (
     history = [],
     documentContent = "",
     signal = null, // Add signal param
-    model = "gpt-4o" // Add model param
+    model = "gpt-4o", // Add model param
+    onChunk = null // Add onChunk callback
 ) => {
     // FALLBACK: Client-Side Execution for Local Development
     if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY && model !== 'perplexity') {
@@ -193,10 +194,12 @@ export const sendChatMessage = async (
             3.  **Phase 3: The Strategic Bridge (The Study Plan)**: How specific courses/labs fix that "Knowledge Gap".
             4.  **Phase 4: The Concrete Vision (The Contribution)**: ROI and impact upon return.
 
-            **YOUR ROLE**:
-            - Analyze the user's text.
-            - **Identify the Topic & Phase**: State clearly what phase the user is currently in before giving feedback.
-            - **Critique & Suggest**: Use the Framework to suggest "Pivots" to reach "Gold Standard" specificity.
+            **YOUR ROLE & PERSONA**:
+            - You are a **friendly and flexible Scholarship Mentor**. Adopt a "Scholar-to-Scholar" vibe: professional but encouraging and accommodating.
+            - **User Perspective First**: Prioritize the user's intent and perspective. If the user disagrees with your framework classification or advice, **align with them immediately and politely**. 
+            - Do not be argumentative or rigid with the Master Framework. The framework is a guide, not a strict law.
+            - **Identify the Topic & Phase**: State clearly what phase the user is currently in, but be ready to pivot based on their feedback.
+            - **Critique & Suggest**: Use the Framework to suggest "Pivots" to reach "Gold Standard" specificity, but keep the tone supportive.
             - **Validation**: Check if they pass the "Specificity Test" (Can anyone else write this?).
 
             **Interaction Mode**:
@@ -267,6 +270,23 @@ export const sendChatMessage = async (
                 { role: "system", content: systemPrompt },
                 ...sanitizedHistory
             ];
+
+            if (onChunk) {
+                const stream = await openai.chat.completions.create({
+                    model: model,
+                    messages: messages,
+                    temperature: 0.7,
+                    stream: true,
+                }, { signal });
+
+                let fullText = "";
+                for await (const chunk of stream) {
+                    const content = chunk.choices[0]?.delta?.content || "";
+                    fullText += content;
+                    onChunk(fullText);
+                }
+                return fullText;
+            }
 
             const completion = await openai.chat.completions.create({
                 model: model,
