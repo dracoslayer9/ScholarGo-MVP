@@ -1130,7 +1130,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         // 2. FORCED ATTENTION: If user asks for a review, inject a reminder and context into the user prompt itself
         let augmentedUserMessage = baseUserMessage;
         if (cleanInput.includes('review') || cleanInput.includes('reviu') || cleanInput.includes('periksa') || cleanInput.includes('evaluasi')) {
-            augmentedUserMessage = `[CRITICAL CONTEXT: PLEASE REVIEW THE DOCUMENT BELOW]\n\nUSER QUESTION: ${baseUserMessage}\n\nDOCUMENT TO REVIEW:\n${currentEssay || '(Empty)'}`;
+            augmentedUserMessage = `[CRITICAL ACTION: DEEP REVIEW REQUESTED]\n\nUSER QUESTION: ${baseUserMessage}\n\n(Please analyze the Document Content provided in the system context below with maximum rigor.)`;
         }
 
         // Paragraph Focus Detection: Detect if user is asking about a specific paragraph number

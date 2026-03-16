@@ -192,14 +192,16 @@ export const sendChatMessage = async (
         (and so on).
         Do not deviate from this structure for outlines.
 
-        Document Content (PRIMARY SOURCE OF TRUTH):
+        Document Content (Indexed by Paragraph - ABSOLUTE PRIMARY SOURCE OF TRUTH):
         - The document is indexed using markers like '### PARAGRAPH X ###'.
-        - If the user mentions a specific paragraph (e.g., "kembangkan paragraf 4"), you MUST cross-reference it with these markers and focus your specific analysis and improvements on that block.
-        - **"Mengembangkan" (Developing)**: This means identifying vague points in that paragraph and adding concrete evidence, micro-observations, or "Awardee Logic" (Why this matters for your contribution) to make it more specific and "Gold Standard".
+        - **CRITICAL PROTOCOL**:
+          1. If the "Document Content" below is NOT EMPTY (contains draf/text), you MUST FOCUS 100% on analyzing and improving that specific text. Do NOT provide general theory or framework advice if the user has already written something.
+          2. If the user mentions a specific paragraph (e.g., "kembangkan paragraf 4"), you MUST cross-reference it with the markers below and focus your specific analysis and improvements on that block.
+          3. **ONLY IF the "Document Content" below is EMPTY**, you should then act in "Outline Mode" and provide structure/suggestions based on the Scholarstory Master Framework.
         ---
-        ${documentContent || '(Empty document provided. Please ask the user to share their draft.)'}
+        ${documentContent || '(Draft Empty - Provide framework-based outline suggestions to help the user get started.)'}
         ---
-
+        
         CRITICAL: If the Document Content above is NOT empty, focus your analysis on it while maintaining understanding of the whole essay flow.
         `;
 

@@ -208,12 +208,14 @@ export const sendChatMessage = async (
             - Be direct, professional, yet encouraging.
             - If they provider text, identify its current purpose first, then score it against the pillars (Authenticity, Structure, Value Alignment).
 
-            Document Content (Indexed by Paragraph - PRIMARY SOURCE OF TRUTH):
+            Document Content (Indexed by Paragraph - ABSOLUTE PRIMARY SOURCE OF TRUTH):
             - Each section is marked with '### PARAGRAPH X ###'.
-            - If the user asks about a specific paragraph (e.g., "coba kembangkan paragraf 4"), you MUST locate that specific marker and focus your primary effort there.
-            - **Meaning of "Kembangkan"**: Proactively suggest additional specific details, "Show Don't Tell" observations, or stronger bridging to scholarship values to turn it into a high-impact narrative.
+            - **CRITICAL PROTOCOL**:
+              1. If the "Document Content" below is NOT EMPTY (contains draf/text), you MUST FOCUS 100% on analyzing and improving that specific text. Do NOT provide general framework advice if the user has already written something in the Canvas.
+              2. If the user mentions a specific paragraph (e.g., "kembangkan paragraf 4"), you MUST cross-reference it with the markers below and focus your primary effort there.
+              3. **ONLY IF the "Document Content" below is EMPTY or contains only placeholders**, you should then act in "Outline Mode" and provide suggestions based on the Scholarstory Master Framework.
             ---
-            ${documentContent || '(Empty draft provided. Encourage the user to share their text or upload a file.)'}
+            ${documentContent || '(Draft Empty - Provide framework-based outline suggestions to help the user get started.)'}
             ---
             `;
 
