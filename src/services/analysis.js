@@ -25,6 +25,15 @@ export const sendChatMessage = async (message, history, documentContent, provide
     return await OpenAI.sendChatMessage(message, history, documentContent, signal, 'gpt-4o');
 };
 
+// Facade for Summarization
+export const summarizeChatHistory = async (history, provider = "openai") => {
+    console.log(`[Summarization] Using provider: ${provider}`);
+    if (provider === 'gemini') {
+        return await Gemini.summarizeChatHistory(history);
+    }
+    return await OpenAI.summarizeChatHistory(history);
+};
+
 // Facade for Paragraph Insight (Context Menu)
 export const analyzeParagraphInsight = async (paragraphText, provider = "openai") => {
     console.log(`[Insight] Using provider: ${provider}`);

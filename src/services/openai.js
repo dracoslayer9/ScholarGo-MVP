@@ -382,3 +382,31 @@ export const analyzeParagraphInsight = async (paragraphText) => {
     const data = await response.json();
     return data.result;
 };
+// Summarization Helper
+export const summarizeChatHistory = async (history = []) => {
+    if (history.length === 0) return "";
+    
+    if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY) {
+        try {
+            const openai = new OpenAI({
+                apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+                dangerouslyAllowBrowser: true
+            });
+
+            const historyText = history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+            const response = await openai.chat.completions.create({
+                model: "gpt-4o-mini", // Use cheaper model for summarization
+                messages: [
+                    { role: "system", content: "You are a helpful assistant that summarizes technical scholarship essay discussions. Create a concise summary (max 200 words) of the key points, decisions, and critiques made in this conversation. Focus on the narrative progress." },
+                    { role: "user", content: `History:\n${historyText}\n\nSummary:` }
+                ]
+            });
+
+            return response.choices[0].message.content;
+        } catch (err) {
+            console.error("Summarization Error:", err);
+            return "";
+        }
+    }
+    return "";
+};

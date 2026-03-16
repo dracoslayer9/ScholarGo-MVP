@@ -285,6 +285,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [analysisResult, setAnalysisResult] = useState(null);
 
     const [currentChatId, setCurrentChatId] = useState(null); // Canvas Chat Persistence
+    const [chatSummary, setChatSummary] = useState(""); // Long-term memory summary
     const [savedChats, setSavedChats] = useState([]); // History List
 
     // In-Chat History Navigator
@@ -1074,10 +1075,10 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         const paragraphBreakdown = analysisData?.paragraphBreakdown || [];
 
         return paragraphs.map((p, i) => {
-            const label = paragraphBreakdown[i]?.functional_label || paragraphBreakdown[i]?.section_label || 'General Paragraph';
+            const label = paragraphBreakdown[i]?.functional_label || paragraphBreakdown[i]?.section_label || 'Text';
             const subtitle = paragraphBreakdown[i]?.detected_subtitle ? ` (${paragraphBreakdown[i].detected_subtitle})` : '';
-            // Ensure numbering is consistent and easy for AI to parse
-            return `### PARAGRAPH ${i + 1} [Role: ${label}${subtitle}] ###\n${p}`;
+            // TOKEN SAVER: Use shorter headers
+            return `[P${i + 1} - ${label}${subtitle}]\n${p}`;
         }).join('\n\n');
     };
 
@@ -1169,13 +1170,15 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             ? `[RESEARCH MODE ACTIVATE]\nPlease act as an objective research assistant. Search for external data to provide a comprehensive answer to the following query. IMPORTANT: Do not assume this is localized to Indonesia or any specific country unless explicitly stated in the query. Provide global answers.\n\nUSER PROMPT:\n${augmentedUserMessage}${focusTag}`
             : `${augmentedUserMessage}${focusTag}`;
 
-        // Construct context: Include ALL versions clearly labeled and indexed by paragraph
-        // Pass metadata about the document type and source
-        const docMetadata = `[DOCUMENT METADATA]\n- Filename: ${fileName || analyzedFile?.name || 'Untitled'}\n- Type: ${analysisResult?.detectedType || 'Student Draft'}\n\n`;
+        // TOKEN SAVER: Version Trimming
+        // If not a comparison request, only send the current draft.
+        // If comparison, limit to top 3 recent versions inclusive of current.
+        const filteredVersions = isComparisonRequest 
+            ? versions.slice(-3) 
+            : versions.filter(v => String(v.id) === String(currentVersionId));
 
-        let versionsContext = versions.map(v => {
+        let versionsContext = filteredVersions.map(v => {
             const contentToUse = String(v.id) === String(currentVersionId) ? currentEssay : v.content;
-            // Only pass analysisData to the current active version context for focused logic
             const isCurrent = String(v.id) === String(currentVersionId);
             return `### [${v.title}]\n${preprocessContextForAI(contentToUse, isCurrent ? analysisResult : null)}`;
         }).join('\n\n---\n\n');
@@ -1273,7 +1276,14 @@ User is asking for a comparison or seeking the "better" version.
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
-        const historyToUse = historyOverride || chatHistory;
+        // 5. LONG MEMORY: Inject Summary if exists
+        const memoryContext = chatSummary ? `\n[CONVERSATION SUMMARY (PAST MEMORY)]: ${chatSummary}\n` : "";
+        const historyToUseRaw = historyOverride || chatHistory;
+        
+        // 6. TOKEN SAVER: Limit visible history to 10 mesages if we have a summary
+        const historyToUse = chatSummary 
+            ? historyToUseRaw.slice(-10) 
+            : historyToUseRaw;
 
         try {
             // Push an initial empty assistant message to chatHistory for streaming
@@ -1286,7 +1296,7 @@ User is asking for a comparison or seeking the "better" version.
             const aiResponse = await sendChatMessage(
                 userMessage,
                 historyToUse.map(m => ({ role: m.role, content: m.content })),
-                context,
+                `${memoryContext}${context}`,
                 selectedModel,
                 controller.signal,
                 (chunkText) => {
@@ -1331,11 +1341,22 @@ User is asking for a comparison or seeking the "better" version.
                         }
                         return line;
                     }).join('\n\n') + '\n\n';
-                    setEssayContent(outlineText);
-                }
+                setEssayContent(outlineText);
             }
+        }
 
-        } catch (error) {
+        // 7. BACKGROUND SUMMARIZATION: If history is long
+        if (activeChatId && historyToUseRaw.length > 10) {
+            // Async background task
+            summarizeChatHistory(historyToUseRaw, selectedModel).then(newSummary => {
+                if (newSummary) {
+                    setChatSummary(newSummary);
+                    updateChatPayload(activeChatId, { chatSummary: newSummary }).catch(console.error);
+                }
+            }).catch(err => console.log("Summarization Background Err:", err));
+        }
+
+    } catch (error) {
             if (error.name === 'AbortError') {
                 console.log("Request cancelled by user");
             } else {
@@ -1521,7 +1542,8 @@ User is asking for a comparison or seeking the "better" version.
                 updateChatPayload(previousChatId, {
                     essayContent: previousEssay,
                     versions: versions.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: previousEssay } : v),
-                    currentVersionId
+                    currentVersionId,
+                    chatSummary
                 }).catch(err => console.error(err));
                 setSavedChats(prev => prev.map(c => c.id === previousChatId ? {
                     ...c,
@@ -1531,6 +1553,7 @@ User is asking for a comparison or seeking the "better" version.
 
             // 5. Instantly transition UI visually AFTER network is secured
             setChatHistory([]);
+            setChatSummary("");
             setChatInput('');
             setEssayContent('');
             if (editor) {
@@ -1633,7 +1656,8 @@ User is asking for a comparison or seeking the "better" version.
                 const payloadToSave = {
                     essayContent: activeEssay,
                     versions: versions.map(v => String(v.id) === String(currentVersionId) ? { ...v, content: activeEssay } : v),
-                    currentVersionId
+                    currentVersionId,
+                    chatSummary
                 };
                 updateChatPayload(currentChatId, payloadToSave).catch(console.error);
                 setSavedChats(prev => prev.map(c => c.id === currentChatId ? {
@@ -1648,6 +1672,13 @@ User is asking for a comparison or seeking the "better" version.
 
             setCurrentChatId(chatId);
             setEssayTitle(session.title.replace("Canvas: ", ""));
+            
+            // Restore context summary if it exists
+            if (session.payload && session.payload.chatSummary) {
+                setChatSummary(session.payload.chatSummary);
+            } else {
+                setChatSummary("");
+            }
 
             // 2. Restore Target Essay Content and Versions from Payload
             if (session.payload && session.payload.versions && Array.isArray(session.payload.versions)) {

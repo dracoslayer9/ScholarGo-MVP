@@ -301,3 +301,22 @@ export const analyzeParagraphInsight = async (paragraphText) => {
         throw error;
     }
 };
+
+// Summarization Helper
+export const summarizeChatHistory = async (history = []) => {
+    if (history.length === 0) return "";
+    try {
+        console.log("Running Gemini Summarization...");
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const historyText = history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+        const prompt = `You are a helpful assistant that summarizes technical scholarship essay discussions. Create a concise summary (max 200 words) of the key points, decisions, and critiques made in this conversation. Focus on the narrative progress.\n\nHistory:\n${historyText}\n\nSummary:`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
+    } catch (err) {
+        console.error("Gemini Summarization Error:", err);
+        return "";
+    }
+};
