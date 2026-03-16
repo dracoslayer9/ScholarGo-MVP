@@ -447,39 +447,40 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Auto-scroll chat to bottom when history updates or analysis state changes
     useEffect(() => {
-        const scrollToBottom = () => {
+        const scrollToBottom = (force = false) => {
             if (!chatContainerRef.current) return;
             
             const container = chatContainerRef.current;
             // SMART STICKY SCROLL:
             // Allow user to unscrolled to read. Only auto-scroll if user is already near the bottom.
-            // 150px threshold is usually enough for a line or two.
-            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+            // Reduced threshold from 150px to 60px to be less aggressive.
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
             
             // If we are currently analyzing/streaming, we only scroll if they haven't manually scrolled up
-            if (isAnalyzing) {
+            if (isAnalyzing && !force) {
                 if (isNearBottom) {
                     container.scrollTop = container.scrollHeight;
                 }
             } else {
-                // For new messages (user sent), we always scroll to bottom
+                // For new messages (user sent) or when opening chat, we scroll to bottom
                 container.scrollTop = container.scrollHeight;
-                messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+                messagesEndRef.current?.scrollIntoView({ behavior: force ? "auto" : "smooth", block: "end" });
             }
         };
 
-        // Attempt scroll immediately
-        scrollToBottom();
+        // Scroll when chat is opened
+        if (isChatOpen) {
+            scrollToBottom(true);
+        }
 
-        // Handle potential rendering delays or layout shifts (e.g. images, long text blocks)
+        // Handle potential rendering delays or layout shifts
         const timeouts = [
-            setTimeout(scrollToBottom, 50),
-            setTimeout(scrollToBottom, 200),
-            setTimeout(scrollToBottom, 500)
+            setTimeout(() => scrollToBottom(isChatOpen), 50),
+            setTimeout(() => scrollToBottom(isChatOpen), 150)
         ];
 
         return () => timeouts.forEach(t => clearTimeout(t));
-    }, [chatHistory, isAnalyzing]);
+    }, [chatHistory, isAnalyzing, isChatOpen]);
 
     // Auto-scroll session history to bottom when opened or when history updates while open
     useEffect(() => {
