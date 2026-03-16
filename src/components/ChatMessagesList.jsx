@@ -1,8 +1,46 @@
 
 import React from 'react';
-import { Sparkles, Pencil, BookOpen } from 'lucide-react';
+import { Sparkles, Pencil, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import MessageContent from './MessageContent';
 import AnalysisResultView from './AnalysisResultView';
+
+const ContextCard = ({ context }) => {
+    const [isExpanded, setIsExpanded] = React.useState(false);
+    if (!context || !context.text) return null;
+
+    return (
+        <div className="mb-3 border border-oxford-blue/10 rounded-2xl overflow-hidden bg-white/40 shadow-sm transition-all hover:border-bronze/20 max-w-full">
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-bronze/5 transition-colors text-left group"
+            >
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-bronze font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles size={10} /> Konteks Fokus: Paragraf {context.number}
+                    </span>
+                    {!isExpanded && (
+                        <span className="text-oxford-blue/50 text-[12px] line-clamp-1 italic font-medium">
+                            {context.text.substring(0, 60)}{context.text.length > 60 ? '...' : ''}
+                        </span>
+                    )}
+                </div>
+                <span className="text-oxford-blue/30 group-hover:text-bronze transition-colors flex items-center gap-2 text-[11px] font-bold uppercase">
+                    {isExpanded ? "Sembunyikan" : "Lihat Detail"}
+                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </span>
+            </button>
+
+            {isExpanded && (
+                <div className="px-5 py-4 text-oxford-blue/80 text-[13px] leading-relaxed border-t border-gray-100 bg-white/80 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="flex gap-4">
+                        <div className="w-1 h-auto bg-bronze/20 rounded-full my-1 shrink-0"></div>
+                        <p className="italic">"{context.text}"</p>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 // Helper: Chat Messages List
 // Pure list component, specific styling for User vs AI
@@ -78,7 +116,10 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
                                     msg.analysisData ? (
                                         <AnalysisResultView result={msg.analysisData} onLineClick={onLineClick} />
                                     ) : (
-                                        <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
+                                        <>
+                                            {msg.focusedContext && <ContextCard context={msg.focusedContext} />}
+                                            <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
+                                        </>
                                     )
                                 )
                             )}

@@ -1136,9 +1136,33 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         // Paragraph Focus Detection: Detect if user is asking about a specific paragraph number
         const paraMatch = cleanInput.match(/paragraf\s*(\d+)/i) || cleanInput.match(/paragraph\s*(\d+)/i);
         let focusTag = "";
-        if (paraMatch) {
-            const paraNum = paraMatch[1];
-            focusTag = `\n[FOCUS PARAGRAPH: ${paraNum}]\nUser is specifically asking about Paragraph ${paraNum}. Please prioritize this block while maintaining overall flow.`;
+        let focusedContext = null;
+
+        if (paraMatch && editor) {
+            const paraNum = parseInt(paraMatch[1], 10);
+            // Extract the actual text from Tiptap doc
+            // Tiptap paragraphs are usually top-level nodes
+            const json = editor.getJSON();
+            const paragraphs = json.content?.filter(node => node.type === 'paragraph') || [];
+            
+            if (paragraphs[paraNum - 1]) {
+                // Crude but effective text extraction from Tiptap node
+                const extractText = (node) => {
+                    if (node.text) return node.text;
+                    if (node.content) return node.content.map(extractText).join('');
+                    return '';
+                };
+                const targetText = extractText(paragraphs[paraNum - 1]);
+                
+                if (targetText.trim()) {
+                    focusTag = `\n\n[MANDATORY FOCUS: TARGET PARAGRAPH TEXT]\nParagraph ${paraNum}: "${targetText}"\n\nCRITICAL: You MUST analyze and address the specific text above. Do not ignore it for general framework advice.`;
+                    focusedContext = { type: 'paragraph', number: paraNum, text: targetText };
+                } else {
+                    focusTag = `\n[FOCUS PARAGRAPH: ${paraNum}]\nUser is specifically asking about Paragraph ${paraNum}. Please prioritize this block while maintaining overall flow.`;
+                }
+            } else {
+                focusTag = `\n[FOCUS PARAGRAPH: ${paraNum}]\nUser is specifically asking about Paragraph ${paraNum}. Please prioritize this block while maintaining overall flow.`;
+            }
         }
 
         const userMessage = isResearchMode
@@ -1182,7 +1206,11 @@ User is asking for a comparison or seeking the "better" version.
         console.log("Context sent to AI:", context);
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
-        const displayMessage = { role: 'user', content: baseUserMessage };
+        const displayMessage = { 
+            role: 'user', 
+            content: baseUserMessage,
+            focusedContext // Attach the context for the UI to display as a "Card"
+        };
         let finalUserMessage = displayMessage;
 
         // 2. SAVE USER MESSAGE EARLY if session exists
