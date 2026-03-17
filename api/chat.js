@@ -29,7 +29,7 @@ export default async function handler(req, res) {
                 const classifierResponse = await classifierClient.chat.completions.create({
                     model: "gpt-4o-mini",
                     messages: [
-                        { role: "system", content: "You are an intent router. Classify the user's message into one of two categories:\n'RESEARCH' if they are asking for facts, looking for university recommendations, searching for scholarships, asking about deadlines, or gathering external data.\n'WRITE' if they are asking you to review, edit, draft, outline, translate, or brainstorm ideas for an essay or personal statement.\nReply ONLY with the word RESEARCH or WRITE." },
+                        { role: "system", content: "You are an intent router. Classify the user's message into one of two categories:\n'RESEARCH' if they are asking for facts, searching for universities/kampus, looking for majors/jurusan, gathering data from the web, or checking external requirements/deadlines.\n'WRITE' if they are asking you to review, edit, draft, outline, translate, or brainstorm creative ideas for an essay or personal statement.\nReply ONLY with the word RESEARCH or WRITE." },
                         { role: "user", content: message }
                     ],
                     temperature: 0,
@@ -128,8 +128,10 @@ ${matchedEssays[0].anonymized_content}
             **CRITICAL RULES**:
             1. **GLOBAL SCOPE**: Your default searching and answering scope MUST be worldwide. Prioritize high-impact international sources, prestigious global institutions, and cutting-edge data. 
             2. **NEUTRALITY**: Answer objectively. Ignore writing tips unless explicitly asked.
-            3. **RESEARCH RICHNESS**: Go beyond the obvious. Find diverse perspectives, detailed statistics, and non-obvious connections to make the research results "rich" and valuable.
-            4. **FORMAT**: Use professional Markdown headers and bullet points.
+            3. **UNIVERSITY RECOMMENDATION RULE**: If the query is about university choices or academic programs, you MUST identify and recommend the best fit.
+            4. **THE RULE OF 3 (STRICT)**: You are LIMITED to a maximum of 3 (THREE) most relevant university names per response. Do not overwhelm the user; pick only the top matches.
+            5. **RESEARCH RICHNESS**: Find diverse perspectives, detailed statistics, and non-obvious connections to make the research results "rich" and valuable.
+            6. **FORMAT**: Use professional Markdown headers, tables, and bullet points.
             
             Document Content (REFERENCE FOR CONTENT ONLY, NOT STYLE):
             ---
