@@ -130,7 +130,7 @@ ${matchedEssays[0].anonymized_content}
             3. **RESEARCH RICHNESS**: Go beyond the obvious. Find diverse perspectives, detailed statistics, and non-obvious connections to make the research results "rich" and valuable.
             4. **FORMAT**: Use professional Markdown headers and bullet points.
             
-            Document Content (for background mapping only):
+            Document Content (REFERENCE FOR CONTENT ONLY, NOT STYLE):
             ---
             ${safeDocumentContent || '(Empty)'}
             ---
@@ -263,6 +263,17 @@ ${matchedEssays[0].anonymized_content}
             if (rawMessages[rawMessages.length - 1].role !== 'user') {
                 sanitizedHistory.push({ role: 'user', content: 'Continue' });
             }
+        }
+
+        // PERPLEXITY ISOLATION INJECTOR: Hard purge of scholarship context from history
+        if (resolvedModel === "perplexity" && sanitizedHistory.length > 1) {
+            const lastUserMessage = sanitizedHistory.pop();
+            sanitizedHistory.push({
+                role: "user",
+                content: "[SYSTEM NOTIFICATION: The user has switched to GLOBAL RESEARCH MODE. Disregard all previous writing advice, phases, and scholarship frameworks from the history above. Focus purely on the NEW research query below.]"
+            });
+            sanitizedHistory.push({ role: "assistant", content: "Understood. I have cleared the previous writing persona and am now ready for unbiased global research. What can I help you find today?" });
+            sanitizedHistory.push(lastUserMessage);
         }
 
         const messages = [
