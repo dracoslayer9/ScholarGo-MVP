@@ -265,7 +265,25 @@ ${matchedEssays[0].anonymized_content}
             temperature: 0.7,
         });
 
-        const result = completion.choices[0].message.content;
+        let result = completion.choices[0].message.content;
+
+        // Post-process Perplexity Citations
+        if (resolvedModel === "perplexity" && completion.citations && completion.citations.length > 0) {
+            console.log(`Embedding ${completion.citations.length} citations into response`);
+            completion.citations.forEach((url, index) => {
+                const citeNum = index + 1;
+                // Replace [n] or [^n] with [n](url)
+                const citeRegex = new RegExp(`\\[\\^?${citeNum}\\]`, 'g');
+                result = result.replace(citeRegex, `[${citeNum}](${url})`);
+            });
+            
+            // Optionally append a source list if not already present
+            if (!result.includes('Sources') && !result.includes('Referensi')) {
+                const sourceList = "\n\n**Sources:**\n" + completion.citations.map((url, i) => `${i + 1}. [${new URL(url).hostname}](${url})`).join('\n');
+                result += sourceList;
+            }
+        }
+
         return res.status(200).json({ result });
 
     } catch (error) {
