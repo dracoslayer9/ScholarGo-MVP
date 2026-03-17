@@ -1108,7 +1108,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             currentEssay = essayContent; // Fallback to state
         }
 
-        if ((!inputToUse.trim() && !currentEssay.trim() && !fileContext) || isAnalyzing) return;
+        try {
+            if ((!inputToUse.trim() && !currentEssay.trim() && !fileContext) || isAnalyzing) return;
 
         // CHECK QUOTA: Chat
         if (user) {
@@ -1198,6 +1199,7 @@ User is asking for a comparison or seeking the "better" version.
 `;
         }
 
+        const docMetadata = fileName ? `[Filename: ${fileName}]\n` : '';
         const context = fileContext
             ? `${docMetadata}[Attached Document Content]\n${fileContext}\n\n${customInstructions}\n\n${versionsContext}`
             : `${docMetadata}${customInstructions}\n\n${versionsContext}`;
@@ -1280,7 +1282,6 @@ User is asking for a comparison or seeking the "better" version.
             ? historyToUseRaw.slice(-10) 
             : historyToUseRaw;
 
-        try {
             // Push an initial empty assistant message to chatHistory for streaming
             const tempAiId = Date.now() + "-ai";
             const initialAiMessage = { role: 'assistant', content: '', id: tempAiId, streaming: true };
