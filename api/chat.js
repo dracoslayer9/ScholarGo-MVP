@@ -14,6 +14,7 @@ export default async function handler(req, res) {
 
     try {
         const { message, history = [], documentContent = "", model = "gpt-4o" } = req.body;
+        console.log(`[Chat API] Processing request with model: ${model}`);
 
         if (!message) {
             return res.status(400).json({ error: "Message is required" });
@@ -58,7 +59,7 @@ export default async function handler(req, res) {
             }
             openaiClient = new OpenAI({
                 apiKey: process.env.PERPLEXITY_API_KEY,
-                baseURL: "https://api.perplexity.ai/v1",
+                baseURL: "https://api.perplexity.ai",
             });
             requestModel = "sonar-pro";
         } else {
