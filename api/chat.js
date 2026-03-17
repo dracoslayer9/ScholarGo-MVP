@@ -58,7 +58,7 @@ export default async function handler(req, res) {
             }
             openaiClient = new OpenAI({
                 apiKey: process.env.PERPLEXITY_API_KEY,
-                baseURL: "https://api.perplexity.ai",
+                baseURL: "https://api.perplexity.ai/v1",
             });
             requestModel = "sonar-pro";
         } else {
@@ -301,7 +301,14 @@ ${matchedEssays[0].anonymized_content}
             
             // Optionally append a source list if not already present
             if (!result.includes('Sources') && !result.includes('Referensi')) {
-                const sourceList = "\n\n**Sources:**\n" + completion.citations.map((url, i) => `${i + 1}. [${new URL(url).hostname}](${url})`).join('\n');
+                const sourceList = "\n\n**Sources:**\n" + completion.citations.map((url, i) => {
+                    try {
+                        const hostname = new URL(url).hostname;
+                        return `${i + 1}. [${hostname}](${url})`;
+                    } catch (e) {
+                        return `${i + 1}. [Source](${url})`;
+                    }
+                }).join('\n');
                 result += sourceList;
             }
         }
