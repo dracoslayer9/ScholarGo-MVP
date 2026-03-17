@@ -69,9 +69,9 @@ const MessageContent = ({ content, onReferenceClick }) => {
                     if (isCitation) {
                         return (
                             <a key={index} href={url} target="_blank" rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mx-1 text-[11px] font-bold text-white bg-blue-600 border border-blue-500 rounded-full hover:bg-blue-700 hover:-translate-y-0.5 transition-all align-top shadow-sm cursor-pointer"
+                                className="inline-flex text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:underline transition-colors align-top px-0.5"
                                 title={`Source ${label.replace('^', '')}`}>
-                                {label.replace('^', '')}
+                                [{label.replace('^', '')}]
                             </a>
                         );
                     }
@@ -85,10 +85,10 @@ const MessageContent = ({ content, onReferenceClick }) => {
                     <button
                         key={index}
                         onClick={() => onReferenceClick && onReferenceClick(label)}
-                        className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mx-1 text-[11px] font-bold text-gray-600 bg-gray-100 border border-gray-200 rounded-full align-top shadow-sm cursor-pointer hover:bg-bronze/10 hover:text-bronze hover:border-bronze/30 transition-all"
+                        className="inline-flex text-[10px] font-bold text-gray-400 hover:text-blue-500 hover:underline transition-colors align-top px-0.5"
                         title="Click to view reference"
                     >
-                        {label}
+                        [{label}]
                     </button>
                 );
             }
