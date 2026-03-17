@@ -118,8 +118,8 @@ const MessageContent = ({ content, onReferenceClick }) => {
             continue;
         }
 
-        // 2. Detection for Tables
-        const isTableLine = trimmed.startsWith('|') && trimmed.endsWith('|');
+        // 2. Detection for Tables (More robust: allow starting with | even if not ending with it)
+        const isTableLine = trimmed.startsWith('|');
         if (isTableLine) {
             if (currentBlock?.type !== 'table') {
                 currentBlock = { type: 'table', rows: [] };
@@ -129,12 +129,9 @@ const MessageContent = ({ content, onReferenceClick }) => {
             continue;
         }
 
-        // 3. If within a collapsible block, append lines until another header or a double newline?
-        // Actually, let's keep it simple: everything following a [VERSION] header belongs to it 
-        // until another [VERSION] header or a strong separator like ---
+        // 3. Fallback for broken collapsible blocks or other states
         if (currentBlock?.type === 'collapsible') {
             if (trimmed === '---' || trimmed === '***') {
-                // Separator ends the block
                 currentBlock = null;
                 processedBlocks.push({ type: 'line', content: line, trimmed });
             } else {
@@ -158,11 +155,12 @@ const MessageContent = ({ content, onReferenceClick }) => {
                                 {block.contentLines.map((l, li) => {
                                     const t = l.trim();
                                     if (!t) return <div key={li} className="h-2"></div>;
-                                    if (t.startsWith('* ') || t.startsWith('- ')) {
+                                    // Relaxed List detection
+                                    if (/^[*+-]\s/.test(t)) {
                                         return (
                                             <div key={li} className="flex gap-3 pl-2 my-1">
                                                 <span className="text-blue-500 font-bold text-lg leading-none mt-1">•</span>
-                                                <div className="flex-1">{formatLine(t.substring(2))}</div>
+                                                <div className="flex-1">{formatLine(t.replace(/^[*+-]\s/, ''))}</div>
                                             </div>
                                         );
                                     }
@@ -174,39 +172,57 @@ const MessageContent = ({ content, onReferenceClick }) => {
                 }
 
                 if (block.type === 'table') {
-                    // Render Table as a Custom Card Layout
-                    const rows = block.rows.filter(r => !r.replace(/\|/g, '').replace(/-/g, '').trim().length === 0); // Remove purely separator rows
-                    if (rows.length < 2) return null; // Fallback or invalid table
+                    // Render Table with high error tolerance
+                    const rows = block.rows.filter(r => {
+                        const content = r.replace(/\|/g, '').replace(/-/g, '').trim();
+                        return content.length > 0;
+                    });
 
-                    const headers = rows[0].split('|').map(h => h.trim()).filter(Boolean);
-                    const bodyRows = rows.slice(1).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
+                    if (rows.length < 2) {
+                        // FALLBACK: If it's just one line starting with |, render as plain lines
+                        return block.rows.map((r, ri) => (
+                            <div key={`${idx}-${ri}`} className="min-h-[1.5em]">{formatLine(r)}</div>
+                        ));
+                    }
 
-                    return (
-                        <div key={idx} className="my-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm bg-white">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse min-w-[400px]">
-                                    <thead>
-                                        <tr className="bg-gray-50 border-b border-gray-200">
-                                            {headers.map((h, i) => (
-                                                <th key={i} className="px-5 py-4 font-bold text-oxford-blue text-sm uppercase tracking-wider">{formatLine(h)}</th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {bodyRows.map((row, rowIndex) => (
-                                            <tr key={rowIndex} className="hover:bg-blue-50/30 transition-colors">
-                                                {headers.map((_, cellIndex) => (
-                                                    <td key={cellIndex} className="px-5 py-4 text-[15px] text-gray-700 align-top">
-                                                        {formatLine(row[cellIndex] || '')}
-                                                    </td>
+                    try {
+                        const headers = rows[0].split('|').map(h => h.trim()).filter(Boolean);
+                        const bodyRows = rows.slice(1).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
+
+                        if (headers.length === 0) throw new Error("No headers");
+
+                        return (
+                            <div key={idx} className="my-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm bg-white">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[400px]">
+                                        <thead>
+                                            <tr className="bg-gray-50 border-b border-gray-200">
+                                                {headers.map((h, i) => (
+                                                    <th key={i} className="px-5 py-4 font-bold text-oxford-blue text-sm uppercase tracking-wider">{formatLine(h)}</th>
                                                 ))}
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {bodyRows.map((row, rowIndex) => (
+                                                <tr key={rowIndex} className="hover:bg-blue-50/30 transition-colors">
+                                                    {headers.map((_, cellIndex) => (
+                                                        <td key={cellIndex} className="px-5 py-4 text-[15px] text-gray-700 align-top">
+                                                            {formatLine(row[cellIndex] || '')}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
-                    );
+                        );
+                    } catch (e) {
+                        // CRITICAL FALLBACK: Render raw lines if parsing fails
+                        return block.rows.map((r, ri) => (
+                            <div key={`${idx}-${ri}`} className="min-h-[1.5em] font-mono text-sm bg-gray-50 p-1">{formatLine(r)}</div>
+                        ));
+                    }
                 }
 
                 // Standard Line Block (Headers, Lists, HR, Paragraphs)
@@ -242,18 +258,18 @@ const MessageContent = ({ content, onReferenceClick }) => {
                     );
                 }
 
-                if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+                if (/^[*+-]\s/.test(trimmed)) {
                     return (
                         <div key={idx} className="flex gap-3 pl-2 my-1">
                             <span className="text-blue-500 font-bold text-lg leading-none mt-1">•</span>
-                            <div className="flex-1">{formatLine(trimmed.substring(2))}</div>
+                            <div className="flex-1">{formatLine(trimmed.replace(/^[*+-]\s/, ''))}</div>
                         </div>
                     );
                 }
 
-                if (/^\d+\.\s/.test(trimmed)) {
+                if (/^\d+\.\s+/.test(trimmed)) {
                     const numberFn = trimmed.match(/^\d+\./)[0];
-                    const contentFn = trimmed.replace(/^\d+\.\s/, '');
+                    const contentFn = trimmed.replace(/^\d+\.\s+/, '');
                     return (
                         <div key={idx} className="flex gap-3 pl-2 my-1">
                             <span className="text-blue-600 font-bold min-w-[1.5rem] mt-0.5">{numberFn}</span>
