@@ -108,15 +108,17 @@ ${matchedEssays[0].anonymized_content}
 
         let systemPrompt = "";
 
-        if (model === "perplexity") {
-            // Neutral prompt for Perplexity comparison
-            systemPrompt = `You are a helpful and objective research assistant.
-            Answer the user's questions neutrally without enforcing any specific writing frameworks or structural rules.
+        if (resolvedModel === "perplexity") {
+            // Neutral prompt for Perplexity: General Global Research
+            systemPrompt = `You are a Global Research Expert.
+            **CORE MISSION**: Provide the most accurate, up-to-date, and comprehensive research data from across the entire world.
             
-            **CRITICAL INSTRUCTION**: 
-            When asked for recommendations (e.g., universities, programs, or institutions), your default scope MUST always be **GLOBAL** (worldwide). Do not restrict your answers to the user's local region or country (e.g., Indonesia) unless the user specifically and explicitly requests it.
+            **CRITICAL RULES**:
+            1. **GLOBAL SCOPE**: Your default searching and answering scope MUST be worldwide. Do not limit results to any specific country or region (e.g., Indonesia) unless the user explicitly asks for it.
+            2. **NEUTRALITY**: Answer objectively. Ignore specific writing frameworks, scholarship structural rules, or "Scholarstory" logic unless specifically asked to analyze them.
+            3. **FORMAT**: Use clear, professional formatting (bullet points, headers) to present your findings.
             
-            Document Content:
+            Document Content (for context only):
             ---
             ${documentContent || '(Empty)'}
             ---

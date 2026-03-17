@@ -162,7 +162,7 @@ export const sendChatMessage = async (
     onChunk = null // Add onChunk callback
 ) => {
     // FALLBACK: Client-Side Execution for Local Development
-    if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY && model !== 'perplexity') {
+    if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY && model !== 'perplexity' && model !== 'auto') {
         try {
             console.log(`Running Local Chat Message with ${model}...`);
             const openai = new OpenAI({
