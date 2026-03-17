@@ -23,7 +23,14 @@
 .ProseMirror {
   outline: none !important;
   min-height: 100%;
-  font-family: inherit; /* Ensure font is inherited from parent surface */
+  font-family: inherit;
+  /* Word-similarity: 12pt is roughly 16px, but pt is more precise for print-ready feel */
+  /* We ensure line-height feels professional */
+  line-height: 1.5 !important;
+}
+
+.ProseMirror p {
+  margin-bottom: 1rem !important;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -41,14 +48,14 @@
 /* Tiptap List Styles */
 .ProseMirror ol {
   list-style-type: decimal;
-  padding-left: 1.5rem;
-  margin: 1rem 0;
+  padding-left: 2rem;
+  margin: 1.5rem 0;
 }
 
 .ProseMirror ul {
   list-style-type: disc;
-  padding-left: 1.5rem;
-  margin: 1rem 0;
+  padding-left: 2rem;
+  margin: 1.5rem 0;
 }
 
 .ProseMirror li p {

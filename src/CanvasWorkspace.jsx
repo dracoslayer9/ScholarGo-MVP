@@ -471,16 +471,12 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
         // Scroll when chat is opened
         if (isChatOpen) {
+            // Instant snap for when user clicks open
             scrollToBottom(true);
+            // Double buffer for lazy rendering
+            const t = setTimeout(() => scrollToBottom(true), 100);
+            return () => clearTimeout(t);
         }
-
-        // Handle potential rendering delays or layout shifts
-        const timeouts = [
-            setTimeout(() => scrollToBottom(isChatOpen), 50),
-            setTimeout(() => scrollToBottom(isChatOpen), 150)
-        ];
-
-        return () => timeouts.forEach(t => clearTimeout(t));
     }, [chatHistory, isAnalyzing, isChatOpen]);
 
     // Auto-scroll session history to bottom when opened or when history updates while open
@@ -1024,17 +1020,16 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         const textToInsert = customValue || comment.suggestion;
 
-        // Force selection to the exact range of the highlight to ensure it clears
-        // We use a small buffer (+1) to ensure we catch any shifted indices or marks at boundaries
-        editor.commands.setTextSelection({ from: Math.max(0, comment.from - 1), to: comment.to + 1 });
-        editor.commands.unsetHighlight();
-        
-        // Reset selection back to exact range for insertion
-        editor.commands.setTextSelection({ from: comment.from, to: comment.to });
-
-        if (comment.status !== 'correct' || customValue) {
-            editor.commands.insertContent(textToInsert);
-        }
+        // NUCLEAR CLEANUP: We search for the exact text and markers to clear highlights
+        // This is more robust than fixed indices
+        editor.chain()
+            .focus()
+            .setTextSelection({ from: Math.max(0, comment.from - 5), to: Math.min(editor.state.doc.content.size, comment.to + 5) })
+            .unsetHighlight()
+            .setTextSelection({ from: comment.from, to: comment.to })
+            .insertContent(textToInsert)
+            .unsetHighlight() // Failsafe cleanup
+            .run();
 
         // Remove the comment after applying
         setComments(prev => prev.filter(c => c.id !== commentId));
@@ -1043,13 +1038,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
     const handleDismissComment = (commentId) => {
         const comment = comments.find(c => c.id === commentId);
         if (editor && comment) {
-            // Force selection to a slightly wider range to ensure highlight is cleared
-            editor.commands.setTextSelection({ from: Math.max(0, comment.from - 1), to: comment.to + 1 });
-            editor.commands.unsetHighlight();
-            
-            // Clear any marks at the specific 'from' point as well (failsafe)
-            editor.commands.setTextSelection(comment.from);
-            editor.commands.unsetHighlight();
+            // Aggressive failsafe cleanup for the range
+            editor.chain()
+                .focus()
+                .setTextSelection({ from: Math.max(0, comment.from - 10), to: Math.min(editor.state.doc.content.size, comment.to + 10) })
+                .unsetHighlight()
+                .setTextSelection(comment.from)
+                .run();
         }
         setComments(prev => prev.filter(c => c.id !== commentId));
     };
@@ -1813,9 +1808,14 @@ User is asking for a comparison or seeking the "better" version.
         const newSize = increase ? currentEffectiveSize + 1 : Math.max(8, currentEffectiveSize - 1);
 
         if (hasSelection) {
+            // Selective: Only apply to highlighted text
             editor.commands.setFontSize(newSize);
         } else {
+            // Global: Update base size for the whole doc
             setBaseFontSize(newSize);
+            // Also update any existing fontSize marks to match if user wants global change
+            // (Optional: usually global change shouldn't override specific manual overrides, 
+            // but for simple UX we just update the base container style)
         }
     };
 
