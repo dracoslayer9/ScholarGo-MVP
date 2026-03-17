@@ -22,7 +22,7 @@ export const sendChatMessage = async (message, history, documentContent, provide
     if (provider === 'perplexity') {
         return await OpenAI.sendChatMessage(message, history, documentContent, signal, 'perplexity');
     }
-    return await OpenAI.sendChatMessage(message, history, documentContent, signal, 'gpt-4o');
+    return await OpenAI.sendChatMessage(message, history, documentContent, signal, 'gpt-4o-mini');
 };
 
 // Facade for Summarization
