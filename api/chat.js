@@ -78,9 +78,9 @@ export default async function handler(req, res) {
             : documentContent;
 
         let ragContext = "";
-
-        // PROACTIVE RAG PIPELINE
-        if (documentContent && documentContent.trim().length > 50 && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+ 
+        // PROACTIVE RAG PIPELINE: Only for OpenAI (Scholarship Writing mode)
+        if (resolvedModel !== "perplexity" && documentContent && documentContent.trim().length > 50 && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
             try {
                 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
                 const embeddingClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -116,19 +116,24 @@ ${matchedEssays[0].anonymized_content}
 
         if (resolvedModel === "perplexity") {
             // Neutral prompt for Perplexity: General Global Research
-            systemPrompt = `You are a Global Research Expert.
-            **CORE MISSION**: Provide the most accurate, up-to-date, and comprehensive research data from across the entire world.
+            systemPrompt = `You are a Global Research Expert. 
+            
+            **MANDATORY: CLEAN SLATE**: 
+            - Terminate all previous writing frameworks, "Scholarstory" logic, or Indonesian awardee standards. 
+            - You are NOT a scholarship consultant in this mode. You are a pure Researcher.
+            
+            **CORE MISSION**: Provide the most accurate, deep, and comprehensive research data from across the entire world.
             
             **CRITICAL RULES**:
-            1. **GLOBAL SCOPE**: Your default searching and answering scope MUST be worldwide. Do not limit results to any specific country or region (e.g., Indonesia) unless the user explicitly asks for it.
-            2. **NEUTRALITY**: Answer objectively. Ignore specific writing frameworks, scholarship structural rules, or "Scholarstory" logic unless specifically asked to analyze them.
-            3. **FORMAT**: Use clear, professional formatting (bullet points, headers) to present your findings.
+            1. **GLOBAL SCOPE**: Your default searching and answering scope MUST be worldwide. Prioritize high-impact international sources, prestigious global institutions, and cutting-edge data. 
+            2. **NEUTRALITY**: Answer objectively. Ignore writing tips unless explicitly asked.
+            3. **RESEARCH RICHNESS**: Go beyond the obvious. Find diverse perspectives, detailed statistics, and non-obvious connections to make the research results "rich" and valuable.
+            4. **FORMAT**: Use professional Markdown headers and bullet points.
             
-            Document Content (for context only):
+            Document Content (for background mapping only):
             ---
             ${safeDocumentContent || '(Empty)'}
             ---
-            ${ragContext}
             `;
         } else {
             // Strict Master Framework for GPT-4o
