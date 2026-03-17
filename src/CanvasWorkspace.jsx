@@ -437,7 +437,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         }
     }, [currentVersionId, editor]); // Add editor to dependency array
 
-    // Sync line spacing dynamically using inline styles
     useEffect(() => {
         // Ensure the editor and its underlying view/DOM are fully mounted
         if (editor && !editor.isDestroyed && editor.view && editor.view.dom) {
@@ -446,8 +445,23 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         }
     }, [editor, lineSpacing]);
 
-    // User has opted for 100% manual scroll control to prevent jumps during research updates.
-    // Removed auto-scroll logic that previously triggered on chatHistory/isAnalyzing updates.
+    // Initial-only auto-scroll: Snap to bottom when opening chat or changing history item.
+    // Streaming and new messages are now 100% manual per user request for reading focus.
+    useEffect(() => {
+        if (isChatOpen && chatContainerRef.current) {
+            const container = chatContainerRef.current;
+            const scrollToBottom = () => {
+                container.scrollTop = container.scrollHeight;
+                messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+            };
+
+            // Instant snap
+            scrollToBottom();
+            // Buffer for content rendering shifts
+            const t = setTimeout(scrollToBottom, 50);
+            return () => clearTimeout(t);
+        }
+    }, [isChatOpen, currentChatId]);
 
     // Auto-scroll session history to bottom when opened or when history updates while open
     useEffect(() => {
