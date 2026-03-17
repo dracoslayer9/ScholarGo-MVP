@@ -140,7 +140,7 @@ import {
     Minus,
     ChevronDown
 } from 'lucide-react';
-import { sendChatMessage, runRealAnalysis } from './services/analysis';
+import { sendChatMessage, runRealAnalysis, summarizeChatHistory } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat, deleteMessagesAfter } from './services/chatService';
 import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
