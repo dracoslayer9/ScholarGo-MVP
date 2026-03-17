@@ -446,38 +446,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
         }
     }, [editor, lineSpacing]);
 
-    // Auto-scroll chat to bottom when history updates or analysis state changes
-    useEffect(() => {
-        const scrollToBottom = (force = false) => {
-            if (!chatContainerRef.current) return;
-            
-            const container = chatContainerRef.current;
-            // SMART STICKY SCROLL:
-            // Allow user to unscrolled to read. Only auto-scroll if user is already near the bottom.
-            // Reduced threshold from 150px to 60px to be less aggressive.
-            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
-            
-            // If we are currently analyzing/streaming, we only scroll if they haven't manually scrolled up
-            if (isAnalyzing && !force) {
-                if (isNearBottom) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            } else {
-                // For new messages (user sent) or when opening chat, we scroll to bottom
-                container.scrollTop = container.scrollHeight;
-                messagesEndRef.current?.scrollIntoView({ behavior: force ? "auto" : "smooth", block: "end" });
-            }
-        };
-
-        // Scroll when chat is opened
-        if (isChatOpen) {
-            // Instant snap for when user clicks open
-            scrollToBottom(true);
-            // Double buffer for lazy rendering
-            const t = setTimeout(() => scrollToBottom(true), 100);
-            return () => clearTimeout(t);
-        }
-    }, [chatHistory, isAnalyzing, isChatOpen]);
+    // User has opted for 100% manual scroll control to prevent jumps during research updates.
+    // Removed auto-scroll logic that previously triggered on chatHistory/isAnalyzing updates.
 
     // Auto-scroll session history to bottom when opened or when history updates while open
     useEffect(() => {
