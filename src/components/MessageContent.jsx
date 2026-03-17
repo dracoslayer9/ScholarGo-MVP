@@ -192,13 +192,13 @@ const MessageContent = ({ content, onReferenceClick }) => {
                         if (headers.length === 0) throw new Error("No headers");
 
                         return (
-                            <div key={idx} className="my-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm bg-white">
+                            <div key={idx} className="my-6 -mx-1 sm:-mx-2 overflow-hidden rounded-xl border border-gray-200 shadow-sm bg-white">
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse min-w-[400px]">
+                                    <table className="w-full text-left border-collapse min-w-[500px] table-fixed">
                                         <thead>
-                                            <tr className="bg-gray-50 border-b border-gray-200">
+                                            <tr className="bg-gray-50/80 border-b border-gray-200">
                                                 {headers.map((h, i) => (
-                                                    <th key={i} className="px-5 py-4 font-bold text-oxford-blue text-sm uppercase tracking-wider">{formatLine(h)}</th>
+                                                    <th key={i} className="px-3 py-2.5 font-bold text-oxford-blue text-[11px] uppercase tracking-wider bg-gray-50/50">{formatLine(h)}</th>
                                                 ))}
                                             </tr>
                                         </thead>
@@ -206,7 +206,7 @@ const MessageContent = ({ content, onReferenceClick }) => {
                                             {bodyRows.map((row, rowIndex) => (
                                                 <tr key={rowIndex} className="hover:bg-blue-50/30 transition-colors">
                                                     {headers.map((_, cellIndex) => (
-                                                        <td key={cellIndex} className="px-5 py-4 text-[15px] text-gray-700 align-top">
+                                                        <td key={cellIndex} className="px-3 py-3 text-[13px] text-gray-700 align-top leading-normal">
                                                             {formatLine(row[cellIndex] || '')}
                                                         </td>
                                                     ))}
