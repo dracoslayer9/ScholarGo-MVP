@@ -288,11 +288,16 @@ export const sendChatMessage = async (
         }
     }
 
+    // TPM GUARD: Truncate documentContent on client before sending to server (Production)
+    const safeDocumentContent = (documentContent || '').length > 50000 
+        ? (documentContent.substring(0, 50000) + "\n\n[...TEXT TRUNCATED ON CLIENT...]")
+        : documentContent;
+
     // SERVER-SIDE Execution (Production)
     const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, history, documentContent, model }),
+        body: JSON.stringify({ message, history, documentContent: safeDocumentContent, model }),
         signal // Pass signal
     });
 

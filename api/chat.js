@@ -68,8 +68,14 @@ export default async function handler(req, res) {
             openaiClient = new OpenAI({
                 apiKey: process.env.OPENAI_API_KEY,
             });
-            requestModel = "gpt-4o";
+            // TPM GUARD: Use gpt-4o-mini as the default "Standard" model (much higher limits)
+            requestModel = resolvedModel === "openai" ? "gpt-4o-mini" : resolvedModel;
         }
+
+        // TPM GUARD: Truncate document content on server as well
+        const safeDocumentContent = (documentContent || '').length > 50000 
+            ? (documentContent.substring(0, 50000) + "\n\n[...TEXT TRUNCATED ON SERVER...]")
+            : documentContent;
 
         let ragContext = "";
 
@@ -120,7 +126,7 @@ ${matchedEssays[0].anonymized_content}
             
             Document Content (for context only):
             ---
-            ${documentContent || '(Empty)'}
+            ${safeDocumentContent || '(Empty)'}
             ---
             ${ragContext}
             `;
@@ -185,7 +191,7 @@ ${matchedEssays[0].anonymized_content}
 
             **Document Content (THE SOURCE OF TRUTH)**:
             ---
-            ${documentContent || '(Empty document provided. Please ask the user to provide their draft.)'}
+            ${safeDocumentContent || '(Empty document provided. Please ask the user to provide their draft.)'}
             ---
             
             **CRITICAL**: If the Document Content above is NOT empty, you MUST focus your primary analysis on it. If it IS empty, you MUST ask the user to provide their essay draft/paragraph before you can give specific feedback.
