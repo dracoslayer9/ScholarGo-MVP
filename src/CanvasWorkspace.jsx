@@ -311,6 +311,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // const textareaRef = useRef(null); // Deprecated by Tiptap
     const chatInputRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const lastChatHistoryLength = useRef(0);
     const chatContainerRef = useRef(null);
     const historyListRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -462,6 +463,25 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             return () => clearTimeout(t);
         }
     }, [isChatOpen, currentChatId]);
+
+    // Prompt-Locked Scroll: When a message is sent, snap to that prompt at the top.
+    // This provides focus and prevents wild jumps during long AI streaming.
+    useEffect(() => {
+        if (isChatOpen && isAnalyzing && chatHistory.length > lastChatHistoryLength.current && lastChatHistoryLength.current > 0) {
+            const userMsgIndex = chatHistory.findLastIndex(m => m.role === 'user');
+            if (userMsgIndex !== -1) {
+                // Buffer to allow DOM to catch up with the new list items
+                const t = setTimeout(() => {
+                    const el = document.getElementById(`chat-msg-${userMsgIndex}`);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+                return () => clearTimeout(t);
+            }
+        }
+        lastChatHistoryLength.current = chatHistory.length;
+    }, [chatHistory.length, isChatOpen, isAnalyzing]);
 
     // Auto-scroll session history to bottom when opened or when history updates while open
     useEffect(() => {
