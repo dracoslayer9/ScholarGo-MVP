@@ -20,21 +20,50 @@ export const runRealAnalysis = async (
             // 1. Normalize line breaks
             const normalized = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-            // 2. Split into paragraphs (using double newline as primary separator)
-            let rawParagraphs = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+            // 2. Split into blocks (using double newline as primary separator)
+            let rawBlocks = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
 
-            // 3. Fallback: if very few paragraphs were found but text is long, use single newline
-            if (rawParagraphs.length < 3 && normalized.split('\n').filter(l => l.trim()).length > 5) {
-                rawParagraphs = normalized.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+            // 3. Fallback: if very few blocks were found but text is long, use single newline
+            if (rawBlocks.length < 3 && normalized.split('\n').filter(l => l.trim()).length > 5) {
+                rawBlocks = normalized.split('\n').map(p => p.trim()).filter(p => p.length > 0);
             }
 
-            const totalParagraphCount = rawParagraphs.length;
-            console.log(`[Analysis] Pre-segmented into ${totalParagraphCount} paragraphs.`);
+            let segmentedParagraphs = [];
+            let currentHeader = null;
+            let pCount = 0;
 
-            const textWithParagraphMarkers = rawParagraphs.map((p, i) => {
-                // Add internal line numbers for reference within the paragraph
-                const markedLines = p.split('\n').map((line, li) => `L${li + 1}: ${line}`).join('\n');
-                return `### PARAGRAPH ${i + 1} ###\n${markedLines}`;
+            rawBlocks.forEach((block) => {
+                // Heuristic for header: Short (< 50 chars), no terminal punctuation, single line
+                const isHeader = block.length < 50 && !/[.!?]$/.test(block) && !block.includes('\n');
+
+                if (isHeader) {
+                    currentHeader = block;
+                } else {
+                    pCount++;
+                    segmentedParagraphs.push({
+                        index: pCount,
+                        header: currentHeader,
+                        content: block
+                    });
+                    currentHeader = null; // Reset after association
+                }
+            });
+
+            // Handle trailing header
+            if (currentHeader) {
+                pCount++;
+                segmentedParagraphs.push({ index: pCount, header: currentHeader, content: "" });
+            }
+
+            const totalParagraphCount = segmentedParagraphs.length;
+            console.log(`[Analysis] Pre-segmented into ${totalParagraphCount} paragraphs (headers merged).`);
+
+            const textWithParagraphMarkers = segmentedParagraphs.map((p) => {
+                let s = `### PARAGRAPH ${p.index} ###\n`;
+                if (p.header) s += `[HEADER/TITLE: ${p.header}]\n`;
+                // Add internal line numbers for reference
+                const markedLines = p.content.split('\n').map((line, li) => `L${li + 1}: ${line}`).join('\n');
+                return s + markedLines;
             }).join('\n\n');
 
             let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
@@ -176,12 +205,41 @@ export const sendChatMessage = async (
                 ? (documentContent.substring(0, 60000) + "\n\n[...TEXT TRUNCATED DUE TO SIZE...]")
                 : documentContent;
 
+            // --- IMPROVED PARAGRAPH SEGMENTATION FOR CHAT ---
+            const normalized = (documentContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            let rawBlocks = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+            if (rawBlocks.length < 3 && normalized.split('\n').filter(l => l.trim()).length > 5) {
+                rawBlocks = normalized.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+            }
+
+            let pCount = 0;
+            let currentHeader = null;
+            let segmentedText = "";
+
+            rawBlocks.forEach((block) => {
+                const isHeader = block.length < 50 && !/[.!?]$/.test(block) && !block.includes('\n');
+                if (isHeader) {
+                    currentHeader = block;
+                } else {
+                    pCount++;
+                    segmentedText += `### PARAGRAPH ${pCount} ###\n`;
+                    if (currentHeader) segmentedText += `[HEADER: ${currentHeader}]\n`;
+                    segmentedText += block + "\n\n";
+                    currentHeader = null;
+                }
+            });
+            if (currentHeader) {
+                pCount++;
+                segmentedText += `### PARAGRAPH ${pCount} ###\n[HEADER: ${currentHeader}]\n\n`;
+            }
+
             let systemPrompt = `You are an elite Scholarship Consultant for Scholarstory.
             **CORE PRINCIPLE**:
             1. **Prioritize User**: Focus on their specific questions.
             2. **Paragraph Logic**: Cite paragraph numbers (e.g., [P2]) when giving feedback.
-            3. **Bridging**: Distinguish between "Internal Bridging" (cohesion) and "Phase Transitions" (next step).
-            4. **Gap-Bridge-Vision**: Ensure logical flow from problem to solution.
+            3. **Indexing Rule**: A short line without terminal punctuation (e.g. "Opening") is a HEADER, not a paragraph. The text is provided with ### PARAGRAPH X ### markers for accuracy. ALWAYS follow these markers.
+            4. **Bridging**: Distinguish between "Internal Bridging" (cohesion) and "Phase Transitions" (next step).
+            5. **Gap-Bridge-Vision**: Ensure logical flow from problem to solution.
             
             **STANDARDS**: Represent Awardee Logic of LPDP, Fulbright, Chevening, AAS. Ensure academic/social value alignment.
             **FRAMEWORK**: Hook/Gap (Phase 1), Limitation (Phase 2), Bridge (Phase 3), Vision (Phase 4).
@@ -192,9 +250,9 @@ export const sendChatMessage = async (
             - If user refers to a specific paragraph, focus primary effort there.
             - If EMPTY, give framework-based roadmap.
 
-            Document Content (Source of Truth):
+            Document Content (Source of Truth with Paragraph Markers):
             ---
-            ${truncatedDoc || '(Draft Empty - Provide framework-based outline suggestions to help the user get started.)'}
+            ${segmentedText || '(Draft Empty - Provide framework-based outline suggestions to help the user get started.)'}
             ---
             `;
 

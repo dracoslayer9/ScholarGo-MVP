@@ -30,49 +30,76 @@ export default async function handler(req, res) {
     // Pre-process text with line numbers for accurate citation
     const textWithLines = (text || '').split('\n').map((line, i) => `Line ${i + 1}: ${line}`).join('\n');
 
+    // --- IMPROVED PARAGRAPH EXTRACTION (EXCLUDE HEADERS) ---
+    const normalized = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    let rawBlocks = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+
+    // Fallback if split failed
+    if (rawBlocks.length < 3 && (text || '').split('\n').filter(l => l.trim()).length > 5) {
+        rawBlocks = (text || '').split('\n').map(p => p.trim()).filter(p => p.length > 0);
+    }
+
+    let segmentedParagraphs = [];
+    let currentHeader = null;
+    let pCount = 0;
+
+    rawBlocks.forEach((block) => {
+        // Heuristic for header: Short (< 50 chars), no terminal punctuation, single line
+        const isHeader = block.length < 50 && !/[.!?]$/.test(block) && !block.includes('\n');
+        if (isHeader) {
+            currentHeader = block;
+        } else {
+            pCount++;
+            segmentedParagraphs.push({
+                index: pCount,
+                header: currentHeader,
+                content: block
+            });
+            currentHeader = null;
+        }
+    });
+
+    if (currentHeader) {
+        pCount++;
+        segmentedParagraphs.push({ index: pCount, header: currentHeader, content: "" });
+    }
+
+    const textWithMarkers = segmentedParagraphs.map((p) => {
+        let s = `### PARAGRAPH ${p.index} ###\n`;
+        if (p.header) s += `[HEADER/TITLE: ${p.header}]\n`;
+        return s + p.content;
+    }).join('\n\n');
+
     let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
     
     **LANGUAGE INSTRUCTION**:
     DETECT the language of the provided document or the user's instruction. You MUST provide your analysis in the **SAME LANGUAGE**. 
     - If the document/query is in **Indonesian**, the textual values of your JSON response MUST be in **Indonesian**.
     - If the document/query is in **English**, reply entirely in **English**.
-    - CRITICAL: DO NOT translate the JSON keys (e.g. keep "paragraphBreakdown", "main_idea", "analysis_current" EXACTLY as they are in English). Only translate the string content values!
+    - CRITICAL: DO NOT translate the JSON keys. Only translate the string content values!
 
     ${type === "Awardee Sample" ? `
     **AWARDEE DISSECTION MODE**:
-    This document is a PROVEN, SUCCESSFUL awardee essay. DO NOT critique it or look for weaknesses.
-    Your job is to **DECONSTRUCT** its winning anatomy so a student can learn from it.
-    
-    1. Identify its "Hook, Gap, Vision" structure.
-    2. Extract the specific narrative strategies that make it successful.
-    3. Instead of defining "Weaknesses", define its **Structural Anatomy** (how it flows).
-    4. Instead of giving "Strategic Improvements", give **Key Takeaways** (what the student should emulate).
+    This document is a SUCCESSFUL awardee essay. deconstruct its winning anatomy.
     ` : `
     **CRITIQUE MODE**:
-    This is a student draft. Analyze it rigorously. Look for weaknesses in narrative, flow, and value alignment.
+    This is a student draft. Analyze it rigorously.
     `}
 
-    **TWO-PHASE PROTOCOL**:
+    **STRICT WORKFLOW**:
+    1. You are provided with ${segmentedParagraphs.length} paragraphs, each marked with ### PARAGRAPH X ###.
+    2. You MUST return EXACTLY ${segmentedParagraphs.length} objects in the "paragraphBreakdown" array.
+    3. One object per paragraph. DO NOT combine them.
+    4. Cite the markers accurately.
     
-    **PHASE 1: Paragraph Extraction**
-    1. Read the document (Pay attention to the provided Line Numbers).
-    2. Split it into paragraphs.
-    3. Number each paragraph sequentially.
-    4. Process ALL paragraphs.
-    
-    **PHASE 2: Paragraph Analysis**
+    **PARAGRAPH ANALYSIS CRITERIA**:
     For EACH paragraph, provide:
-    - **Paragraph Number**: Sequential integer.
-    - **Detected Subtitle**: Exact subtitle if present, else null.
+    - **Paragraph Number**: Sequential integer (match the markers).
+    - **Detected Subtitle**: The [HEADER/TITLE] if provided, else null.
     - **Functional Label**: Infer role (e.g. Hook, Context, Challenge, Growth).
     - **Main Idea**: One sentence summary of content.
     - **Current Approach**: What is this paragraph trying to do structurally?
-    - **Evidence Location**: The specific Line Numbers where this main idea is generated (e.g. "Lines 12-15").
-
-    **Criteria**:
-    1. Narrative Authenticity
-    2. Structure & Flow
-    3. Value Alignment
+    - **Evidence Quote**: Real verbatim quote from the text.
     `;
 
     if (instruction) {

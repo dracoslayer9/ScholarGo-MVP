@@ -113,6 +113,34 @@ ${matchedEssays[0].anonymized_content}
             }
         }
 
+        // --- IMPROVED PARAGRAPH SEGMENTATION FOR CHAT ---
+        const normalized = (documentContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        let rawBlocks = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+        if (rawBlocks.length < 3 && normalized.split('\n').filter(l => l.trim()).length > 5) {
+            rawBlocks = normalized.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+        }
+
+        let pCount = 0;
+        let currentHeader = null;
+        let segmentedText = "";
+
+        rawBlocks.forEach((block) => {
+            const isHeader = block.length < 50 && !/[.!?]$/.test(block) && !block.includes('\n');
+            if (isHeader) {
+                currentHeader = block;
+            } else {
+                pCount++;
+                segmentedText += `### PARAGRAPH ${pCount} ###\n`;
+                if (currentHeader) segmentedText += `[HEADER: ${currentHeader}]\n`;
+                segmentedText += block + "\n\n";
+                currentHeader = null;
+            }
+        });
+        if (currentHeader) {
+            pCount++;
+            segmentedText += `### PARAGRAPH ${pCount} ###\n[HEADER: ${currentHeader}]\n\n`;
+        }
+
         let systemPrompt = "";
 
         if (resolvedModel === "perplexity") {
@@ -135,7 +163,7 @@ ${matchedEssays[0].anonymized_content}
             
             Document Content (REFERENCE FOR CONTENT ONLY, NOT STYLE):
             ---
-            ${safeDocumentContent || '(Empty)'}
+            ${segmentedText || '(Empty)'}
             ---
             `;
         } else {
@@ -145,6 +173,17 @@ ${matchedEssays[0].anonymized_content}
             **CRITICAL ASSUMPTION**:
             - ALWAYS assume the user is applying for a Master's degree (S2) or a tertiary scholarship.
             - EVERY response you provide MUST incorporate strong **academic values** (e.g., research potential, advanced theoretical application, academic contribution) to strengthen their scholarship application.
+
+            **THE 4-PHASE LOGIC**:
+            1. Hook/Gap (Phase 1)
+            2. Track Record & Limitation (Phase 2)
+            3. The Need/Strategic Gap (Phase 3)
+            4. Vision & Concrete Contribution (Phase 4)
+
+            **PARAGRAPH INDEXING RULE**:
+            - THE DOCUMENT IS PROVIDED WITH ### PARAGRAPH X ### MARKERS.
+            - Short lines without terminal punctuation (e.g. "Opening") are labeled as [HEADER] and are NOT standalone paragraphs. 
+            - ALWAYS refer to the ### PARAGRAPH X ### markers for accurate feedback.
 
             **THE MASTER FRAMEWORKS**:
             You must adapt your framework based on whether the user is writing a **Personal Statement (PS)** or a **Contribution Essay (Esai Kontribusi)**:
@@ -197,9 +236,9 @@ ${matchedEssays[0].anonymized_content}
             2. **DO NOT invent examples** that stray far from the user's text unless explaining a specific writing tactic.
             3. If the user asks for a review/feedback on a draft, provide ONLY the critique based on the 3 Pillars and Framework Phases. DO NOT add extra unrelated sections.
 
-            **Document Content (THE SOURCE OF TRUTH)**:
+            **Document Content (Source of Truth with Paragraph Markers)**:
             ---
-            ${safeDocumentContent || '(Empty document provided. Please ask the user to provide their draft.)'}
+            ${segmentedText || '(Empty document provided. Please ask the user to provide their draft.)'}
             ---
             
             **CRITICAL**: If the Document Content above is NOT empty, you MUST focus your primary analysis on it. If it IS empty, you MUST ask the user to provide their essay draft/paragraph before you can give specific feedback.
