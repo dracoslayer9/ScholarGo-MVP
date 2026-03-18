@@ -20,50 +20,53 @@ export const runRealAnalysis = async (
             // 1. Normalize line breaks
             const normalized = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-            // 2. Split into blocks (using double newline as primary separator)
-            let rawBlocks = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-
-            // 3. Fallback: if very few blocks were found but text is long, use single newline
-            if (rawBlocks.length < 3 && normalized.split('\n').filter(l => l.trim()).length > 5) {
-                rawBlocks = normalized.split('\n').map(p => p.trim()).filter(p => p.length > 0);
-            }
-
+            // 2. Line-based robust splitting
+            const lines = normalized.split('\n').map(l => l.trim());
             let segmentedParagraphs = [];
             let currentHeader = null;
             let pCount = 0;
+            let currentParagraphLines = [];
 
-            rawBlocks.forEach((block) => {
-                // Heuristic for header: Short (< 50 chars), no terminal punctuation, single line
-                const isHeader = block.length < 50 && !/[.!?]$/.test(block) && !block.includes('\n');
+            lines.forEach((line) => {
+                if (!line) {
+                    if (currentParagraphLines.length > 0) {
+                        pCount++;
+                        segmentedParagraphs.push({
+                            index: pCount,
+                            header: currentHeader,
+                            content: currentParagraphLines.join('\n')
+                        });
+                        currentParagraphLines = [];
+                        currentHeader = null;
+                    }
+                    return;
+                }
 
-                if (isHeader) {
-                    currentHeader = block;
+                const looksLikeHeader = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+
+                if (looksLikeHeader && currentParagraphLines.length === 0) {
+                    currentHeader = currentHeader ? `${currentHeader} / ${line}` : line;
                 } else {
-                    pCount++;
-                    segmentedParagraphs.push({
-                        index: pCount,
-                        header: currentHeader,
-                        content: block
-                    });
-                    currentHeader = null; // Reset after association
+                    currentParagraphLines.push(line);
                 }
             });
 
-            // Handle trailing header
-            if (currentHeader) {
+            if (currentParagraphLines.length > 0) {
+                pCount++;
+                segmentedParagraphs.push({ index: pCount, header: currentHeader, content: currentParagraphLines.join('\n') });
+            } else if (currentHeader) {
                 pCount++;
                 segmentedParagraphs.push({ index: pCount, header: currentHeader, content: "" });
             }
 
             const totalParagraphCount = segmentedParagraphs.length;
-            console.log(`[Analysis] Pre-segmented into ${totalParagraphCount} paragraphs (headers merged).`);
+            console.log(`[Analysis] Pre-segmented into ${totalParagraphCount} paragraphs (V2 splitter).`);
 
             const textWithParagraphMarkers = segmentedParagraphs.map((p) => {
                 let s = `### PARAGRAPH ${p.index} ###\n`;
                 if (p.header) s += `[HEADER/TITLE: ${p.header}]\n`;
-                // Add internal line numbers for reference
                 const markedLines = p.content.split('\n').map((line, li) => `L${li + 1}: ${line}`).join('\n');
-                return s + markedLines;
+                return s + (markedLines || "(No content paragraph)");
             }).join('\n\n');
 
             let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
@@ -205,29 +208,37 @@ export const sendChatMessage = async (
                 ? (documentContent.substring(0, 60000) + "\n\n[...TEXT TRUNCATED DUE TO SIZE...]")
                 : documentContent;
 
-            // --- IMPROVED PARAGRAPH SEGMENTATION FOR CHAT ---
-            const normalized = (documentContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            let rawBlocks = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-            if (rawBlocks.length < 3 && normalized.split('\n').filter(l => l.trim()).length > 5) {
-                rawBlocks = normalized.split('\n').map(p => p.trim()).filter(p => p.length > 0);
-            }
-
+            // --- IMPROVED PARAGRAPH SEGMENTATION FOR CHAT (V2) ---
+            const lines = normalized.split('\n').map(l => l.trim());
             let pCount = 0;
             let currentHeader = null;
+            let currentParagraphLines = [];
             let segmentedText = "";
 
-            rawBlocks.forEach((block) => {
-                const isHeader = block.length < 50 && !/[.!?]$/.test(block) && !block.includes('\n');
-                if (isHeader) {
-                    currentHeader = block;
-                } else {
+            const flushParagraph = () => {
+                if (currentParagraphLines.length > 0) {
                     pCount++;
                     segmentedText += `### PARAGRAPH ${pCount} ###\n`;
                     if (currentHeader) segmentedText += `[HEADER: ${currentHeader}]\n`;
-                    segmentedText += block + "\n\n";
+                    segmentedText += currentParagraphLines.join('\n') + "\n\n";
+                    currentParagraphLines = [];
                     currentHeader = null;
                 }
+            };
+
+            lines.forEach((line) => {
+                if (!line) {
+                    flushParagraph();
+                    return;
+                }
+                const looksLikeHeader = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+                if (looksLikeHeader && currentParagraphLines.length === 0) {
+                    currentHeader = currentHeader ? `${currentHeader} / ${line}` : line;
+                } else {
+                    currentParagraphLines.push(line);
+                }
             });
+            flushParagraph();
             if (currentHeader) {
                 pCount++;
                 segmentedText += `### PARAGRAPH ${pCount} ###\n[HEADER: ${currentHeader}]\n\n`;

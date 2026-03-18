@@ -30,34 +30,39 @@ export default async function handler(req, res) {
     // Pre-process text with line numbers for accurate citation
     const textWithLines = (text || '').split('\n').map((line, i) => `Line ${i + 1}: ${line}`).join('\n');
 
-    // --- IMPROVED PARAGRAPH EXTRACTION (EXCLUDE HEADERS) ---
-    const normalized = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    let rawBlocks = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-
-    // Fallback if split failed
-    if (rawBlocks.length < 3 && (text || '').split('\n').filter(l => l.trim()).length > 5) {
-        rawBlocks = (text || '').split('\n').map(p => p.trim()).filter(p => p.length > 0);
-    }
-
+    // --- IMPROVED PARAGRAPH EXTRACTION (V2 LINE-BASED) ---
+    const lines = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim());
     let segmentedParagraphs = [];
     let currentHeader = null;
     let pCount = 0;
+    let currentParagraphLines = [];
 
-    rawBlocks.forEach((block) => {
-        // Heuristic for header: Short (< 50 chars), no terminal punctuation, single line
-        const isHeader = block.length < 50 && !/[.!?]$/.test(block) && !block.includes('\n');
-        if (isHeader) {
-            currentHeader = block;
-        } else {
+    const flushParagraph = () => {
+        if (currentParagraphLines.length > 0) {
             pCount++;
             segmentedParagraphs.push({
                 index: pCount,
                 header: currentHeader,
-                content: block
+                content: currentParagraphLines.join('\n')
             });
+            currentParagraphLines = [];
             currentHeader = null;
         }
+    };
+
+    lines.forEach((line) => {
+        if (!line) {
+            flushParagraph();
+            return;
+        }
+        const looksLikeHeader = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+        if (looksLikeHeader && currentParagraphLines.length === 0) {
+            currentHeader = currentHeader ? `${currentHeader} / ${line}` : line;
+        } else {
+            currentParagraphLines.push(line);
+        }
     });
+    flushParagraph();
 
     if (currentHeader) {
         pCount++;
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
     const textWithMarkers = segmentedParagraphs.map((p) => {
         let s = `### PARAGRAPH ${p.index} ###\n`;
         if (p.header) s += `[HEADER/TITLE: ${p.header}]\n`;
-        return s + p.content;
+        return s + (p.content || "(No content paragraph)");
     }).join('\n\n');
 
     let systemPrompt = `You are an elite academic scholarship consultant. Analyze the document structure.
