@@ -130,7 +130,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                         <div className="p-8">
                             <div className="text-center mb-8">
                                 <p className="text-oxford-blue/60 mb-6 text-sm">
-                                    Upgrade to <span className="font-bold text-oxford-blue">Scholarstory Plus</span> to continue analyzing without limits.
+                                    Upgrade to <span className="font-bold text-oxford-blue">ScholarGo Plus</span> to continue analyzing without limits.
                                 </p>
                                 <div className="space-y-3 text-left max-w-xs mx-auto">
                                     <FeatureRow text="Unlimited PDF Analysis" highlight />

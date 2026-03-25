@@ -25,7 +25,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                         <div className="w-10 h-10 bg-bronze rounded-xl flex items-center justify-center text-white shadow-lg shadow-bronze/20">
                             <BookOpen size={20} />
                         </div>
-                        <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">Scholarstory</span>
+                        <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">ScholarGo</span>
                     </div>
 
                     {/* Center: Navigation */}
@@ -62,13 +62,13 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                     <div className="flex flex-col items-center text-center">
 
                         {/* Headline */}
-                        <h1 className="text-5xl md:text-7xl font-serif font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-8 pb-2 leading-tight tracking-tight max-w-4xl">
-                            Write great <br />
-                            for a greater tomorrow
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-6 pb-1 leading-tight tracking-tight max-w-4xl">
+                            Your Personal <br />
+                            Scholarship Writing Assistant
                         </h1>
 
                         {/* Subtitle */}
-                        <p className="text-lg md:text-xl text-oxford-blue/80 mb-12 max-w-2xl leading-relaxed font-normal">
+                        <p className="text-lg md:text-xl text-oxford-blue/80 mb-10 max-w-2xl leading-relaxed font-normal">
                             Canvas kolaboratif yang didukung AI canggih untuk memenangkan beasiswa
                         </p>
 
@@ -261,7 +261,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                         Ketentuan Layanan
                     </button>
                 </div>
-                <p>© 2026 Scholarstory. All rights reserved.</p>
+                <p>© 2026 ScholarGo. All rights reserved.</p>
             </footer>
             <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
         </div>

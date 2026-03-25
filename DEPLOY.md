@@ -1,4 +1,4 @@
-# 🚀 Deploying Scholarstory from Playground
+# 🚀 Deploying ScholarGo from Playground
 
 Yes, you can deploy directly from this folder! Follow these steps in your terminal.
 
@@ -18,7 +18,7 @@ This is the best option because it supports the environment variables we need fo
     *   Set up and deploy? **Y**
     *   Which scope? (Select your username)
     *   Link to existing project? **N**
-    *   Project name? **scholarstory** (or leave default)
+    *   Project name? **scholargo** (or leave default)
     *   Directory? **./** (leave default)
     *   Want to modify settings? **N**
 

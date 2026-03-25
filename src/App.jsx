@@ -77,11 +77,11 @@ const analyzeEssay = async (text, model, instruction, context, signal) => {
 
 function App() {
   // App State: 'landing', 'login', 'canvas', 'privacy', 'terms', 'pricing', 'campus-match'
-  const [appMode, setAppMode] = useState(() => localStorage.getItem('scholarStory_appMode') || 'landing');
+  const [appMode, setAppMode] = useState(() => localStorage.getItem('scholarGo_appMode') || 'landing');
 
   // Persist App Mode
   useEffect(() => {
-    localStorage.setItem('scholarStory_appMode', appMode);
+    localStorage.setItem('scholarGo_appMode', appMode);
     // Track Page View
     posthog.capture('$pageview', {
       app_mode: appMode // detailed tracking
@@ -1363,7 +1363,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                         }
                       }}
                       disabled={isAnalyzing}
-                      placeholder={isAnalyzing ? "Scholarstory is thinking..." : (contextText ? "Ask about selected text..." : "Ask Scholarstory...")}
+                      placeholder={isAnalyzing ? "ScholarGo is thinking..." : (contextText ? "Ask about selected text..." : "Ask ScholarGo...")}
                       className="w-full bg-transparent border-none px-2 py-1 text-sm text-oxford-blue outline-none resize-none custom-scrollbar disabled:opacity-50 placeholder:text-oxford-blue/40"
                       rows={1}
                       style={{ minHeight: '28px', maxHeight: '200px' }}

@@ -194,33 +194,59 @@ export const sendChatMessage = async (
     onChunk = null // Add onChunk callback
 ) => {
     // FALLBACK: Client-Side Execution for Local Development
-    if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY && model !== 'perplexity' && model !== 'auto') {
+    if (import.meta.env.DEV && import.meta.env.VITE_OPENAI_API_KEY) {
         try {
-            console.log(`Running Local Chat Message with ${model}...`);
+            let resolvedModel = model;
+
+            // --- IMPROVED AUTO-ROUTER (CLIENT-SIDE) ---
+            if (model === "auto") {
+                try {
+                    const classifierClient = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY, dangerouslyAllowBrowser: true });
+                    const classifierResponse = await classifierClient.chat.completions.create({
+                        model: "gpt-4o-mini",
+                        messages: [
+                            { role: "system", content: "You are an intent router for a scholarship application assistant. Classify the user's message into 'RESEARCH' or 'WRITE'.\n\n'RESEARCH': Use this for ANY factual query, including university names, specific majors, program details, fees, or external facts from the web. If they mention a specific university or degree title, lean heavily towards RESEARCH.\n\n'WRITE': Use this ONLY for reviewing, editing, drafting, or brainstorming essay content.\n\nReply ONLY with the word RESEARCH or WRITE." },
+                            { role: "user", content: message }
+                        ],
+                        temperature: 0,
+                        max_tokens: 10
+                    });
+
+                    const intent = classifierResponse.choices[0].message.content.trim().toUpperCase();
+                    console.log(`[Local Auto-Router] Classified intent as: ${intent}`);
+                    resolvedModel = intent.includes("RESEARCH") ? "perplexity" : "openai";
+                } catch (err) {
+                    console.error("Local Auto-Router failed:", err);
+                    resolvedModel = "openai";
+                }
+            }
+
+            // If we resolved to perplexity, we must use the server as there's no client-side SDK for Sonar easily
+            if (resolvedModel === 'perplexity') {
+                throw new Error("RESEARCH_REDIRECT"); // Signal to caller to use server/perplexity mode
+            }
+
+            console.log(`Running Local Chat Message with ${resolvedModel}...`);
             const openai = new OpenAI({
                 apiKey: import.meta.env.VITE_OPENAI_API_KEY,
                 dangerouslyAllowBrowser: true
             });
 
-            // TOKEN SAVER & TPM GUARD: Truncate documentContent if it's monstrously large
-            // 60k chars is ~15k tokens, safe for almost all TPM tiers.
-            const truncatedDoc = (documentContent || '').length > 60000 
-                ? (documentContent.substring(0, 60000) + "\n\n[...TEXT TRUNCATED DUE TO SIZE...]")
-                : documentContent;
-
-            // --- IMPROVED PARAGRAPH SEGMENTATION FOR CHAT (V2) ---
-            const lines = normalized.split('\n').map(l => l.trim());
-            let pCount = 0;
+            // --- IMPROVED PARAGRAPH EXTRACTION (V3 ROBUST) ---
+            const lines = (documentContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim());
+            let segmentedParagraphs = [];
             let currentHeader = null;
+            let pCount = 0;
             let currentParagraphLines = [];
-            let segmentedText = "";
 
             const flushParagraph = () => {
                 if (currentParagraphLines.length > 0) {
                     pCount++;
-                    segmentedText += `### PARAGRAPH ${pCount} ###\n`;
-                    if (currentHeader) segmentedText += `[HEADER: ${currentHeader}]\n`;
-                    segmentedText += currentParagraphLines.join('\n') + "\n\n";
+                    segmentedParagraphs.push({
+                        index: pCount,
+                        header: currentHeader,
+                        content: currentParagraphLines.join('\n')
+                    });
                     currentParagraphLines = [];
                     currentHeader = null;
                 }
@@ -231,20 +257,39 @@ export const sendChatMessage = async (
                     flushParagraph();
                     return;
                 }
-                const looksLikeHeader = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+
+                const isMarkdownHeader = line.startsWith('#');
+                const isBoldHeader = line.startsWith('**') && line.endsWith('**') && line.length < 100;
+                const isAllCaps = line.length > 3 && line === line.toUpperCase() && !/[.!?]$/.test(line);
+                const isShortLabel = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+                
+                const looksLikeHeader = isMarkdownHeader || isBoldHeader || isAllCaps || isShortLabel;
+
                 if (looksLikeHeader && currentParagraphLines.length === 0) {
-                    currentHeader = currentHeader ? `${currentHeader} / ${line}` : line;
+                    currentHeader = currentHeader ? `${currentHeader} | ${line}` : line;
                 } else {
                     currentParagraphLines.push(line);
                 }
             });
+            
             flushParagraph();
+
             if (currentHeader) {
-                pCount++;
-                segmentedText += `### PARAGRAPH ${pCount} ###\n[HEADER: ${currentHeader}]\n\n`;
+                if (segmentedParagraphs.length > 0) {
+                    segmentedParagraphs[segmentedParagraphs.length - 1].content += `\n\n[FOOTER/TITLE: ${currentHeader}]`;
+                } else {
+                    pCount++;
+                    segmentedParagraphs.push({ index: pCount, header: currentHeader, content: "(No content provided)" });
+                }
             }
 
-            let systemPrompt = `You are an elite Scholarship Consultant for Scholarstory.
+            const segmentedText = segmentedParagraphs.map((p) => {
+                let s = `### PARAGRAPH ${p.index} ###\n`;
+                if (p.header) s += `[HEADER: ${p.header}]\n`;
+                return s + (p.content || "");
+            }).join('\n\n');
+
+            let systemPrompt = `You are an elite Scholarship Consultant for ScholarGo.
             **CORE PRINCIPLE**:
             1. **Prioritize User**: Focus on their specific questions.
             2. **Paragraph Logic**: Cite paragraph numbers (e.g., [P2]) when giving feedback.
@@ -252,15 +297,19 @@ export const sendChatMessage = async (
             4. **Bridging**: Distinguish between "Internal Bridging" (cohesion) and "Phase Transitions" (next step).
             5. **Gap-Bridge-Vision**: Ensure logical flow from problem to solution.
             
-            **STANDARDS**: Represent Awardee Logic of LPDP, Fulbright, Chevening, AAS. Ensure academic/social value alignment.
-            **FRAMEWORK**: Hook/Gap (Phase 1), Limitation (Phase 2), Bridge (Phase 3), Vision (Phase 4).
-            
+            **KNOWLEDGE LIMITATION & RESEARCH ROUTING**:
+            - **Knowledge Cutoff**: You are aware that your internal knowledge has a cutoff (Oct 2023). 
+            - **Factual Verification**: If the user asks for specific, factual, or current data about a university, program, or requirement that you are unsure of (especially if it seems newer than 2023), YOU MUST:
+                1. Acknowledge your 2023 knowledge cutoff.
+                2. Suggest that the user switch to **"Research"** mode (which uses Perplexity with live web access) for the most accurate and up-to-date verification.
+                3. Do NOT definitively state a program "does not exist" if your only source is your internal training data. Be conservative and suggest research.
+
             **PERSONA**: Friendly Scholarship Buddy. natural, warm Indonesian (e.g., "Sip, mari kita poles..."). Align with user intent; don't be argumentative.
             **PROTOCOL**:
             - If Doc Content is NOT EMPTY, focus 100% on analyzing that text. No generic theory.
             - If user refers to a specific paragraph, focus primary effort there.
             - If EMPTY, give framework-based roadmap.
-
+            
             Document Content (Source of Truth with Paragraph Markers):
             ---
             ${segmentedText || '(Draft Empty - Provide framework-based outline suggestions to help the user get started.)'}
@@ -458,7 +507,6 @@ export const summarizeChatHistory = async (history = []) => {
             return response.choices[0].message.content;
         } catch (err) {
             console.error("Summarization Error:", err);
-            return "";
         }
     }
     return "";

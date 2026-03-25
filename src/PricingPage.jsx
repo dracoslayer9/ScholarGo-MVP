@@ -40,7 +40,7 @@ const PricingPage = ({ onBack, onLogin, session }) => {
                         <div className="w-10 h-10 bg-bronze rounded-xl flex items-center justify-center text-white shadow-lg shadow-bronze/20">
                             <BookOpen size={20} />
                         </div>
-                        <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">Scholarstory</span>
+                        <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">ScholarGo</span>
                     </div>
 
                     {/* Center: Navigation (Same as Landing) */}
@@ -230,7 +230,7 @@ const PricingPage = ({ onBack, onLogin, session }) => {
 
             {/* Footer - Reused minimal style */}
             <footer className="py-8 bg-white border-t border-oxford-blue/5 text-center text-sm text-oxford-blue/40">
-                <p>© 2026 Scholarstory. All rights reserved.</p>
+                <p>© 2026 ScholarGo. All rights reserved.</p>
             </footer>
             <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
         </div>

@@ -85,8 +85,8 @@ serve(async (req) => {
         const externalId = `inv_${Date.now()}_${userId.substring(0, 8)}`
         const amount = planType === 'cv_match' ? 7500 : 49000;
         const description = planType === 'cv_match'
-            ? 'Scholarstory Campus Match (CV Upload)'
-            : `Upgrade to Scholarstory ${planType}`;
+            ? 'ScholarGo Campus Match (CV Upload)'
+            : `Upgrade to ScholarGo ${planType}`;
 
         console.log("Creating Xendit Invoice...", { externalId, amount, description });
 

@@ -1193,7 +1193,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             customInstructions = `
 [SPECIAL INSTRUCTION: VERSION COMPARISON & IDEA DEVELOPMENT]
 User is asking for a comparison or seeking the "better" version.
-1. COMPARE all provided versions (### [Version Title]) objectively based on Scholarstory Master Framework.
+1. COMPARE all provided versions (### [Version Title]) objectively based on ScholarGo Master Framework.
 2. IDENTIFY "Floating Ideas" (Ide Mengambang): Sections that are too vague, generic, or lack concrete evidence.
 3. PROVIDE "Idea Development" (Pengembangan Ide): Specific, proactive suggestions to expand on vague points to reach "Gold Standard" specificity.
 4. FORMAT: Use clear headers:
@@ -2734,7 +2734,7 @@ User is asking for a comparison or seeking the "better" version.
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder={isAnalyzing ? "Thinking..." : (fileName ? "Analyze this..." : "Ask Scholarstory...")}
+                                placeholder={isAnalyzing ? "Thinking..." : (fileName ? "Analyze this..." : "Ask ScholarGo...")}
                                 className="w-full bg-transparent border-none px-2 py-1 text-sm text-oxford-blue outline-none resize-none custom-scrollbar disabled:opacity-50 placeholder-oxford-blue/40"
                                 rows={1}
                                 style={{ minHeight: '28px', maxHeight: '200px' }}

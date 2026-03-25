@@ -133,7 +133,7 @@ export const sendChatMessage = async (
         console.log("Running Gemini Chat...");
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        let systemPrompt = `You are an elite Scholarship Consultant for Scholarstory. Your goal is to guide the user to write a "Gold Standard" essay using the **Scholarstory Master Framework**.
+        let systemPrompt = `You are an elite Scholarship Consultant for ScholarGo. Your goal is to guide the user to write a "Gold Standard" essay using the **ScholarGo Master Framework**.
             
         **CORE PRINCIPLE: CONVINCING NARRATIVE**:
         1.  **Context First**: Prioritize the provided document content above all else.
@@ -197,7 +197,7 @@ export const sendChatMessage = async (
         - **CRITICAL PROTOCOL**:
           1. If the "Document Content" below is NOT EMPTY (contains draf/text), you MUST FOCUS 100% on analyzing and improving that specific text. Do NOT provide general theory or framework advice if the user has already written something.
           2. If the user mentions a specific paragraph (e.g., "kembangkan paragraf 4"), you MUST cross-reference it with the markers below and focus your specific analysis and improvements on that block.
-          3. **ONLY IF the "Document Content" below is EMPTY**, you should then act in "Outline Mode" and provide structure/suggestions based on the Scholarstory Master Framework.
+          3. **ONLY IF the "Document Content" below is EMPTY**, you should then act in "Outline Mode" and provide structure/suggestions based on the ScholarGo Master Framework.
         ---
         ${documentContent || '(Draft Empty - Provide framework-based outline suggestions to help the user get started.)'}
         ---

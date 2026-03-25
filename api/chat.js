@@ -29,7 +29,7 @@ export default async function handler(req, res) {
                 const classifierResponse = await classifierClient.chat.completions.create({
                     model: "gpt-4o-mini",
                     messages: [
-                        { role: "system", content: "You are an intent router. Classify the user's message into one of two categories:\n'RESEARCH' if they are asking for facts, searching for universities/kampus, looking for majors/jurusan, gathering data from the web, or checking external requirements/deadlines.\n'WRITE' if they are asking you to review, edit, draft, outline, translate, or brainstorm creative ideas for an essay or personal statement.\nReply ONLY with the word RESEARCH or WRITE." },
+                        { role: "system", content: "You are an intent router for a scholarship application assistant. Classify the user's message into 'RESEARCH' or 'WRITE'.\n\n'RESEARCH': Use this for ANY factual query, including:\n- Searching for or verifying university names, rankings, or locations.\n- Checking if a specific major, program, or MSc/PhD degree exists.\n- Looking for program modules, credits, fees, or duration.\n- Checking scholarship deadlines, requirements, or external facts from the live web.\n- If the user mentions a specific university name or a specific degree title, lean heavily towards RESEARCH.\n\n'WRITE': Use this ONLY if the user is asking to:\n- Review, edit, or critique their current essay draft.\n- Draft, rewrite, or translate specific sentences or paragraphs.\n- Brainstorm creative story hooks or personal narratives.\n- Organize an outline for their document.\n\nReply ONLY with the word RESEARCH or WRITE." },
                         { role: "user", content: message }
                     ],
                     temperature: 0,
@@ -113,19 +113,21 @@ ${matchedEssays[0].anonymized_content}
             }
         }
 
-        // --- IMPROVED PARAGRAPH SEGMENTATION FOR CHAT (V2 LINE-BASED) ---
+        // --- IMPROVED PARAGRAPH EXTRACTION (V3 ROBUST) ---
         const lines = (documentContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim());
-        let pCount = 0;
+        let segmentedParagraphs = [];
         let currentHeader = null;
+        let pCount = 0;
         let currentParagraphLines = [];
-        let segmentedText = "";
 
         const flushParagraph = () => {
             if (currentParagraphLines.length > 0) {
                 pCount++;
-                segmentedText += `### PARAGRAPH ${pCount} ###\n`;
-                if (currentHeader) segmentedText += `[HEADER: ${currentHeader}]\n`;
-                segmentedText += currentParagraphLines.join('\n') + "\n\n";
+                segmentedParagraphs.push({
+                    index: pCount,
+                    header: currentHeader,
+                    content: currentParagraphLines.join('\n')
+                });
                 currentParagraphLines = [];
                 currentHeader = null;
             }
@@ -136,19 +138,37 @@ ${matchedEssays[0].anonymized_content}
                 flushParagraph();
                 return;
             }
-            const looksLikeHeader = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+
+            const isMarkdownHeader = line.startsWith('#');
+            const isBoldHeader = line.startsWith('**') && line.endsWith('**') && line.length < 100;
+            const isAllCaps = line.length > 3 && line === line.toUpperCase() && !/[.!?]$/.test(line);
+            const isShortLabel = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+            
+            const looksLikeHeader = isMarkdownHeader || isBoldHeader || isAllCaps || isShortLabel;
+
             if (looksLikeHeader && currentParagraphLines.length === 0) {
-                currentHeader = currentHeader ? `${currentHeader} / ${line}` : line;
+                currentHeader = currentHeader ? `${currentHeader} | ${line}` : line;
             } else {
                 currentParagraphLines.push(line);
             }
         });
+        
         flushParagraph();
 
         if (currentHeader) {
-            pCount++;
-            segmentedText += `### PARAGRAPH ${pCount} ###\n[HEADER: ${currentHeader}]\n\n`;
+            if (segmentedParagraphs.length > 0) {
+                segmentedParagraphs[segmentedParagraphs.length - 1].content += `\n\n[FOOTER/TITLE: ${currentHeader}]`;
+            } else {
+                pCount++;
+                segmentedParagraphs.push({ index: pCount, header: currentHeader, content: "(No content provided)" });
+            }
         }
+
+        const segmentedText = segmentedParagraphs.map((p) => {
+            let s = `### PARAGRAPH ${p.index} ###\n`;
+            if (p.header) s += `[HEADER: ${p.header}]\n`;
+            return s + (p.content || "");
+        }).join('\n\n');
 
         let systemPrompt = "";
 
@@ -157,7 +177,7 @@ ${matchedEssays[0].anonymized_content}
             systemPrompt = `You are a Global Research Expert. 
             
             **MANDATORY: CLEAN SLATE**: 
-            - Terminate all previous writing frameworks, "Scholarstory" logic, or Indonesian awardee standards. 
+            - Terminate all previous writing frameworks, "ScholarGo" logic, or Indonesian awardee standards. 
             - You are NOT a scholarship consultant in this mode. You are a pure Researcher.
             
             **CORE MISSION**: Provide the most accurate, deep, and comprehensive research data from across the entire world.
@@ -177,7 +197,7 @@ ${matchedEssays[0].anonymized_content}
             `;
         } else {
             // Strict Master Framework for GPT-4o
-            systemPrompt = `You are an elite Scholarship Consultant for Scholarstory. Your goal is to guide the user to write a "Gold Standard" essay using the **Scholarstory Master Framework**.
+            systemPrompt = `You are an elite Scholarship Consultant for ScholarGo. Your goal is to guide the user to write a "Gold Standard" essay using the **ScholarGo Master Framework**.
                 
             **CRITICAL ASSUMPTION**:
             - ALWAYS assume the user is applying for a Master's degree (S2) or a tertiary scholarship.
@@ -239,6 +259,13 @@ ${matchedEssays[0].anonymized_content}
             (and so on).
             Do not deviate from this structure for outlines.
 
+            **KNOWLEDGE LIMITATION & RESEARCH ROUTING**:
+            - **Knowledge Cutoff**: You are aware that your internal knowledge has a cutoff (Oct 2023). 
+            - **Factual Verification**: If the user asks for specific, factual, or current data about a university, program, or requirement that you are unsure of (especially if it seems newer than 2023), YOU MUST:
+                1. Acknowledge your 2023 knowledge cutoff.
+                2. Suggest that the user switch to **"Research"** mode (which uses Perplexity with live web access) for the most accurate and up-to-date verification.
+                3. Do NOT definitively state a program "does not exist" if your only source is your internal training data. Be conservative and suggest research.
+            
             **SELF-REFINE & ANTI-HALLUCINATION (CRITICAL RULE)**:
             Before you output your final response, internally check: "Does this answer EXACTLY what the user asked?"
             1. **DO NOT give unsolicited university recommendations** (like Monash, NUS, etc.) unless the user EXPLICITLY asks for "Campus Match" or "Rekomendasi Kampus". If they just ask for a review, ONLY give a review.

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     // Pre-process text with line numbers for accurate citation
     const textWithLines = (text || '').split('\n').map((line, i) => `Line ${i + 1}: ${line}`).join('\n');
 
-    // --- IMPROVED PARAGRAPH EXTRACTION (V2 LINE-BASED) ---
+    // --- IMPROVED PARAGRAPH EXTRACTION (V3 ROBUST) ---
     const lines = (text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map(l => l.trim());
     let segmentedParagraphs = [];
     let currentHeader = null;
@@ -38,6 +38,7 @@ export default async function handler(req, res) {
     let currentParagraphLines = [];
 
     const flushParagraph = () => {
+        // Only flush if we have content OR if we have a header that stayed alone at the end
         if (currentParagraphLines.length > 0) {
             pCount++;
             segmentedParagraphs.push({
@@ -55,18 +56,37 @@ export default async function handler(req, res) {
             flushParagraph();
             return;
         }
-        const looksLikeHeader = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+
+        // HEURISTIC: Is this a header?
+        const isMarkdownHeader = line.startsWith('#');
+        const isBoldHeader = line.startsWith('**') && line.endsWith('**') && line.length < 100;
+        const isAllCaps = line.length > 3 && line === line.toUpperCase() && !/[.!?]$/.test(line);
+        const isShortLabel = line.length < 60 && !/[.!?]$/.test(line) && line.split(' ').length < 10;
+        
+        const looksLikeHeader = isMarkdownHeader || isBoldHeader || isAllCaps || isShortLabel;
+
+        // If it looks like a header and we haven't started paragraph content yet, collect it as a header
         if (looksLikeHeader && currentParagraphLines.length === 0) {
-            currentHeader = currentHeader ? `${currentHeader} / ${line}` : line;
+            currentHeader = currentHeader ? `${currentHeader} | ${line}` : line;
         } else {
+            // It's content
             currentParagraphLines.push(line);
         }
     });
+    
+    // Final flush
     flushParagraph();
 
+    // If we have a trailing header with no content, attach it to the LAST paragraph or as a final block
     if (currentHeader) {
-        pCount++;
-        segmentedParagraphs.push({ index: pCount, header: currentHeader, content: "" });
+        if (segmentedParagraphs.length > 0) {
+            // Attach as extra footer to previous
+            segmentedParagraphs[segmentedParagraphs.length - 1].content += `\n\n[FOOTER/TITLE: ${currentHeader}]`;
+        } else {
+            // Rare: Only a header in the whole doc
+            pCount++;
+            segmentedParagraphs.push({ index: pCount, header: currentHeader, content: "(No content provided)" });
+        }
     }
 
     const textWithMarkers = segmentedParagraphs.map((p) => {

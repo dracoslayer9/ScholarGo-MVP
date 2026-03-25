@@ -51,7 +51,7 @@ serve(async (req) => {
             },
             customer_details: {
                 email: email,
-                first_name: "Scholarstory",
+                first_name: "ScholarGo",
                 last_name: "User"
             },
             item_details: [
@@ -59,7 +59,7 @@ serve(async (req) => {
                     id: planType,
                     price: amount,
                     quantity: 1,
-                    name: "Scholarstory Plus Subscription"
+                    name: "ScholarGo Plus Subscription"
                 }
             ]
         };

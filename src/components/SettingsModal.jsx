@@ -275,7 +275,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                         <div className="flex justify-between items-start mt-4">
                                             <div>
                                                 <h4 className="font-bold text-oxford-blue flex items-center gap-2">
-                                                    Scholarstory Plus
+                                                    ScholarGo Plus
                                                     <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] uppercase font-bold">Pro</span>
                                                 </h4>
                                                 <p className="text-sm text-oxford-blue/60 mt-1">Unlimited AI analysis & advanced features</p>
@@ -331,7 +331,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                         <div>
                                             <h4 className="font-bold text-red-900">Delete Account</h4>
                                             <p className="text-sm text-red-700/80 mt-1">
-                                                Permanently remove your account and all associated data from Scholarstory. This action is not reversible.
+                                                Permanently remove your account and all associated data from ScholarGo. This action is not reversible.
                                             </p>
                                         </div>
                                     </div>
@@ -386,7 +386,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                         Our support team is here for you.
                                     </p>
                                     <a
-                                        href="mailto:teamscholarstory@gmail.com"
+                                        href="mailto:teamscholargo@gmail.com"
                                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-oxford-blue text-white rounded-xl font-medium shadow-lg shadow-oxford-blue/20 hover:bg-oxford-blue/90 transition-all hover:scale-105"
                                     >
                                         <Mail size={18} />
@@ -400,7 +400,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                     </div>
                     {/* Footer / Version */}
                     <div className="p-4 border-t border-gray-100 bg-gray-50/30 text-center">
-                        <p className="text-[10px] text-oxford-blue/30 font-medium">Scholarstory v1.2.0 • 2026</p>
+                        <p className="text-[10px] text-oxford-blue/30 font-medium">ScholarGo v1.2.0 • 2026</p>
                     </div>
                 </div>
             </div>

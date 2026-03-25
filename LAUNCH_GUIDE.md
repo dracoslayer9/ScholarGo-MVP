@@ -1,4 +1,4 @@
-# 🚀 Launching Scholarstory
+# 🚀 Launching ScholarGo
 You are ready to launch! Here is how to power the app with Gemini and deploy it for the world to see.
 
 ## 1. Powering with Gemini (Real AI)
@@ -25,10 +25,10 @@ The easiest way to launch is using **Vercel**.
 2.  **Deploy on Vercel**:
     *   Go to [Vercel.com](https://vercel.com) and sign up/login.
     *   Click "Add New..." -> "Project".
-    *   Import your `Scholarstory` repository.
+    *   Import your `ScholarGo` repository.
     *   **IMPORTANT**: In the "Environment Variables" section, add:
         *   Name: `VITE_GEMINI_API_KEY`
         *   Value: `your_copied_api_key_here`
     *   Click **Deploy**.
 
-Within minutes, you will have a live URL (e.g., `scholarstory.vercel.app`) to share with users!
+Within minutes, you will have a live URL (e.g., `scholargo.vercel.app`) to share with users!
