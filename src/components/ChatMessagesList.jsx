@@ -9,7 +9,7 @@ const ContextCard = ({ context }) => {
     if (!context || !context.text) return null;
 
     return (
-        <div className="mb-3 border border-oxford-blue/10 rounded-2xl overflow-hidden bg-white/40 shadow-sm transition-all hover:border-bronze/20 max-w-full">
+        <div className="mb-3 border border-oxford-blue/10 rounded-2xl overflow-hidden bg-white/40 shadow-sm transition-all hover:border-bronze/20 max-w-full text-left">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="w-full flex items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-bronze/5 transition-colors text-left group"
@@ -38,6 +38,32 @@ const ContextCard = ({ context }) => {
                     </div>
                 </div>
             )}
+        </div>
+    );
+};
+
+const FoldableUserMessage = ({ content, onReferenceClick }) => {
+    const [isExpanded, setIsExpanded] = React.useState(false);
+    const threshold = 250;
+    const isLong = content && content.length > threshold;
+
+    if (!isLong) return <MessageContent content={content} onReferenceClick={onReferenceClick} />;
+
+    return (
+        <div className="relative">
+            <div className={`transition-all duration-300 overflow-hidden ${isExpanded ? "max-h-[5000px]" : "max-h-[120px]"}`}>
+                <MessageContent content={content} onReferenceClick={onReferenceClick} />
+                {!isExpanded && (
+                    <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-gray-100 via-gray-100/40 to-transparent pointer-events-none"></div>
+                )}
+            </div>
+            <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-3 text-blue-600 font-extrabold text-[10px] uppercase tracking-wider flex items-center gap-1.5 hover:text-blue-800 transition-colors bg-white/50 px-3 py-1.5 rounded-full shadow-sm border border-blue-100"
+            >
+                {isExpanded ? "Sembunyikan" : "Lihat Selengkapnya"}
+                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
         </div>
     );
 };
@@ -118,7 +144,11 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
                                     ) : (
                                         <>
                                             {msg.focusedContext && <ContextCard context={msg.focusedContext} />}
-                                            <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
+                                            {msg.role === 'user' ? (
+                                                <FoldableUserMessage content={msg.content} onReferenceClick={onReferenceClick} />
+                                            ) : (
+                                                <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
+                                            )}
                                         </>
                                     )
                                 )

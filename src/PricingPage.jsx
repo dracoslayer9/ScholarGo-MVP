@@ -46,12 +46,15 @@ const PricingPage = ({ onBack, onLogin, session }) => {
                     {/* Center: Navigation (Same as Landing) */}
                     <div className="hidden md:flex items-center justify-center gap-2">
                         <button
-                            onClick={session ? handleUpgrade : onLogin}
+                            onClick={() => {
+                                const el = document.getElementById('pricing-plans');
+                                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                            }}
                             disabled={loading}
                             className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center gap-1.5"
                         >
                             {loading && <Loader size={14} className="animate-spin" />}
-                            {loading ? 'Processing...' : (session ? 'Upgrade Plan' : 'Mulai Gratis')}
+                            {loading ? 'Processing...' : 'Upgrade Plan'}
                         </button>
                         <button
                             onClick={() => setShowGuide(true)}
@@ -83,7 +86,7 @@ const PricingPage = ({ onBack, onLogin, session }) => {
 
             <div className="pt-32 pb-24 px-6 relative">
                 <div className="max-w-6xl mx-auto relative z-10">
-                    <div className="text-center mb-16">
+                    <div className="text-center mb-16" id="pricing-plans">
                         <h2 className="text-3xl md:text-5xl font-serif font-medium text-oxford-blue mb-6">Pilih Paket Belajar</h2>
                         <p className="text-base md:text-lg text-oxford-blue/60 max-w-2xl mx-auto">
                             Investasi terbaik untuk studi impian kamu.

@@ -117,13 +117,18 @@ export default async function handler(req, res) {
     3. One object per paragraph. DO NOT combine them.
     4. Cite the markers accurately.
     
+    **STRICT DEPTH PROTOCOL**:
+    - **NO BREVITY**: Do not provide one-sentence responses for structural analysis or main ideas.
+    - **CRITICAL THINKING**: You MUST provide at least 3-4 sentences per paragraph for both 'Current Approach' and 'Main Idea'.
+    - **SUBSTANCE**: Explain the 'why' and the 'how'. If a paragraph is a hook, explain what kind of hook it is (sensory, thematic, question-based) and how it creates tension or curiosity.
+
     **PARAGRAPH ANALYSIS CRITERIA**:
     For EACH paragraph, provide:
     - **Paragraph Number**: Sequential integer (match the markers).
     - **Detected Subtitle**: The [HEADER/TITLE] if provided, else null.
-    - **Functional Label**: Infer role (e.g. Hook, Context, Challenge, Growth).
-    - **Main Idea**: One sentence summary of content.
-    - **Current Approach**: What is this paragraph trying to do structurally?
+    - **Functional Label**: Infer role (e.g. Phase 1: Hook, Phase 2: Track Record).
+    - **Main Idea**: A thorough, NUANCED, and multi-sentence summary (min 3 sentences) of the paragraph's core idea.
+    - **Current Approach**: A detailed, 3-4 sentence structural analysis of how this paragraph functions, its logic, and its alignment with scholarship standards.
     - **Evidence Quote**: Real verbatim quote from the text.
     `;
 
@@ -174,29 +179,29 @@ ${matchedEssays[0].anonymized_content}
         "documentClassification": {
           "primaryType": "Personal Statement | Study Plan | Portfolio",
           "secondaryElements": ["e.g. Research Methodology"],
-          "reasoning": "Brief explanation.",
+          "reasoning": "Detailed reasoning exploring why the document falls into this category, citing specific structural elements.",
           "confidence": "High | Medium | Low",
           "structuralSignals": ["signal 1", "signal 2"]
         },
         "deepAnalysis": {
-          "overallAssessment": "High-level assessment.",
+          "overallAssessment": "Comprehensive evaluation of the essay's strengths, weaknesses, and overall impact.",
           "authenticity": { "strengths": "...", "evidence": "..." },
           "structure": { "type": "...", "flow": "..." },
           "values": { "detectedValues": "...", "alignment": "..." },
-          "strategicImprovements": ["${type === 'Awardee Sample' ? 'Takeaway 1' : 'Imp 1'}", "${type === 'Awardee Sample' ? 'Takeaway 2' : 'Imp 2'}"]
+          "strategicImprovements": ["Detailed improvement 1", "..."]
         },
-        "globalSummary": "A 2-3 sentence global summary.",
+        "globalSummary": "A comprehensive 3-5 sentence global summary of the core narrative and potential of this draft.",
         "paragraphBreakdown": [
           { 
             "paragraph_number": 1,
             "detected_subtitle": "Subtitle from text (or null)",
-            "functional_label": "e.g. Hook",
+            "functional_label": "e.g. Hook/Context",
             "section_label": "e.g. Introduction/Hook",
-            "analysis_current": "What this specific paragraph does.",
-            "main_idea": "Summary of this specific paragraph.",
+            "analysis_current": "Detailed 3-4 sentence structural analysis. Explaining how this paragraph functions as the [Hook/Context/Gap] and how it transitions to the next point.",
+            "main_idea": "A thorough 3-sentence summary that captures the nuance and specific evidence presented in this paragraph.",
             "evidence_quote": "<EXTRACT_REAL_VERBATIM_QUOTE_FROM_THIS_PARAGRAPH>",
             "evidence_location": "Lines X-Y",
-            "strength": "Observation.",
+            "strength": "Detailed 2-sentence observation on why this paragraph is effective or what makes it a 'winning' element.",
             "status": "strong" 
           }
         ]

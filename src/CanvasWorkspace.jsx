@@ -779,13 +779,14 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         }
 
         if (user) {
-            const { allowed } = await checkUsageQuota(user.id, 'chat');
+            const quotaType = type === 'review' ? 'deep_review' : 'chat';
+            const { allowed } = await checkUsageQuota(user.id, quotaType);
             if (!allowed) {
-                setUpgradeFeature('Chat Messages');
+                setUpgradeFeature(quotaType === 'deep_review' ? 'Deep Review' : 'Chat Messages');
                 setShowUpgradeModal(true);
                 return;
             }
-            incrementUsage(user.id, 'chat').catch(err => console.error("Increment failed", err));
+            incrementUsage(user.id, quotaType).catch(err => console.error("Increment failed", err));
         }
 
         let userMessage = "";
@@ -851,20 +852,27 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         const sevenDaysAgo = new Date(today);
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        // Grouping order: Oldest to Newest so that auto-scroll to bottom reveals newest topics
+        // Sort chats by recency (Newest first)
+        const sortedChats = [...chats].sort((a, b) => {
+            const dateA = new Date(a.created_at || Date.now());
+            const dateB = new Date(b.created_at || Date.now());
+            return dateB - dateA;
+        });
+
+        // Grouping order: Newest to Oldest
         const groups = [
-            { label: 'Lebih Lama', chats: [] },
-            { label: '7 Hari Terakhir', chats: [] },
+            { label: 'Hari Ini', chats: [] },
             { label: 'Kemarin', chats: [] },
-            { label: 'Hari Ini', chats: [] }
+            { label: '7 Hari Terakhir', chats: [] },
+            { label: 'Lebih Lama', chats: [] }
         ];
 
-        chats.forEach(chat => {
+        sortedChats.forEach(chat => {
             const chatDate = new Date(chat.created_at || Date.now());
-            if (chatDate >= today) groups[3].chats.push(chat);
-            else if (chatDate >= yesterday) groups[2].chats.push(chat);
-            else if (chatDate >= sevenDaysAgo) groups[1].chats.push(chat);
-            else groups[0].chats.push(chat);
+            if (chatDate >= today) groups[0].chats.push(chat);
+            else if (chatDate >= yesterday) groups[1].chats.push(chat);
+            else if (chatDate >= sevenDaysAgo) groups[2].chats.push(chat);
+            else groups[3].chats.push(chat);
         });
 
         return groups.filter(g => g.chats.length > 0);
@@ -1115,15 +1123,18 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         try {
             if ((!inputToUse.trim() && !currentEssay.trim() && !fileContext) || isAnalyzing) return;
 
-        // CHECK QUOTA: Chat
+        // CHECK QUOTA: Deep Review vs Chat
         if (user) {
-            const { allowed } = await checkUsageQuota(user.id, 'chat');
+            const isReviewAction = cleanInput.includes('review') || cleanInput.includes('reviu') || cleanInput.includes('evaluasi') || cleanInput.includes('periksa');
+            const quotaType = isReviewAction ? 'deep_review' : 'chat';
+            
+            const { allowed } = await checkUsageQuota(user.id, quotaType);
             if (!allowed) {
-                setUpgradeFeature('Chat Messages');
+                setUpgradeFeature(quotaType === 'deep_review' ? 'Deep Review' : 'Chat Messages');
                 setShowUpgradeModal(true);
                 return;
             }
-            incrementUsage(user.id, 'chat').catch(err => console.error("Increment failed", err));
+            incrementUsage(user.id, quotaType).catch(err => console.error("Increment failed", err));
         }
 
         const baseUserMessage = inputToUse.trim() || "Analyze this essay";

@@ -30,8 +30,8 @@ export const runRealAnalysis = async (
         if (signal?.aborted) {
             throw new Error("Aborted");
         }
-        console.log("Running Gemini Analysis...");
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        console.log("Running Gemini Pro Analysis...");
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
         const textWithLines = (text || '').split('\n').map((line, i) => `Line ${i + 1}: ${line}`).join('\n');
 
@@ -54,6 +54,11 @@ export const runRealAnalysis = async (
         - **Current Approach**: What is this paragraph trying to do structurally?
         - **Evidence Location**: The specific Line Numbers where this main idea is generated (e.g. "Lines 12-15").
 
+        **STRICT DEPTH PROTOCOL**:
+        - **NO BREVITY**: Do not provide one-sentence responses for structural analysis or main ideas.
+        - **CRITICAL THINKING**: You MUST provide at least 3-4 sentences per paragraph for both 'analysis_current' and 'main_idea'.
+        - **SUBSTANCE**: Explain the 'why' and the 'how'. If a paragraph is a hook, explain what kind of hook it is (sensory, thematic, question-based) and how it creates tension or curiosity.
+
         **Criteria**:
         1. Narrative Authenticity
         2. Structure & Flow
@@ -70,38 +75,37 @@ export const runRealAnalysis = async (
         const prompt = `
         ${systemPrompt}
         
-        Return the response in this strict JSON format:
-        {
-            "documentClassification": {
-                "primaryType": "Personal Statement | Study Plan | Portfolio",
-                "secondaryElements": ["e.g. Research Methodology"],
-                "reasoning": "Brief explanation.",
-                "confidence": "High | Medium | Low",
-                "structuralSignals": ["signal 1", "signal 2"]
-            },
-            "deepAnalysis": {
-                "overallAssessment": "High-level assessment.",
-                "authenticity": { "strengths": "...", "evidence": "..." },
-                "structure": { "type": "...", "flow": "..." },
-                "values": { "detectedValues": "...", "alignment": "..." },
-                "strategicImprovements": ["Imp 1", "Imp 2", "Imp 3"]
-            },
-            "globalSummary": "A 2-3 sentence global summary.",
-            "paragraphBreakdown": [
-            { 
-                "paragraph_number": 1,
-                "detected_subtitle": "Introduction (or null)",
-                "functional_label": "Hook",
-                "section_label": "Introduction/Hook",
-                "analysis_current": "What the paragraph is currently trying to do (e.g. Introduce the candidate's background).",
-                "main_idea": "Summary of content.",
-                "evidence_quote": "Exact verbatim quote.",
-                "evidence_location": "Lines 12-15",
-                "strength": "What works well.",
-                "status": "strong" 
+            {
+                "documentClassification": {
+                    "primaryType": "Personal Statement | Study Plan | Portfolio",
+                    "secondaryElements": ["e.g. Research Methodology"],
+                    "reasoning": "Detailed explanation of why the document falls into this category, citing specific structural elements.",
+                    "confidence": "High | Medium | Low",
+                    "structuralSignals": ["signal 1", "signal 2"]
+                },
+                "deepAnalysis": {
+                    "overallAssessment": "Comprehensive evaluation of the essay's strengths, weaknesses, and overall impact.",
+                    "authenticity": { "strengths": "...", "evidence": "..." },
+                    "structure": { "type": "...", "flow": "..." },
+                    "values": { "detectedValues": "...", "alignment": "..." },
+                    "strategicImprovements": ["Detailed improvement 1", "Detailed improvement 2", "Detailed improvement 3"]
+                },
+                "globalSummary": "A comprehensive 3-5 sentence global summary of the core narrative and potential of this draft.",
+                "paragraphBreakdown": [
+                { 
+                    "paragraph_number": 1,
+                    "detected_subtitle": "Introduction (or null)",
+                    "functional_label": "e.g. Phase 1: Hook/Context",
+                    "section_label": "e.g. Introduction/Hook",
+                    "analysis_current": "Detailed 3-4 sentence structural analysis. Explaining how this paragraph functions as the [Hook/Context/Gap] and how it transitions to the next point.",
+                    "main_idea": "A thorough 3-sentence summary that captures the nuance and specific evidence presented in this paragraph.",
+                    "evidence_quote": "Exact verbatim quote.",
+                    "evidence_location": "Lines 12-15",
+                    "strength": "Detailed 2-sentence observation on why this paragraph is effective or what makes it a 'winning' element.",
+                    "status": "strong" 
+                }
+                ]
             }
-            ]
-        }
 
         IMPORTANT: Analyze EVERY paragraph.
         
@@ -180,6 +184,10 @@ export const sendChatMessage = async (
         - **User Perspective First**: Prioritize the user's intent. If the user disagrees with your classification, **align with them immediately and politely**. 
         - Do not be argumentative or rigid with the Master Framework. It is a guide to help them win, not a strict law.
         - **Objective**: Be an encouraging mentor who makes the writing process feel collaborative and exciting.
+        - **QUALITY PROTOCOL**:
+            - **Depth over Brevity**: Always provide thorough, actionable feedback. Avoid generic praise or overly brief summaries.
+            - **History Persistence**: Regardless of the length of the chat history, your current response MUST maintain the same rigorous quality and detail as the first response. Do NOT become more brief or less helpful as the conversation progresses.
+            - **Cite & Critique**: Always cite paragraph numbers [Paragraf X] and provide specific, line-level suggestions for improvement.
         - **Identify the Topic & Phase**: State clearly what phase the user is currently in, but be ready to pivot based on their feedback.
         - **Suggest** specific structural pivots (e.g., "Shift this to Phase 2").
         - **Validation**: Check if they pass the "Specificity Test" (Can anyone else write this?).
@@ -287,7 +295,7 @@ export const analyzeParagraphInsight = async (paragraphText) => {
         2. **Approach**: [What writing technique is used?]
         3. **Implication**: [What does this suggest about the writer?]
 
-        **Constraint**: Keep it concise. No preamble.
+        **Constraint**: Provide high-value, actionable insights. Do not be overly brief; explain the 'why' behind the observation.
         
         Selected Text:
         "${paragraphText}"

@@ -89,6 +89,11 @@ export const runRealAnalysis = async (
             This is a student draft. Analyze it rigorously for weaknesses in narrative, flow, and value alignment.
             `}
 
+            **STRICT DEPTH PROTOCOL**:
+            - **NO BREVITY**: Do not provide one-sentence responses for structural analysis or main ideas.
+            - **CRITICAL THINKING**: You MUST provide at least 3-4 sentences per paragraph for both 'analysis_current' and 'main_idea'.
+            - **SUBSTANCE**: Explain the 'why' and the 'how'. If a paragraph is a hook, explain what kind of hook it is (sensory, thematic, question-based) and how it creates tension or curiosity.
+
             **STRICT WORKFLOW**:
             - You are provided with ${totalParagraphCount} paragraphs, each marked with ### PARAGRAPH X ###.
             - You MUST return EXACTLY ${totalParagraphCount} objects in the "paragraphBreakdown" array.
@@ -107,20 +112,20 @@ export const runRealAnalysis = async (
             {
                 "documentClassification": {
                   "primaryType": "Personal Statement | Study Plan | Portfolio",
-                  "reasoning": "Brief explanation.",
+                  "reasoning": "Detailed explanation of why the document falls into this category, citing specific structural elements.",
                   "confidence": "High | Medium | Low"
                 },
                 "deepAnalysis": {
-                  "overallAssessment": "High-level summary.",
-                  "strategicImprovements": ["${type === 'Awardee Sample' ? 'Takeaway 1' : 'Imp 1'}", "..."]
+                  "overallAssessment": "Comprehensive evaluation of the essay's strengths, weaknesses, and overall impact.",
+                  "strategicImprovements": ["Detailed improvement 1", "..."]
                 },
-                "globalSummary": "A brief summary.",
+                "globalSummary": "A comprehensive 3-4 sentence summary of the core narrative and potential of this draft.",
                 "paragraphBreakdown": [
                 { 
                     "paragraph_number": 1,
-                    "functional_label": "e.g. Hook",
-                    "analysis_current": "What this paragraph does.",
-                    "main_idea": "Summary of this paragraph.",
+                    "functional_label": "e.g. Phase 1: Hook/Context",
+                    "analysis_current": "Detailed 3-4 sentence structural analysis. Explaining how this paragraph functions as the [Hook/Context/Gap] and how it transitions to the next point.",
+                    "main_idea": "A thorough 3-sentence summary that captures the nuance and specific evidence presented in this paragraph.",
                     "evidence_quote": "<VERBATIM_QUOTE>",
                     "status": "strong" 
                 }
@@ -305,6 +310,11 @@ export const sendChatMessage = async (
                 3. Do NOT definitively state a program "does not exist" if your only source is your internal training data. Be conservative and suggest research.
 
             **PERSONA**: Friendly Scholarship Buddy. natural, warm Indonesian (e.g., "Sip, mari kita poles..."). Align with user intent; don't be argumentative.
+            **QUALITY PROTOCOL**:
+            - **Depth over Brevity**: Always provide thorough, actionable feedback. Avoid generic praise.
+            - **History Persistence**: Regardless of the length of the chat history, your current response MUST maintain the same rigorous quality and detail as the first response. Do NOT become more brief or less helpful as the conversation progresses.
+            - **Cite & Critique**: Always cite paragraph numbers [PX] and provide specific, line-level suggestions for improvement.
+            
             **PROTOCOL**:
             - If Doc Content is NOT EMPTY, focus 100% on analyzing that text. No generic theory.
             - If user refers to a specific paragraph, focus primary effort there.
@@ -450,7 +460,7 @@ export const analyzeParagraphInsight = async (paragraphText) => {
             2. **Approach**: [What writing technique is used?]
             3. **Implication**: [What does this suggest about the writer?]
 
-            **Constraint**: Keep it concise. No preamble.
+            **Constraint**: Provide high-value, actionable insights. Do not be overly brief; explain the 'why' behind the observation.
             
             Selected Text:
             "${paragraphText}"

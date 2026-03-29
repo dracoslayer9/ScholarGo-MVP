@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     2. **Approach**: [What writing technique is used?]
     3. **Implication**: [What does this suggest about the writer?]
 
-    **Constraint**: Keep it concise. No preamble.
+    **Constraint**: Provide high-value, detailed, and actionable insights. Do not be overly brief; explain the 'why' behind each observation to help the writer improve.
     
     Selected Text:
     "${text}"

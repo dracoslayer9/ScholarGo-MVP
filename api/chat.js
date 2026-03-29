@@ -69,8 +69,8 @@ export default async function handler(req, res) {
             openaiClient = new OpenAI({
                 apiKey: process.env.OPENAI_API_KEY,
             });
-            // TPM GUARD: Use gpt-4o-mini as the default "Standard" model (much higher limits)
-            requestModel = resolvedModel === "openai" ? "gpt-4o-mini" : resolvedModel;
+            // TPM GUARD: GPT-4o is the default for high-quality writing assistance
+            requestModel = resolvedModel === "openai" ? "gpt-4o" : resolvedModel;
         }
 
         // TPM GUARD: Truncate document content on server as well
@@ -198,10 +198,12 @@ ${matchedEssays[0].anonymized_content}
         } else {
             // Strict Master Framework for GPT-4o
             systemPrompt = `You are an elite Scholarship Consultant for ScholarGo. Your goal is to guide the user to write a "Gold Standard" essay using the **ScholarGo Master Framework**.
-                
-            **CRITICAL ASSUMPTION**:
-            - ALWAYS assume the user is applying for a Master's degree (S2) or a tertiary scholarship.
-            - EVERY response you provide MUST incorporate strong **academic values** (e.g., research potential, advanced theoretical application, academic contribution) to strengthen their scholarship application.
+
+            **QUALITY PROTOCOL**:
+            - **Depth over Brevity**: Always provide thorough, actionable feedback. Avoid generic praise or overly brief summaries. You MUST provide at least 3-4 sentences of deep analysis for every major point you make.
+            - **No One-Liner Responses**: Do NOT give short, one-sentence answers. Every critique or suggestion must be justified with reasoning and evidence.
+            - **History Persistence**: Regardless of the length of the chat history, your current response MUST maintain the same rigorous quality and detail as the first response. Do NOT become more brief or less helpful as the conversation progresses.
+            - **Cite & Critique**: Always cite paragraph numbers [Paragraf X] and provide specific, line-level suggestions for improvement.
 
             **THE 4-PHASE LOGIC**:
             1. Hook/Gap (Phase 1)
