@@ -106,19 +106,35 @@ const MessageContent = ({ content, onReferenceClick }) => {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmed = line.trim();
+        const lowerTrimmed = trimmed.toLowerCase();
 
-        // 1. Detection for Collapsible Versioned Content: [VERSION ...] or [PERBAIKAN ...]
+        // 1. Detection for Collapsible Versioned Content: [VERSION ...], [PERBAIKAN ...], or Original: / Asli:
         const isVersionHeader = trimmed.startsWith('[VERSION') || trimmed.startsWith('[PERBAIKAN') || trimmed.startsWith('[PROMPT');
+        const isOriginalHeader = lowerTrimmed.startsWith('original:') || lowerTrimmed.startsWith('asli:');
 
-        if (isVersionHeader) {
+        if (isVersionHeader || isOriginalHeader) {
             // Start a new collapsible group
-            const title = trimmed.replace(/[\[\]]/g, '');
+            const title = isOriginalHeader ? "Original Text" : trimmed.replace(/[\[\]]/g, '');
             currentBlock = { type: 'collapsible', title, contentLines: [] };
+            processedBlocks.push(currentBlock);
+            
+            // If Original: has text on the same line, add it
+            if (isOriginalHeader && trimmed.length > 9) {
+                const sameLineContent = trimmed.substring(trimmed.indexOf(':') + 1).trim();
+                if (sameLineContent) currentBlock.contentLines.push(sameLineContent);
+            }
+            continue;
+        }
+
+        // 2. Detection for Polished: / Hasil Perbaikan: (Terminates collapsible block)
+        const isPolishedHeader = lowerTrimmed.startsWith('polished:') || lowerTrimmed.startsWith('hasil perbaikan:');
+        if (isPolishedHeader) {
+            currentBlock = { type: 'line', content: `**${trimmed}**`, trimmed: `**${trimmed}**` };
             processedBlocks.push(currentBlock);
             continue;
         }
 
-        // 2. Detection for Tables (More robust: allow starting with | even if not ending with it)
+        // 3. Detection for Tables
         const isTableLine = trimmed.startsWith('|');
         if (isTableLine) {
             if (currentBlock?.type !== 'table') {
@@ -129,7 +145,7 @@ const MessageContent = ({ content, onReferenceClick }) => {
             continue;
         }
 
-        // 3. Fallback for broken collapsible blocks or other states
+        // 4. Fallback for broken collapsible blocks or other states
         if (currentBlock?.type === 'collapsible') {
             if (trimmed === '---' || trimmed === '***') {
                 currentBlock = null;
@@ -140,7 +156,7 @@ const MessageContent = ({ content, onReferenceClick }) => {
             continue;
         }
 
-        // 4. Default standard lines
+        // 5. Default standard lines
         currentBlock = { type: 'line', content: line, trimmed };
         processedBlocks.push(currentBlock);
     }
