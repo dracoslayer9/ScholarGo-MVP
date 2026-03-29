@@ -69,38 +69,48 @@ export const checkUsageQuota = async (userId, feature) => {
         return { allowed: true, remaining: 9999, plan: 'plus' };
     }
 
-    let profile = await getUserSubscription(userId);
-    if (!profile) return { allowed: false, remaining: 0, plan: 'unknown' };
+    let profile;
+    try {
+        profile = await getUserSubscription(userId);
+    } catch (err) {
+        console.error("Quota check fallback:", err);
+    }
+    
+    // DEFENSIVE: If profile is missing or errored, don't block the user from trying the app.
+    // Default to 'free' limits in memory.
+    if (!profile) {
+        return { allowed: true, remaining: 1, plan: 'free (temp)' };
+    }
 
     // --- MONTHLY RESET LOGIC ---
-    const now = new Date();
-    const lastReset = profile.last_reset_date ? new Date(profile.last_reset_date) : new Date(0);
+    try {
+        const now = new Date();
+        const lastReset = profile.last_reset_date ? new Date(profile.last_reset_date) : new Date(0);
 
-    // If month/year changed (and plan is free usage tracking), reset usage
-    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
-        console.log("New month detected. Resetting monthly usage...");
+        if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+            const { data: updatedProfile, error } = await supabase
+                .from('profiles')
+                .update({
+                    usage_pdf_analysis: 0,
+                    usage_chat: 0,
+                    usage_deep_review: 0,
+                    last_reset_date: now.toISOString()
+                })
+                .eq('id', userId)
+                .select()
+                .single();
 
-        const { data: updatedProfile, error } = await supabase
-            .from('profiles')
-            .update({
-                usage_pdf_analysis: 0,
-                usage_chat: 0,
-                usage_deep_review: 0,
-                last_reset_date: now.toISOString()
-            })
-            .eq('id', userId)
-            .select()
-            .single();
-
-        if (!error && updatedProfile) {
-            profile = updatedProfile;
-        } else {
-            console.warn("Failed to reset monthly quota (Note: Ensure 'last_reset_date' column exists in 'profiles' table):", error);
+            if (!error && updatedProfile) {
+                profile = updatedProfile;
+            }
         }
+    } catch (e) {
+        console.error("Monthly reset failed:", e);
     }
 
     const plan = profile.plan_type || 'free';
-    const limit = PLAN_LIMITS[plan][feature];
+    const activeLimits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
+    const limit = activeLimits[feature] || 0;
     const currentUsage = profile[`usage_${feature}`] || 0;
 
     return {
