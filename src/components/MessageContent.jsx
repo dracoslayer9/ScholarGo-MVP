@@ -110,7 +110,10 @@ const MessageContent = ({ content, onReferenceClick }) => {
 
         // 1. Detection for Collapsible Versioned Content: [VERSION ...], [PERBAIKAN ...], or Original: / Asli:
         const isVersionHeader = trimmed.startsWith('[VERSION') || trimmed.startsWith('[PERBAIKAN') || trimmed.startsWith('[PROMPT');
-        const isOriginalHeader = lowerTrimmed.startsWith('original:') || lowerTrimmed.startsWith('asli:');
+        
+        // Flexible regex for Original: handle markdown bolding, ### headers, and optional colons
+        const originalMatch = trimmed.match(/^(#+\s*)?(\*\*)?(original|asli)\s*:?(\*\*)?\s*(.*)$/i);
+        const isOriginalHeader = !!originalMatch;
 
         if (isVersionHeader || isOriginalHeader) {
             // Start a new collapsible group
@@ -119,15 +122,15 @@ const MessageContent = ({ content, onReferenceClick }) => {
             processedBlocks.push(currentBlock);
             
             // If Original: has text on the same line, add it
-            if (isOriginalHeader && trimmed.length > 9) {
-                const sameLineContent = trimmed.substring(trimmed.indexOf(':') + 1).trim();
+            if (isOriginalHeader) {
+                const sameLineContent = originalMatch[5].trim();
                 if (sameLineContent) currentBlock.contentLines.push(sameLineContent);
             }
             continue;
         }
 
         // 2. Detection for Polished: / Hasil Perbaikan: (Terminates collapsible block)
-        const isPolishedHeader = lowerTrimmed.startsWith('polished:') || lowerTrimmed.startsWith('hasil perbaikan:');
+        const isPolishedHeader = /^(#+\s*)?(\*\*)?(polished|hasil perbaikan)\s*:?(\*\*)?/i.test(trimmed);
         if (isPolishedHeader) {
             currentBlock = { type: 'line', content: `**${trimmed}**`, trimmed: `**${trimmed}**` };
             processedBlocks.push(currentBlock);
