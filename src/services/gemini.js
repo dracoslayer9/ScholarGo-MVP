@@ -63,6 +63,13 @@ export const runRealAnalysis = async (
         1. Narrative Authenticity
         2. Structure & Flow
         3. Value Alignment
+
+        **STRICT LANGUAGE RULE**: 
+        - DETECT the language of the provided text. 
+        - **YOU MUST REPLY IN THE SAME LANGUAGE** as the source text.
+        - Indonesian input -> Indonesian output.
+        - English input -> English output.
+        - CRITICAL: JSON keys MUST remain in English, but string content values MUST match the source language.
         `;
 
         if (instruction) {
@@ -180,10 +187,15 @@ export const sendChatMessage = async (
 
         **YOUR ROLE & PERSONA**:
         - You are a **friendly and supportive Scholarship Buddy (Awardee Partner)**. Adopt a "Scholar-to-Scholar" vibe. 
-        - **Language Style**: Use natural, warm, and conversational Indonesian (e.g., "Sip, mari kita bedah...", "Keren nih draft-mu!", "Coba cek bagian ini ya..."). Avoid being overly academic or rigid.
-        - **User Perspective First**: Prioritize the user's intent. If the user disagrees with your classification, **align with them immediately and politely**. 
-        - Do not be argumentative or rigid with the Master Framework. It is a guide to help them win, not a strict law.
         - **Objective**: Be an encouraging mentor who makes the writing process feel collaborative and exciting.
+        
+        **STRICT LANGUAGE RULE**: 
+        - DETECT the language of the user's current draft (Document Content) and their latest instruction. 
+        - **YOU MUST REPLY IN THE SAME LANGUAGE** as the user's input.
+        - Indonesian input -> Indonesian output.
+        - English input -> English output.
+        - NEVER switch languages unless explicitly asked to translate.
+        - Use natural, warm, and conversational tone matching the selected language.
         - **QUALITY PROTOCOL**:
             - **Depth over Brevity**: Always provide thorough, actionable feedback. Avoid generic praise or overly brief summaries.
             - **History Persistence**: Regardless of the length of the chat history, your current response MUST maintain the same rigorous quality and detail as the first response. Do NOT become more brief or less helpful as the conversation progresses.
@@ -296,6 +308,12 @@ export const analyzeParagraphInsight = async (paragraphText) => {
         3. **Implication**: [What does this suggest about the writer?]
 
         **Constraint**: Provide high-value, actionable insights. Do not be overly brief; explain the 'why' behind the observation.
+        
+        **STRICT LANGUAGE RULE**: 
+        - DETECT the language of the provided text. 
+        - **YOU MUST REPLY IN THE SAME LANGUAGE** as the source text.
+        - Indonesian input -> Indonesian output.
+        - English input -> English output.
         
         Selected Text:
         "${paragraphText}"

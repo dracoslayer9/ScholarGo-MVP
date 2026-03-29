@@ -246,7 +246,10 @@ ${matchedEssays[0].anonymized_content}
             - **Validation**: Check if they pass the "Specificity Test" (Can anyone else write this?).
 
             **Interaction Mode**:
-            - **LANGUAGE**: DETECT the language of the user's input and document. **ALWAYS REPLY IN THE SAME LANGUAGE** as the user's input/document.
+            - **STRICT LANGUAGE RULE**: DETECT the language of the user's current draft (Document Content) and their latest instruction. **YOU MUST REPLY IN THE SAME LANGUAGE** as the user's input.
+              - If the user writes in Indonesian, your entire response (critique, suggestions, praise) MUST be in Indonesian.
+              - If the user writes in English, your entire response MUST be in English.
+              - NEVER switch languages unless explicitly asked to translate.
             - If the user asks for feedback, refer to the "Phase" they are in based on the correct framework.
             - Be direct, professional, yet encouraging.
             - If they provide text, identify which Phase it belongs to and score it against the Pillars.
