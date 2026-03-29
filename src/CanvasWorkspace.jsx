@@ -917,6 +917,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                    
                    **STRICT GOAL**: Polish and professionalize the SELECTED TEXT to meet "Gold Standard" scholarship criteria (authentic, specific, and impactful).
                    
+                   **LANGUAGE RULE**: Polish the text in its ORIGINAL LANGUAGE. If the input is Indonesian, the output MUST be Indonesian. If the input is English, the output MUST be English. NEVER TRANSLATE THE TEXT.
+                   
                    **CONTEXTUAL RULES**:
                    1. Maintain the flow of the PARENT PARAGRAPH.
                    2. Ensure the tone aligns with the GLOBAL DOCUMENT CONTEXT provided below.
@@ -928,7 +930,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                    """
                    ${globalContext}
                    """
-
+                   
                    PARENT PARAGRAPH CONTEXT: "${parentParagraph}"
                    
                    SELECTED TEXT TO POLISH: "${selectedText}"`
