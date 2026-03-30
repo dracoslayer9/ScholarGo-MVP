@@ -70,90 +70,106 @@ const FoldableUserMessage = ({ content, onReferenceClick }) => {
 
 // Helper: Chat Messages List
 // Pure list component, specific styling for User vs AI
-const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceClick, onLineClick, editingIndex, editingText, setEditingText, onSave, onCancel }) => {
+const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceClick, onLineClick, editingIndex, editingText, setEditingText, onSave, onCancel, onGenerateDiscovery, discoveryStep }) => {
     const safeMessages = Array.isArray(messages) ? messages : [];
 
     return (
         <div className="space-y-6">
             {safeMessages.map((msg, idx) => {
                 const isEditing = editingIndex === idx;
+                const isLastMessage = idx === safeMessages.length - 1;
 
                 return (
-                    <div key={idx} id={`chat-msg-${idx}`} className={`flex w-full group ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={idx} id={`chat-msg-${idx}`} className={`flex w-full group flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
 
-                        {/* Edit Button (User Only) - Hide if already editing */}
-                        {msg.role === 'user' && onEdit && !isEditing && (
-                            <button
-                                onClick={() => onEdit(idx)}
-                                className="mr-2 text-oxford-blue/20 hover:text-bronze opacity-0 group-hover:opacity-100 transition-all p-2 rounded-full hover:bg-oxford-blue/5 self-center"
-                                title="Edit this command"
-                            >
-                                <Pencil size={14} />
-                            </button>
-                        )}
+                            {/* Edit Button (User Only) - Hide if already editing */}
+                            {msg.role === 'user' && onEdit && !isEditing && (
+                                <button
+                                    onClick={() => onEdit(idx)}
+                                    className="mr-2 text-oxford-blue/20 hover:text-bronze opacity-0 group-hover:opacity-100 transition-all p-2 rounded-full hover:bg-oxford-blue/5 self-center"
+                                    title="Edit this command"
+                                >
+                                    <Pencil size={14} />
+                                </button>
+                            )}
 
-                        <div className={`max-w-[90%] ${msg.role === 'user'
-                            ? (msg.content === "Analyze this document completely." || msg.content === "Dissect this document completely." ? 'bg-transparent text-oxford-blue' : 'bg-gray-100 text-oxford-blue rounded-3xl rounded-br-sm px-6 py-4') // User: Gray Box or Transparent for file icon
-                            : 'bg-transparent text-oxford-blue px-2' // AI: Plain Text
-                            } ${isEditing ? 'w-full max-w-full !bg-transparent !p-0' : ''}`}>
+                            <div className={`max-w-[90%] ${msg.role === 'user'
+                                ? (msg.content === "Analyze this document completely." || msg.content === "Dissect this document completely." ? 'bg-transparent text-oxford-blue' : 'bg-gray-100 text-oxford-blue rounded-3xl rounded-br-sm px-6 py-4') // User: Gray Box or Transparent for file icon
+                                : 'bg-transparent text-oxford-blue px-2' // AI: Plain Text
+                                } ${isEditing ? 'w-full max-w-full !bg-transparent !p-0' : ''}`}>
 
-                            {isEditing ? (
-                                <div className="flex flex-col gap-4 w-full">
-                                    <div className="w-full border-2 border-oxford-blue/10 focus-within:border-blue-500/50 rounded-[28px] px-6 py-4 transition-all bg-white relative overflow-hidden">
-                                        <textarea
-                                            value={editingText}
-                                            onChange={(e) => setEditingText(e.target.value)}
-                                            className="w-full bg-transparent border-0 focus:border-0 focus:ring-0 outline-none text-sm py-1 resize-none min-h-[60px] text-oxford-blue font-medium placeholder-gray-400 shadow-none border-none"
-                                            autoFocus
-                                            style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                                        />
-                                    </div>
-                                    <div className="flex justify-start gap-4 items-center">
-                                        <button
-                                            onClick={onCancel}
-                                            className="text-sm font-bold text-oxford-blue/60 hover:text-red-500 transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => onSave(idx, editingText)}
-                                            disabled={!editingText.trim()}
-                                            className="px-6 py-2 bg-oxford-blue/5 hover:bg-oxford-blue/10 text-oxford-blue text-sm font-bold rounded-full transition-all disabled:opacity-30"
-                                        >
-                                            Update
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                (msg.role === 'user' && (msg.content === "Analyze this document completely." || msg.content === "Dissect this document completely.")) ? (
-                                    <div
-                                        onClick={() => onOpenFile && onOpenFile()}
-                                        className="flex items-center gap-3 px-4 py-3 bg-white border border-oxford-blue/10 rounded-2xl shadow-sm cursor-pointer hover:bg-gray-50 hover:border-bronze/30 transition-all select-none"
-                                    >
-                                        <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                                            <BookOpen size={20} strokeWidth={2} />
+                                {isEditing ? (
+                                    <div className="flex flex-col gap-4 w-full">
+                                        <div className="w-full border-2 border-oxford-blue/10 focus-within:border-blue-500/50 rounded-[28px] px-6 py-4 transition-all bg-white relative overflow-hidden">
+                                            <textarea
+                                                value={editingText}
+                                                onChange={(e) => setEditingText(e.target.value)}
+                                                className="w-full bg-transparent border-0 focus:border-0 focus:ring-0 outline-none text-sm py-1 resize-none min-h-[60px] text-oxford-blue font-medium placeholder-gray-400 shadow-none border-none"
+                                                autoFocus
+                                                style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+                                            />
                                         </div>
-                                        <div className="flex flex-col text-left mr-4">
-                                            <span className="font-semibold text-oxford-blue text-sm truncate max-w-[200px]">{fileName || "Document Analyzed"}</span>
-                                            <span className="text-xs text-oxford-blue/50">Click to view context</span>
+                                        <div className="flex justify-start gap-4 items-center">
+                                            <button
+                                                onClick={onCancel}
+                                                className="text-sm font-bold text-oxford-blue/60 hover:text-red-500 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => onSave(idx, editingText)}
+                                                disabled={!editingText.trim()}
+                                                className="px-6 py-2 bg-oxford-blue/5 hover:bg-oxford-blue/10 text-oxford-blue text-sm font-bold rounded-full transition-all disabled:opacity-30"
+                                            >
+                                                Update
+                                            </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    msg.analysisData ? (
-                                        <AnalysisResultView result={msg.analysisData} onLineClick={onLineClick} />
+                                    (msg.role === 'user' && (msg.content === "Analyze this document completely." || msg.content === "Dissect this document completely.")) ? (
+                                        <div
+                                            onClick={() => onOpenFile && onOpenFile()}
+                                            className="flex items-center gap-3 px-4 py-3 bg-white border border-oxford-blue/10 rounded-2xl shadow-sm cursor-pointer hover:bg-gray-50 hover:border-bronze/30 transition-all select-none"
+                                        >
+                                            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                                                <BookOpen size={20} strokeWidth={2} />
+                                            </div>
+                                            <div className="flex flex-col text-left mr-4">
+                                                <span className="font-semibold text-oxford-blue text-sm truncate max-w-[200px]">{fileName || "Document Analyzed"}</span>
+                                                <span className="text-xs text-oxford-blue/50">Click to view context</span>
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <>
-                                            {msg.focusedContext && <ContextCard context={msg.focusedContext} />}
-                                            {msg.role === 'user' ? (
-                                                <FoldableUserMessage content={msg.content} onReferenceClick={onReferenceClick} />
-                                            ) : (
-                                                <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
-                                            )}
-                                        </>
+                                        msg.analysisData ? (
+                                            <AnalysisResultView result={msg.analysisData} onLineClick={onLineClick} />
+                                        ) : (
+                                            <>
+                                                {msg.focusedContext && <ContextCard context={msg.focusedContext} />}
+                                                {msg.role === 'user' ? (
+                                                    <FoldableUserMessage content={msg.content} onReferenceClick={onReferenceClick} />
+                                                ) : (
+                                                    <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
+                                                )}
+                                            </>
+                                        )
                                     )
-                                )
-                            )}
+                                )}
+                            </div>
                         </div>
+
+                        {/* Discovery Mode Generate Button */}
+                        {isLastMessage && discoveryStep === 'interview' && msg.role === 'user' && onGenerateDiscovery && (
+                            <div className="mt-4 w-full flex justify-end animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                <button
+                                    onClick={() => onGenerateDiscovery(msg.content)}
+                                    className="px-8 py-3 bg-bronze text-white rounded-2xl font-bold shadow-lg shadow-bronze/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 group"
+                                >
+                                    <Sparkles size={18} className="group-hover:animate-pulse" />
+                                    Menenun Esai Saya
+                                </button>
+                            </div>
+                        )}
                     </div>
                 );
             })}

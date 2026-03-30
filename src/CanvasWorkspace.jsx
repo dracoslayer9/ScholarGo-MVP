@@ -151,6 +151,8 @@ import AnalysisResultView from './components/AnalysisResultView';
 import UpgradeModal from './components/UpgradeModal';
 import QuotaDisplay from './components/QuotaDisplay';
 import { checkUsageQuota, incrementUsage } from './services/subscriptionService';
+import { extractResumeText, parseResumeWithAI } from './services/resumeService';
+import DiscoveryThinkingState from './components/DiscoveryThinkingState';
 
 
 
@@ -304,8 +306,13 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [upgradeFeature, setUpgradeFeature] = useState('');
 
     // Chat Editing State
-    const [editingMessageIndex, setEditingMessageIndex] = useState(null);
     const [editingMessageText, setEditingMessageText] = useState("");
+
+    // --- Discovery Mode State ---
+    const [discoveryStep, setDiscoveryStep] = useState(null); // null, 'upload', 'thinking', 'interview'
+    const [discoveryData, setDiscoveryData] = useState(null);
+    const [discoveryLoadingStep, setDiscoveryLoadingStep] = useState('parsing'); // 'parsing', 'matching', 'planning', 'generating'
+    const [discoveryFile, setDiscoveryFile] = useState(null);
 
     // Refs
     // const textareaRef = useRef(null); // Deprecated by Tiptap
@@ -764,6 +771,102 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         } finally {
             setIsAnalyzing(false);
             abortControllerRef.current = null;
+        }
+    };
+
+    // --- Discovery Mode Handlers ---
+    const handleStartDiscovery = () => {
+        setDiscoveryStep('upload');
+        setChatHistory([]); // Clear chat for fresh discovery
+    };
+
+    const handleDiscoveryFileUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setDiscoveryFile(file);
+        setDiscoveryStep('thinking');
+        setDiscoveryLoadingStep('parsing');
+
+        try {
+            // 1. Text Extraction
+            const text = await extractResumeText(file);
+            
+            // 2. AI Parsing (Semantic ATS Alignment)
+            setDiscoveryLoadingStep('matching');
+            const parsedData = await parseResumeWithAI(text);
+            setDiscoveryData(parsedData);
+
+            // 3. Planning & Loop Gap Analysis
+            setDiscoveryLoadingStep('planning');
+            // Give a bit of "magical" feel even if fast
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // 4. Move to Interview
+            setDiscoveryStep('interview');
+            
+            // Add initial system message for interview
+            const systemQuestion = parsedData.suggested_bridge_question || "Ceritakan motivasi terbesar Anda di balik pencapaian ini.";
+            const initialMsg = {
+                role: 'assistant',
+                content: `Halo! Saya sudah membedah resume Anda sebagai **${parsedData.ai_identity}**. Strategi saya sudah siap, namun saya butuh satu potongan puzzle terakhir agar esai ini memiliki "Jiwa":\n\n**${systemQuestion}**`,
+                isDiscovery: true
+            };
+            setChatHistory([initialMsg]);
+            if (!isChatOpen) setIsChatOpen(true);
+
+        } catch (err) {
+            console.error("Discovery Error:", err);
+            alert(`Gagal memproses resume: ${err.message}`);
+            setDiscoveryStep(null);
+        }
+    };
+
+    const handleGenerateDiscoveryDraft = async (userNarrative) => {
+        setDiscoveryStep('thinking');
+        setDiscoveryLoadingStep('generating');
+
+        try {
+            const prompt = `
+Berdasarkan data Resume dan Wawancara berikut, buatlah draf esai beasiswa lengkap dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
+
+DATA RESUME:
+${JSON.stringify(discoveryData, null, 2)}
+
+JAWABAN NARASI USER:
+${userNarrative}
+
+FORMAT ESASI (Gunakan Markdown):
+- Phase 1: Hook (Emotional/Crisis/Inspiration)
+- Phase 2: Bridge (Track Record from Resume)
+- Phase 3: Strategic Gap (Why this campus?)
+- Phase 4: Vision (Contribution)
+
+Berikan draf lengkap tanpa penjelasan tambahan.
+            `;
+
+            const draft = await sendChatMessage(prompt, [], "", null, "gpt-4o");
+            
+            // Apply to editor
+            editor.commands.setContent(draft);
+            setEssayContent(draft);
+            setDiscoveryStep(null); // Finish
+            
+            // Update title
+            const newTitle = `Discovery: ${discoveryData.full_name || 'My Essay'}`;
+            setEssayTitle(newTitle);
+            
+            if (user) {
+                const newChat = await createChat(user.id, `Canvas: ${newTitle}`);
+                setCurrentChatId(newChat.id);
+                setSavedChats(prev => [newChat, ...prev]);
+                await updateChatPayload(newChat.id, { essayContent: draft, discoveryData });
+            }
+
+        } catch (err) {
+            console.error("Draft Generation Error:", err);
+            alert("Gagal membuat draf. Silakan coba lagi.");
+            setDiscoveryStep('interview');
         }
     };
 
@@ -2294,6 +2397,68 @@ User is asking for a comparison or seeking the "better" version.
 
                             {/* TIPTAP EDITOR LAYER - Changed from absolute to relative for natural paper expansion */}
                             <div className="relative z-10 custom-tiptap-editor w-full h-auto">
+                                {!essayContent && !discoveryStep && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white z-20 animate-fadeIn">
+                                        <div className="text-center space-y-6 max-w-sm px-6">
+                                            <div className="w-16 h-16 bg-bronze/10 rounded-2xl flex items-center justify-center text-bronze mx-auto mb-4 animate-bounce-slow">
+                                                <Sparkles size={32} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-serif font-bold text-oxford-blue">Mulai Esai dari 0?</h3>
+                                                <p className="text-sm text-oxford-blue/60">
+                                                    Biarkan Agen AI kami membedah Resume Anda dan menenun draf pertama yang memukau.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={handleStartDiscovery}
+                                                className="w-full py-4 bg-oxford-blue text-white rounded-2xl font-bold shadow-xl shadow-oxford-blue/20 hover:bg-oxford-blue/90 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                                            >
+                                                <Zap size={18} className="text-bronze" />
+                                                Gunakan Agentic Mode
+                                            </button>
+                                            <p className="text-[10px] text-oxford-blue/40 italic">
+                                                Cukup upload Resume, jawab 1 pertanyaan, dan draf esai siap.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {discoveryStep === 'upload' && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white z-20 animate-fadeIn">
+                                        <div className="text-center space-y-6 max-w-sm w-full px-6">
+                                            <div className="relative group border-2 border-dashed border-gray-200 rounded-3xl p-12 hover:border-bronze/50 hover:bg-bronze/5 transition-all cursor-pointer">
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf,.docx,.txt"
+                                                    onChange={handleDiscoveryFileUpload}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                />
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-bronze transition-colors">
+                                                        <FileText size={28} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-bold text-oxford-blue">Unggah Resume / CV</p>
+                                                        <p className="text-xs text-oxford-blue/40">PDF, DOCX, atau TXT (Max 10MB)</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setDiscoveryStep(null)}
+                                                className="text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors"
+                                            >
+                                                Batal, saya ingin tulis manual
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {discoveryStep === 'thinking' && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white z-30 animate-fadeIn">
+                                        <DiscoveryThinkingState step={discoveryLoadingStep} />
+                                    </div>
+                                )}
+
                                 <EditorContent editor={editor} className="outline-none" />
                             </div>
 

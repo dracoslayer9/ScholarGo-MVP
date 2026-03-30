@@ -1,5 +1,6 @@
 import { sendChatMessage } from './analysis';
 import * as pdfjsLib from 'pdfjs-dist';
+import mammoth from 'mammoth';
 
 // Reverting to the "prior formula" using a reliable CDN for the worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs`;
@@ -30,17 +31,21 @@ const extractTextFromPDF = async (file) => {
 };
 
 /**
- * Extracts text from a file (supports PDF and TXT)
+ * Extracts text from a file (supports PDF, Docx, and TXT)
  * @param {File} file 
  * @returns {Promise<string>}
  */
 export const extractResumeText = async (file) => {
     if (file.type === 'application/pdf') {
         return await extractTextFromPDF(file);
+    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        return result.value;
     } else if (file.type === 'text/plain') {
         return await file.text();
     } else {
-        throw new Error("Unsupported file type. Please upload PDF or TXT.");
+        throw new Error("Unsupported file type. Please upload PDF, DOCX, or TXT.");
     }
 };
 
@@ -51,20 +56,30 @@ export const extractResumeText = async (file) => {
  */
 export const parseResumeWithAI = async (resumeText) => {
     const prompt = `
-Tugas Anda adalah mengekstrak teks mentah dari resume pengguna menjadi profil JSON yang terstruktur dan strategis.
+Tugas Anda adalah mengekstrak teks mentah dari resume pengguna menjadi profil JSON yang terstruktur (ATS Standard) dan strategis untuk pembuatan esai beasiswa.
 
-Teks Resume Pengguna: 
-${resumeText.substring(0, 3000)} // Limit context to 3000 chars for speed
+Teks Resume: 
+${resumeText.substring(0, 5000)}
 
-Tugas Anda:
+EKSTRAK DATA BERIKUT:
+1. Data Pribadi (Nama Lengkap).
+2. Ringkasan Profesional: Buat label 2-3 kata (misal: "Social Innovator").
+3. Pendidikan Terakhir: Institusi, Jurusan, IPK (jika ada).
+4. Pengalaman Relevan: 2-3 posisi terbaru/terpenting dengan pencapaian kunci.
+5. Skill Unggulan: Daftar 5 skill teknis/soft skill.
+6. GAP ANALYSIS: Identifikasi 1 area narasi yang "tidak ada" di resume tapi krusial untuk beasiswa (misal: Alasan emosional memilih jurusan, atau visi 10 tahun ke depan).
 
-Keahlian Utama: Identifikasi 3 keahlian paling dominan yang relevan dengan aplikasi beasiswa atau pengembangan karir tingkat lanjut.
-
-Pengalaman Terakhir: Ambil detail jabatan, organisasi, dan satu pencapaian kunci dari posisi terbaru.
-
-Format Output (HANYA JSON): { "full_name": "string", "top_skills": ["skill1", "skill2", "skill3"], "latest_experience": { "title": "string", "organization": "string", "key_achievement": "string" }, "social_problem_context": { "problem_statement": "string", "relevance_score": 1-10 }, "ai_identity_label": "string (misal: Digital Innovator/Policy Strategist)" }
-
-Instruksi Ketat: Jangan berikan penjelasan teks apa pun sebelum atau sesudah JSON. Pastikan JSON valid dan siap disimpan ke tabel Supabase.
+FORMAT OUTPUT (JSON):
+{
+  "full_name": "string",
+  "ai_identity": "string",
+  "education": { "institution": "string", "major": "string", "gpa": "string" },
+  "experience": [
+    { "title": "string", "org": "string", "achievement": "string" }
+  ],
+  "top_skills": ["string"],
+  "suggested_bridge_question": "Satu pertanyaan mendalam untuk menggali 'Why' user"
+}
     `;
 
     try {
