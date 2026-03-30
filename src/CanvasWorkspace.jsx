@@ -2387,8 +2387,8 @@ User is asking for a comparison or seeking the "better" version.
                             style={{ ...getInlineFontStyle() }}
                         >
 
-                            {/* TIPTAP EDITOR LAYER - Changed from absolute to relative for natural paper expansion */}
-                            <div className="relative z-10 custom-tiptap-editor w-full h-auto">
+                            {/* TIPTAP EDITOR LAYER - Anchoring Discovery Mode to paper div (line 2386) */}
+                            <div className="z-10 custom-tiptap-editor w-full h-auto">
                                 {!essayContent && !discoveryStep && (
                                     <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col items-center pt-32 bg-white z-20 animate-fadeIn overflow-hidden">
                                         <div className="text-center space-y-8 max-w-sm px-6">
