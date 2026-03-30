@@ -138,6 +138,7 @@ import {
     SpellCheck,
     Languages,
     Minus,
+    Zap,
     ChevronDown
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis, summarizeChatHistory } from './services/analysis';
