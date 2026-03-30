@@ -2390,25 +2390,26 @@ User is asking for a comparison or seeking the "better" version.
                             {/* TIPTAP EDITOR LAYER - Changed from absolute to relative for natural paper expansion */}
                             <div className="relative z-10 custom-tiptap-editor w-full h-auto">
                                 {!essayContent && !discoveryStep && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-white z-20 animate-fadeIn">
-                                        <div className="text-center space-y-6 max-w-sm px-6">
-                                            <div className="w-16 h-16 bg-bronze/10 rounded-2xl flex items-center justify-center text-bronze mx-auto mb-4 animate-bounce-slow">
-                                                <Sparkles size={32} />
+                                    <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col items-center pt-32 bg-white z-20 animate-fadeIn overflow-hidden">
+                                        <div className="text-center space-y-8 max-w-sm px-6">
+                                            <div className="inline-flex items-center justify-center w-24 h-24 bg-blue-50 rounded-[2.5rem] relative mb-4">
+                                                <Sparkle size={48} className="text-blue-600 animate-pulse" />
+                                                <Plus size={20} className="absolute top-4 right-4 text-blue-400" />
                                             </div>
-                                            <div className="space-y-2">
-                                                <h3 className="text-2xl font-serif font-bold text-oxford-blue">Mulai Esai dari 0?</h3>
-                                                <p className="text-sm text-oxford-blue/60">
+                                            <div className="space-y-3">
+                                                <h3 className="text-3xl font-serif font-bold text-oxford-blue tracking-tight">Mulai Esai dari 0?</h3>
+                                                <p className="text-base text-oxford-blue/60 leading-relaxed">
                                                     Biarkan Agen AI kami membedah Resume Anda dan menenun draf pertama yang memukau.
                                                 </p>
                                             </div>
                                             <button
                                                 onClick={handleStartDiscovery}
-                                                className="w-full py-4 bg-oxford-blue text-white rounded-2xl font-bold shadow-xl shadow-oxford-blue/20 hover:bg-oxford-blue/90 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                                                className="w-full py-5 bg-blue-600 text-white rounded-2xl font-serif text-xl font-bold shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group"
                                             >
-                                                <Zap size={18} className="text-bronze" />
+                                                <Zap size={22} className="text-white fill-white group-hover:animate-pulse" />
                                                 Gunakan Agentic Mode
                                             </button>
-                                            <p className="text-[10px] text-oxford-blue/40 italic">
+                                            <p className="text-xs text-oxford-blue/40 font-medium italic">
                                                 Cukup upload Resume, jawab 1 pertanyaan, dan draf esai siap.
                                             </p>
                                         </div>
