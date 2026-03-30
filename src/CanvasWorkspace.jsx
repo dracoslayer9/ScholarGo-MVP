@@ -143,7 +143,7 @@ import {
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis, summarizeChatHistory } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat, deleteMessagesAfter } from './services/chatService';
-import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck, GraduationCap } from 'lucide-react';
+import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
 import { extractTextFromFile } from './utils/fileUtils';
 import { PDFViewer } from './components/PDFViewer';
@@ -157,7 +157,7 @@ import DiscoveryThinkingState from './components/DiscoveryThinkingState';
 
 
 
-const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings, onCampusMatch, initialContent = '', initialFileName = '', initialFileUrl = null, initialFileType = null, initialFileContext = '' }) => {
+const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings, initialContent = '', initialFileName = '', initialFileUrl = null, initialFileType = null, initialFileContext = '' }) => {
     // --- State ---
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -2185,16 +2185,6 @@ User is asking for a comparison or seeking the "better" version.
 
                         <div className="w-px h-4 bg-gray-200 mx-1"></div>
 
-                        <button
-                            onClick={() => {
-                                if (onRequireAuth && onRequireAuth()) return;
-                                if (onCampusMatch) onCampusMatch();
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-bronze hover:bg-amber-50 rounded transition-colors flex items-center justify-center"
-                            title="Campus Match"
-                        >
-                            <GraduationCap size={16} />
-                        </button>
                     </div>
 
                     {/* Right: Actions */}
