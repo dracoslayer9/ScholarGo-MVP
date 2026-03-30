@@ -31,7 +31,7 @@ const DiscoveryThinkingState = ({ step }) => {
             </div>
 
             {/* Stepper Logic */}
-            <div className="w-full max-w-md space-y-4 pt-4">
+            <div className="w-full max-w-sm space-y-5 pt-4">
                 {steps.map((s, idx) => {
                     const Icon = s.icon;
                     const isCompleted = idx < currentStepIndex;
@@ -40,19 +40,24 @@ const DiscoveryThinkingState = ({ step }) => {
                     return (
                         <div 
                             key={s.id} 
-                            className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-500 ${isActive ? 'bg-bronze/5 scale-105 shadow-sm border border-bronze/10' : 'opacity-40'}`}
+                            className={`flex items-center gap-4 p-4 rounded-3xl transition-all duration-700 ${isActive ? 'bg-white shadow-[0_10px_40px_rgba(139,115,85,0.1)] border border-bronze/10 scale-105 z-10' : 'opacity-30 scale-95'}`}
                         >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isCompleted ? 'bg-green-100 text-green-600' : isActive ? 'bg-bronze text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                {isCompleted ? <CheckCircle2 size={16} /> : <Icon size={16} className={isActive ? 'animate-pulse' : ''} />}
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm ${isCompleted ? 'bg-green-50 text-green-600' : isActive ? 'bg-bronze text-white rotate-6' : 'bg-gray-50 text-gray-400'}`}>
+                                {isCompleted ? <CheckCircle2 size={20} /> : <Icon size={20} className={isActive ? 'animate-pulse' : ''} />}
                             </div>
-                            <span className={`text-sm font-medium ${isActive ? 'text-oxford-blue' : 'text-oxford-blue/60'}`}>
-                                {s.label}
-                            </span>
+                            <div className="flex flex-col flex-1">
+                                <span className={`text-[13px] font-bold tracking-tight transition-colors duration-500 ${isActive ? 'text-oxford-blue' : 'text-oxford-blue/60'}`}>
+                                    {isActive ? s.label : s.label.replace('...', '')}
+                                </span>
+                                {isActive && (
+                                    <span className="text-[10px] text-bronze font-medium animate-pulse">Sedang bekerja...</span>
+                                )}
+                            </div>
                             {isActive && (
-                                <div className="ml-auto flex gap-1">
-                                    <div className="w-1 h-1 bg-bronze rounded-full animate-bounce"></div>
-                                    <div className="w-1 h-1 bg-bronze rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                    <div className="w-1 h-1 bg-bronze rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                <div className="flex gap-1.5 px-2">
+                                    <div className="w-1.5 h-1.5 bg-bronze rounded-full animate-bounce [animation-duration:0.8s]"></div>
+                                    <div className="w-1.5 h-1.5 bg-bronze rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:-0.2s]"></div>
+                                    <div className="w-1.5 h-1.5 bg-bronze rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:-0.4s]"></div>
                                 </div>
                             )}
                         </div>
