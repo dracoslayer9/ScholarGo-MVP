@@ -307,6 +307,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [upgradeFeature, setUpgradeFeature] = useState('');
 
     // Chat Editing State
+    const [editingMessageIndex, setEditingMessageIndex] = useState(null);
     const [editingMessageText, setEditingMessageText] = useState("");
 
     // --- Discovery Mode State ---
@@ -2697,16 +2698,19 @@ User is asking for a comparison or seeking the "better" version.
                             return (
                                 <ChatMessagesList
                                     messages={chatHistory}
-                                    fileName={fileName}
-                                    onOpenFile={() => setShowDocumentPreview(true)}
-                                    onLineClick={handleLineClick}
-                                    onReferenceClick={handleReferenceClick}
                                     onEdit={handleEditMessage}
+                                    onOpenFile={() => setShowDocumentPreview(true)}
+                                    fileName={fileName || analyzedFile?.name}
+                                    onReferenceClick={handleReferenceClick}
+                                    onLineClick={handleLineClick}
                                     editingIndex={editingMessageIndex}
                                     editingText={editingMessageText}
                                     setEditingText={setEditingMessageText}
                                     onSave={handleSaveEdit}
                                     onCancel={handleCancelEdit}
+                                    // Discovery Mode Props
+                                    discoveryStep={discoveryStep}
+                                    onGenerateDiscovery={handleGenerateDiscoveryDraft}
                                 />
                             );
                         })()}
