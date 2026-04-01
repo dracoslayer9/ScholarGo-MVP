@@ -68,7 +68,7 @@ EKSTRAK DATA BERIKUT:
 4. Pengalaman Relevan: 2-3 posisi terbaru/terpenting dengan pencapaian kunci.
 5. Skill Unggulan: Daftar 5 skill teknis/soft skill.
 6. GAP ANALYSIS: Identifikasi 1 area narasi yang "tidak ada" di resume tapi krusial untuk beasiswa (misal: Alasan emosional memilih jurusan, atau visi 10 tahun ke depan).
-7. AGENTIC RESEARCH: Berdasarkan profil ini, cari/sarankan 3 kombinasi "Universitas & Jurusan" terbaik di dunia yang cocok dengan latar belakang user. Sertakan alasan singkat kenapa portfolio user kuat untuk jurusan tersebut.
+7. AGENTIC RESEARCH: Berdasarkan profil ini, sarankan 3 kombinasi "Universitas & Jurusan" terbaik di dunia yang cocok dengan latar belakang user. Sertakan alasan singkat kenapa portfolio user kuat untuk jurusan tersebut.
 8. PORTFOLIO HIGHLIGHTS: Sebutkan 2-3 poin spesifik dari resume yang paling mendukung visi user.
 
 FORMAT OUTPUT (JSON):
@@ -95,15 +95,23 @@ FORMAT OUTPUT (JSON):
         );
 
         // Race the API call against the timeout
+        // 3. Robust JSON Extraction
         const response = await Promise.race([
-            sendChatMessage(prompt, [], "", null, "gpt-4o-mini"),
+            sendChatMessage(prompt, [], "", null, "gpt-4o"), // Upgrade to gpt-4o for complex strategy
             timeout
         ]);
 
-        // Clean markdown code blocks if present
-        const jsonString = response.replace(/```json/g, '').replace(/```/g, '').trim();
+        console.log("AI Analysis Raw Response:", response); // Debugging
 
-        return JSON.parse(jsonString);
+        try {
+            // Find JSON block with regex to handle cases where AI adds chatter
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            const jsonString = jsonMatch ? jsonMatch[0] : response;
+            return JSON.parse(jsonString);
+        } catch (parseErr) {
+            console.error("JSON Parse Error:", parseErr, "Content:", response);
+            throw new Error("Failed to parse analysis result. The AI response was not in expected format.");
+        }
     } catch (error) {
         console.error("Error parsing resume with AI:", error);
         if (error.message === "Analysis timed out") {
