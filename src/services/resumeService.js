@@ -84,7 +84,7 @@ FORMAT OUTPUT (JSON):
     { "uni": "string", "major": "string", "reason": "string" }
   ],
   "portfolio_match": ["string"],
-  "suggested_bridge_question": "Satu pertanyaan mendalam mengenai 'Why' user yang mencakup:\n- Apa jenis esai yang ingin Anda buat? (Contoh: Personal Statement, Essay Kontribusi, Rencana Studi, dsb)\n- Jurusan yang Anda incar & apa hal spesifik yang ingin Anda pelajari di sana?\n- Rencana karir masa depan & impact sosialnya\n- Visi emosional (apa yang paling menggerakkan hati Anda?)\n\nSertakan instruksi agar user menjawab poin-poin tersebut, dan berikan 3 bullet points contoh jawaban yang singkat namun sangat inspiratif."
+  "suggested_bridge_question": "Satu pertanyaan terbuka yang sangat personal & emosional untuk menggali 'Why' user. Pastikan pertanyaan ini mencakup 4 poin: \n1. Apa jenis esai yang ingin dibuat (Personal Statement, Kontribusi, dsb)? \n2. Apa jurusan incaran Anda? \n3. Apa rencana karir masa depan Anda? \n4. Apa visi emosional terbesar Anda?\n\nBerikan 3 bullet points contoh jawaban yang sangat inspiratif dan 'human-centric'."
 }
     `;
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sparkles, Pencil, BookOpen, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { Sparkles, Pencil, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import MessageContent from './MessageContent';
 import AnalysisResultView from './AnalysisResultView';
 
@@ -149,22 +149,7 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
                                                 {msg.role === 'user' ? (
                                                     <FoldableUserMessage content={msg.content} onReferenceClick={onReferenceClick} />
                                                 ) : (
-                                                    <>
-                                                        <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
-                                                        
-                                                        {/* Discovery Reflection Confirmation Button */}
-                                                        {msg.isReflection && isLastMessage && (
-                                                            <div className="mt-4 flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                                                <button
-                                                                    onClick={() => onGenerateDiscovery("Lanjut buat draf lengkap berdasarkan strategi ini.")}
-                                                                    className="px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-[13px] font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all hover:scale-105 flex items-center gap-2 group"
-                                                                >
-                                                                    <Zap size={14} className="text-white fill-white group-hover:animate-pulse" />
-                                                                    Lihat Draf 0 (1500 Kata)
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </>
+                                                    <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
                                                 )}
                                             </>
                                         )
