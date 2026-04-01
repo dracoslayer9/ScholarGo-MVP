@@ -68,6 +68,8 @@ EKSTRAK DATA BERIKUT:
 4. Pengalaman Relevan: 2-3 posisi terbaru/terpenting dengan pencapaian kunci.
 5. Skill Unggulan: Daftar 5 skill teknis/soft skill.
 6. GAP ANALYSIS: Identifikasi 1 area narasi yang "tidak ada" di resume tapi krusial untuk beasiswa (misal: Alasan emosional memilih jurusan, atau visi 10 tahun ke depan).
+7. AGENTIC RESEARCH: Berdasarkan profil ini, cari/sarankan 3 kombinasi "Universitas & Jurusan" terbaik di dunia yang cocok dengan latar belakang user. Sertakan alasan singkat kenapa portfolio user kuat untuk jurusan tersebut.
+8. PORTFOLIO HIGHLIGHTS: Sebutkan 2-3 poin spesifik dari resume yang paling mendukung visi user.
 
 FORMAT OUTPUT (JSON):
 {
@@ -78,7 +80,11 @@ FORMAT OUTPUT (JSON):
     { "title": "string", "org": "string", "achievement": "string" }
   ],
   "top_skills": ["string"],
-  "suggested_bridge_question": "Satu pertanyaan mendalam, emosional, dan provokatif mengenai visi jangka panjang atau motivasi terdalam user yang BELUM ada di resume. JANGAN menyarankan framework atau fase apapun di sini."
+  "uni_major_suggestions": [
+    { "uni": "string", "major": "string", "reason": "string" }
+  ],
+  "portfolio_match": ["string"],
+  "suggested_bridge_question": "Satu pertanyaan mendalam dan emosional mengenai visi karir & hidup (Gunakan bullet points untuk detail instruksi + 3 bullet points contoh jawaban yang inspiratif)."
 }
     `;
 

@@ -807,11 +807,14 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             // 4. Move to Interview
             setDiscoveryStep('interview');
             
-            // Add initial system message for interview
+            // Build Agentic Suggestions Content
+            const uniSuggestions = parsedData.uni_major_suggestions?.map(s => `- **${s.uni} - ${s.major}**: ${s.reason}`).join('\n') || '';
+            const portfolioMatches = parsedData.portfolio_match?.map(m => `- ${m}`).join('\n') || '';
             const systemQuestion = parsedData.suggested_bridge_question || "Ceritakan motivasi terbesar Anda di balik pencapaian ini.";
+
             const initialMsg = {
                 role: 'assistant',
-                content: `Halo ${parsedData.full_name?.split(' ')[0] || ''}! Saya sudah membedah resume Anda dan melihat potensi Anda sebagai **${parsedData.ai_identity}**. \n\nAgar draf esai ini memiliki "jiwa" yang kuat, saya butuh satu jawaban dari Anda:\n\n**${systemQuestion}**`,
+                content: `Halo ${parsedData.full_name?.split(' ')[0] || ''}! Saya sudah membedah resume Anda dan melihat potensi besar Anda sebagai **${parsedData.ai_identity}**.\n\n### 🎓 Rekomendasi Studi Strategis\nBerdasarkan portfolio Anda, berikut adalah 3 jurusan & universitas yang sangat kompetitif bagi Anda:\n${uniSuggestions}\n\n### 🚀 Portfolio Highlights\nPoin terkuat Anda untuk mendukung visi ini:\n${portfolioMatches}\n\n---\n\nAgar draf esai ini memiliki "jiwa" yang kuat, mohon jawab satu hal berikut (Jangan lupa sebutkan jurusan pilihan Anda jika berbeda dari saran di atas):\n\n**${systemQuestion}**`,
                 isDiscovery: true
             };
             setChatHistory([initialMsg]);
@@ -830,19 +833,24 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         try {
             const prompt = `
-Berdasarkan data Resume dan Wawancara berikut, buatlah draf esai beasiswa lengkap dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
+Berdasarkan data Resume, Riset Universitas, dan Wawancara berikut, buatlah draf esai beasiswa lengkap dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
 
-DATA RESUME:
+DATA RESUME & RISET:
 ${JSON.stringify(discoveryData, null, 2)}
 
-JAWABAN NARASI USER:
+JAWABAN NARASI USER (Termasuk Pilihan Jurusan/Visi):
 ${userNarrative}
 
+INSTRUKSI AGENTIC:
+1. HUBUNGKAN narasi emosional user dengan poin portfolio terkuat (Portfolio Highlights).
+2. PASTIKAN draf esai menyebutkan/mendukung jurusan & universitas yang relevan (baik dari saran AI atau pilihan user).
+3. GUNAKAN bahasa yang profesional namun memiliki "Jiwa" (Emotional Hook).
+
 FORMAT ESASI (Gunakan Markdown):
-- Phase 1: Hook (Emotional/Crisis/Inspiration)
+- Phase 1: Hook (Emotional/Inspiration)
 - Phase 2: Bridge (Track Record from Resume)
-- Phase 3: Strategic Gap (Why this campus?)
-- Phase 4: Vision (Contribution)
+- Phase 3: Strategic Gap (Why this campus/major?)
+- Phase 4: Vision (Long-term Impact)
 
 Berikan draf lengkap tanpa penjelasan tambahan.
             `;
