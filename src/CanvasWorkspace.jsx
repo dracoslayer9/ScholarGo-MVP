@@ -833,7 +833,9 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
         try {
             const prompt = `
-Berdasarkan data Resume, Riset Universitas, dan Wawancara berikut, buatlah draf esai beasiswa lengkap dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
+Berdasarkan data Resume, Riset Universitas, dan Wawancara berikut, buatlah draf esai beasiswa yang LENGKAP dan MANDIRI dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
+
+TARGET PANJANG: Minimal 1000-1500 kata (sesuai standar LPDP). Jangan terpaku hanya pada 4 paragraf. Setiap fase dapat memiliki beberapa paragraf detail.
 
 DATA RESUME & RISET:
 ${JSON.stringify(discoveryData, null, 2)}
@@ -842,15 +844,16 @@ JAWABAN NARASI USER (Termasuk Pilihan Jurusan/Visi):
 ${userNarrative}
 
 INSTRUKSI AGENTIC:
-1. HUBUNGKAN narasi emosional user dengan poin portfolio terkuat (Portfolio Highlights).
-2. PASTIKAN draf esai menyebutkan/mendukung jurusan & universitas yang relevan (baik dari saran AI atau pilihan user).
-3. GUNAKAN bahasa yang profesional namun memiliki "Jiwa" (Emotional Hook).
+1. DETAIL: Jabarkan setiap poin pengalaman dan visi secara naratif dan emosional.
+2. STRUKTUR: Tetap gunakan 4-Phase Framework sebagai kerangka besar, namun kembangkan isinya menjadi banyak paragraf yang koheren.
+3. HUBUNGKAN narasi emosional user dengan poin portfolio terkuat (Portfolio Highlights).
+4. PASTIKAN draf esai mendukung jurusan & universitas yang relevan.
 
 FORMAT ESASI (Gunakan Markdown):
-- Phase 1: Hook (Emotional/Inspiration)
-- Phase 2: Bridge (Track Record from Resume)
+- Phase 1: Hook & Background (Multiple Paragraphs)
+- Phase 2: Track Record & Achievements (Multiple Paragraphs)
 - Phase 3: Strategic Gap (Why this campus/major?)
-- Phase 4: Vision (Long-term Impact)
+- Phase 4: Vision & Impact (Long-term Contribution)
 
 Berikan draf lengkap tanpa penjelasan tambahan.
             `;
@@ -860,7 +863,17 @@ Berikan draf lengkap tanpa penjelasan tambahan.
             // Apply to editor
             editor.commands.setContent(draft);
             setEssayContent(draft);
-            setDiscoveryStep(null); // Finish
+            
+            // Initiation of Interactive Review (Adaptive)
+            setDiscoveryStep(null); // Complete discovery UI
+            
+            const followUpMsg = {
+                role: 'assistant',
+                content: `Draf "Draf 0" Anda sudah siap di editor! ✨\n\nUntuk mendapatkan hasil 1500 kata yang sempurna, mari kita bedah dan perkuat paragraf demi paragraf. \n\n**Mari kita mulai dengan Paragraf Pertama (Hook):** Apakah pembukaan ini sudah cukup mewakili "Jiwa" dan keresahan terdalam Anda, atau ada momen spesifik lain yang ingin kita jadikan *Opening*?`,
+                isDiscovery: false
+            };
+            
+            setChatHistory(prev => [...prev, { role: 'assistant', content: 'Draf berhasil dibuat. Mari kita mulai proses review interaktif.' }, followUpMsg]);
             
             // Update title
             const newTitle = `Discovery: ${discoveryData.full_name || 'My Essay'}`;

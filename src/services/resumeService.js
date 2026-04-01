@@ -84,7 +84,7 @@ FORMAT OUTPUT (JSON):
     { "uni": "string", "major": "string", "reason": "string" }
   ],
   "portfolio_match": ["string"],
-  "suggested_bridge_question": "Satu pertanyaan mendalam dan emosional mengenai visi karir & hidup (Gunakan bullet points untuk detail instruksi + 3 bullet points contoh jawaban yang inspiratif)."
+  "suggested_bridge_question": "Satu pertanyaan mendalam mengenai 'Why' user yang mencakup:\n- Jurusan yang dituju & alasan akademisnya\n- Rencana karir masa depan & impact sosialnya\n- Visi emosional (apa yang menggerakkan hati Anda?)\n\nSertakan instruksi agar user menjawab poin-poin tersebut, dan berikan 3 bullet points contoh jawaban yang singkat namun sangat inspiratif."
 }
     `;
 
