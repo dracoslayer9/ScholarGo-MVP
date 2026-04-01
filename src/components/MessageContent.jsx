@@ -111,13 +111,14 @@ const MessageContent = ({ content, onReferenceClick }) => {
         // 1. Detection for Collapsible Versioned Content: [VERSION ...], [PERBAIKAN ...], or Original: / Asli:
         const isVersionHeader = trimmed.startsWith('[VERSION') || trimmed.startsWith('[PERBAIKAN') || trimmed.startsWith('[PROMPT');
         
-        // Flexible regex for Original: handle markdown bolding, ### headers, and optional colons
-        const originalMatch = trimmed.match(/^(#+\s*)?(\*\*)?(original|asli)\s*:?(\*\*)?\s*(.*)$/i);
+        // Flexible regex for Original/Paragraph: handle markdown bolding, ### headers, and optional colons
+        const originalMatch = trimmed.match(/^(#+\s*)?(\*\*)?(original|asli|paragraf\s*\d+)\s*:?(\*\*)?\s*(.*)$/i);
         const isOriginalHeader = !!originalMatch;
 
         if (isVersionHeader || isOriginalHeader) {
             // Start a new collapsible group
-            const title = isOriginalHeader ? "Original Text" : trimmed.replace(/[\[\]]/g, '');
+            let title = isOriginalHeader ? originalMatch[3].toUpperCase() : trimmed.replace(/[\[\]]/g, '');
+            if (title.startsWith('PARAGRAF')) title = `TEKS ${title}`;
             currentBlock = { type: 'collapsible', title, contentLines: [] };
             processedBlocks.push(currentBlock);
             
