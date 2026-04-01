@@ -807,14 +807,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             // 4. Move to Interview
             setDiscoveryStep('interview');
             
-            // Build Agentic Suggestions Content
-            const uniSuggestions = parsedData.uni_major_suggestions?.map(s => `- **${s.uni} - ${s.major}**: ${s.reason}`).join('\n') || '';
-            const portfolioMatches = parsedData.portfolio_match?.map(m => `- ${m}`).join('\n') || '';
+            // Simplified Agentic Message focusing only on the 3-bullet question
             const systemQuestion = parsedData.suggested_bridge_question || "Ceritakan motivasi terbesar Anda di balik pencapaian ini.";
 
             const initialMsg = {
                 role: 'assistant',
-                content: `Halo ${parsedData.full_name?.split(' ')[0] || ''}! Saya sudah membedah resume Anda dan melihat potensi besar Anda sebagai **${parsedData.ai_identity}**.\n\n### 🎓 Rekomendasi Studi Strategis\nBerdasarkan portfolio Anda, berikut adalah 3 jurusan & universitas yang sangat kompetitif bagi Anda:\n${uniSuggestions}\n\n### 🚀 Portfolio Highlights\nPoin terkuat Anda untuk mendukung visi ini:\n${portfolioMatches}\n\n---\n\nAgar draf esai ini memiliki "jiwa" yang kuat, mohon jawab satu hal berikut (Jangan lupa sebutkan jurusan pilihan Anda jika berbeda dari saran di atas):\n\n**${systemQuestion}**`,
+                content: `Halo ${parsedData.full_name?.split(' ')[0] || ''}! Saya sudah membedah resume Anda dan melihat potensi besar Anda sebagai **${parsedData.ai_identity}**.\n\nAgar draf esai ini memiliki "jiwa" yang kuat, mohon jawab poin-poin berikut:\n\n**${systemQuestion}**`,
                 isDiscovery: true
             };
             setChatHistory([initialMsg]);
@@ -843,11 +841,11 @@ ${JSON.stringify(discoveryData, null, 2)}
 JAWABAN NARASI USER (Termasuk Pilihan Jurusan/Visi):
 ${userNarrative}
 
-INSTRUKSI AGENTIC:
-1. DETAIL: Jabarkan setiap poin pengalaman dan visi secara naratif dan emosional.
-2. STRUKTUR: Tetap gunakan 4-Phase Framework sebagai kerangka besar, namun kembangkan isinya menjadi banyak paragraf yang koheren.
-3. HUBUNGKAN narasi emosional user dengan poin portfolio terkuat (Portfolio Highlights).
-4. PASTIKAN draf esai mendukung jurusan & universitas yang relevan.
+INSTRUKSI AGENTIC (STRICT):
+1. PRIORITASKAN NARASI USER: Ikuti secara ketat visi, jurusan, dan motivasi yang diberikan user dalam jawaban narasi mereka.
+2. KURASI PORTFOLIO: Masukkan hanya pengalaman/skill dari resume yang RELEVAN dan MENDUKUNG visi user. SISISIHKAN atau jangan masukkan pengalaman yang tidak penting atau tidak nyambung dengan narasi baru user.
+3. DETAIL NARRATIVE: Jabarkan setiap poin secara naratif dan emosional (Target minimal 1000-1500 kata).
+4. STRUKTUR: Tetap gunakan 4-Phase Framework sebagai kerangka besar.
 
 FORMAT ESASI (Gunakan Markdown):
 - Phase 1: Hook & Background (Multiple Paragraphs)
