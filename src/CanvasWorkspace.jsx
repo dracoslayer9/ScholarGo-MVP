@@ -811,7 +811,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             const systemQuestion = parsedData.suggested_bridge_question || "Ceritakan motivasi terbesar Anda di balik pencapaian ini.";
             const initialMsg = {
                 role: 'assistant',
-                content: `Halo! Saya sudah membedah resume Anda sebagai **${parsedData.ai_identity}**. Strategi saya sudah siap, namun saya butuh satu potongan puzzle terakhir agar esai ini memiliki "Jiwa":\n\n**${systemQuestion}**`,
+                content: `Halo ${parsedData.full_name?.split(' ')[0] || ''}! Saya sudah membedah resume Anda dan melihat potensi Anda sebagai **${parsedData.ai_identity}**. \n\nAgar draf esai ini memiliki "jiwa" yang kuat, saya butuh satu jawaban dari Anda:\n\n**${systemQuestion}**`,
                 isDiscovery: true
             };
             setChatHistory([initialMsg]);
@@ -1228,6 +1228,14 @@ Berikan draf lengkap tanpa penjelasan tambahan.
         }
 
         try {
+            if (discoveryStep === 'interview') {
+                const userMsg = { role: 'user', content: inputToUse.trim() };
+                setChatHistory(prev => [...prev, userMsg]);
+                setChatInput('');
+                handleGenerateDiscoveryDraft(inputToUse.trim());
+                return;
+            }
+
             if ((!inputToUse.trim() && !currentEssay.trim() && !fileContext) || isAnalyzing) return;
 
         // CHECK QUOTA: Deep Review vs Chat

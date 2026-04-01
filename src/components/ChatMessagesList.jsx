@@ -9,13 +9,13 @@ const ContextCard = ({ context }) => {
     if (!context || !context.text) return null;
 
     return (
-        <div className="mb-3 border border-oxford-blue/10 rounded-2xl overflow-hidden bg-white/40 shadow-sm transition-all hover:border-bronze/20 max-w-full text-left">
+        <div className="mb-3 border border-blue-600/10 rounded-2xl overflow-hidden bg-white/40 shadow-sm transition-all hover:border-blue-600/20 max-w-full text-left">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-bronze/5 transition-colors text-left group"
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-blue-50/30 transition-colors text-left group"
             >
                 <div className="flex flex-col gap-0.5">
-                    <span className="text-bronze font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-blue-600 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                         <Sparkles size={10} /> Konteks Fokus: Paragraf {context.number}
                     </span>
                     {!isExpanded && (
@@ -24,7 +24,7 @@ const ContextCard = ({ context }) => {
                         </span>
                     )}
                 </div>
-                <span className="text-oxford-blue/30 group-hover:text-bronze transition-colors flex items-center gap-2 text-[11px] font-bold uppercase">
+                <span className="text-oxford-blue/30 group-hover:text-blue-600 transition-colors flex items-center gap-2 text-[11px] font-bold uppercase">
                     {isExpanded ? "Sembunyikan" : "Lihat Detail"}
                     {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </span>
@@ -33,7 +33,7 @@ const ContextCard = ({ context }) => {
             {isExpanded && (
                 <div className="px-5 py-4 text-oxford-blue/80 text-[13px] leading-relaxed border-t border-gray-100 bg-white/80 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div className="flex gap-4">
-                        <div className="w-1 h-auto bg-bronze/20 rounded-full my-1 shrink-0"></div>
+                        <div className="w-1 h-auto bg-blue-600/20 rounded-full my-1 shrink-0"></div>
                         <p className="italic">"{context.text}"</p>
                     </div>
                 </div>
@@ -158,18 +158,6 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
                             </div>
                         </div>
 
-                        {/* Discovery Mode Generate Button */}
-                        {isLastMessage && discoveryStep === 'interview' && msg.role === 'user' && onGenerateDiscovery && (
-                            <div className="mt-4 w-full flex justify-end animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                <button
-                                    onClick={() => onGenerateDiscovery(msg.content)}
-                                    className="px-8 py-3 bg-bronze text-white rounded-2xl font-bold shadow-lg shadow-bronze/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 group"
-                                >
-                                    <Sparkles size={18} className="group-hover:animate-pulse" />
-                                    Menenun Esai Saya
-                                </button>
-                            </div>
-                        )}
                     </div>
                 );
             })}

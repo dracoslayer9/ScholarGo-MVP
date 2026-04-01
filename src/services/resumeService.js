@@ -78,7 +78,7 @@ FORMAT OUTPUT (JSON):
     { "title": "string", "org": "string", "achievement": "string" }
   ],
   "top_skills": ["string"],
-  "suggested_bridge_question": "Satu pertanyaan mendalam untuk menggali 'Why' user"
+  "suggested_bridge_question": "Satu pertanyaan mendalam, emosional, dan provokatif mengenai visi jangka panjang atau motivasi terdalam user yang BELUM ada di resume. JANGAN menyarankan framework atau fase apapun di sini."
 }
     `;
 
