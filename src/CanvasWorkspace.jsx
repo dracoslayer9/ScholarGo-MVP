@@ -825,13 +825,63 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         }
     };
 
+    const handleDiscoverySelfReflection = async (userNarrative) => {
+        setDiscoveryStep('thinking');
+        setDiscoveryLoadingStep('planning'); // Reuse planning step
+        
+        try {
+            const prompt = `
+Anda adalah Pakar Strategi Beasiswa (Scholarship Consultant). USER telah membedah Resume mereka dan memberikan jawaban narasi untuk rencana esai mereka.
+
+TUGAS ANDA: Lakukan "Self-Reflection" strategis SEBELUM draf dibuat.
+1. ANALISIS KESELARASAN: Apakah visi user selaras dengan background resume mereka? (Identifikasi 'Unique Angle' atau 'Winning Angle' yang paling kuat).
+2. KRITIK STRATEGIS: Berikan masukan singkat apa yang sudah kuat dan apa yang perlu kita pertegas (misal: "Visi karir Anda sangat inspiratif, tapi kita perlu meminjam pengalaman X untuk membuktikannya").
+3. POSITIONING: Tentukan bagaimana kita akan memposisikan user ini di esai (misal: "The Resilient Community Leader").
+
+RE-CONFIRMATION: Akhiri dengan menanyakan apakah user setuju dengan strategi narasi ini untuk lanjut ke pembuatan draf lengkap.
+
+DATA RESUME:
+${JSON.stringify(discoveryData, null, 2)}
+
+JAWABAN NARASI USER:
+${userNarrative}
+
+FORMAT RESPON: Gunakan bahasa yang suportif dan profesional. Gunakan Markdown.
+            `;
+
+            const reflection = await sendChatMessage(prompt, [], "", null, "gpt-4o");
+            
+            // Set step back to interview but show the reflection
+            setDiscoveryStep('interview'); 
+            
+            const reflectionMsg = {
+                role: 'assistant',
+                content: `### 🧭 Strategi & Refleksi AI\n\n${reflection}\n\n---\n**Apakah strategi narasi ini sudah sesuai, atau ada bagian yang ingin Anda tekankan lagi?**`,
+                isDiscovery: true,
+                isReflection: true // Flag to show "Confirm Draft" button
+            };
+            
+            setChatHistory(prev => [...prev, reflectionMsg]);
+            
+        } catch (err) {
+            console.error("Reflection Error:", err);
+            handleGenerateDiscoveryDraft(userNarrative); // Fallback to immediate drafting
+        }
+    };
+
     const handleGenerateDiscoveryDraft = async (userNarrative) => {
         setDiscoveryStep('thinking');
         setDiscoveryLoadingStep('generating');
 
         try {
+            // Extract the reflection strategy from chat history if it exists
+            const reflectionMsg = chatHistory.find(msg => msg.isReflection);
+            const strategyContext = reflectionMsg ? `\nSTRATEGI & REFLEKSI YANG DISETUJUI:\n${reflectionMsg.content}\n` : "";
+
             const prompt = `
-Berdasarkan data Resume, Riset Universitas, dan Wawancara berikut, buatlah draf esai beasiswa yang LENGKAP dan MANDIRI dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
+Berdasarkan data Resume, Riset Universitas, Wawancara, dan STRATEGI berikut, buatlah draf esai beasiswa yang LENGKAP dan MANDIRI dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
+
+${strategyContext}
 
 JENIS ESAI: Identifikasi jenis esai dari jawaban narasi user (misal: Personal Statement, Rencana Studi, dsb) dan sesuaikan nada serta fokusnya.
 
@@ -1253,7 +1303,14 @@ Berikan draf lengkap tanpa penjelasan tambahan.
                 const userMsg = { role: 'user', content: inputToUse.trim() };
                 setChatHistory(prev => [...prev, userMsg]);
                 setChatInput('');
-                handleGenerateDiscoveryDraft(inputToUse.trim());
+                
+                // Check if user is confirming a reflection or providing initial narrative
+                const lastMsg = chatHistory[chatHistory.length - 1];
+                if (lastMsg?.isReflection) {
+                    handleGenerateDiscoveryDraft(inputToUse.trim());
+                } else {
+                    handleDiscoverySelfReflection(inputToUse.trim());
+                }
                 return;
             }
 
