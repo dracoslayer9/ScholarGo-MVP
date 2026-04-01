@@ -1333,9 +1333,16 @@ Berikan draf lengkap tanpa penjelasan tambahan.
         }
 
         // 3. SMART COMPARISON & IDEA DEVELOPMENT: When user asks to compare/better, inject specific logic requirements
-        let customInstructions = "";
+        const interactivityInstructions = `
+[PROACTIVE GUIDANCE: ALWAYS MAINTAIN INTERACTION]
+1. Setiap kali Anda selesai memberikan saran atau revisi, Anda WAJIB menutup respon dengan pertanyaan lanjutan yang strategis untuk menjaga momentum.
+2. Contoh: "Apakah Anda ingin memperhalus kalimat terakhir ini lagi agar lebih emosional, atau kita lanjut ke paragraf berikutnya?"
+3. Jadilah konsultan proaktif: Jangan biarkan diskusi berhenti begitu saja. Selalu tawarkan langkah konkret selanjutnya.
+`;
+
+        let customInstructions = interactivityInstructions;
         if (isComparisonRequest) {
-            customInstructions = `
+            customInstructions += `
 [SPECIAL INSTRUCTION: VERSION COMPARISON & IDEA DEVELOPMENT]
 User is asking for a comparison or seeking the "better" version.
 1. COMPARE all provided versions (### [Version Title]) objectively based on ScholarGo Master Framework.
