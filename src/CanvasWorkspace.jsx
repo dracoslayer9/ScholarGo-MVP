@@ -833,6 +833,8 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             const prompt = `
 Berdasarkan data Resume, Riset Universitas, dan Wawancara berikut, buatlah draf esai beasiswa yang LENGKAP dan MANDIRI dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
 
+JENIS ESAI: Identifikasi jenis esai dari jawaban narasi user (misal: Personal Statement, Rencana Studi, dsb) dan sesuaikan nada serta fokusnya.
+
 TARGET PANJANG: Minimal 1000-1500 kata (sesuai standar LPDP). Jangan terpaku hanya pada 4 paragraf. Setiap fase dapat memiliki beberapa paragraf detail.
 
 DATA RESUME & RISET:
