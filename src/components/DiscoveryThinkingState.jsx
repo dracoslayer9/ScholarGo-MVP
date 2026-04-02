@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Search, Zap, Target, BookOpen, CheckCircle2 } from 'lucide-react';
+import { Loader2, Search, Zap, Target, BookOpen, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
 
 const DiscoveryThinkingState = ({ step }) => {
     const steps = [
@@ -7,6 +6,8 @@ const DiscoveryThinkingState = ({ step }) => {
         { id: 'matching', label: 'Menyelaraskan dengan Kriteria Beasiswa...', icon: Target },
         { id: 'planning', label: 'Menyusun Struktur 4-Phase Master Framework...', icon: Zap },
         { id: 'generating', label: 'Menenun Narasi Personalisasi...', icon: BookOpen },
+        { id: 'reviewing', label: 'Melakukan Evaluasi Mandiri (Self-Refine)...', icon: ShieldCheck },
+        { id: 'refining', label: 'Proses Refinement Akhir...', icon: Sparkles },
     ];
 
     const currentStepIndex = steps.findIndex(s => s.id === step);

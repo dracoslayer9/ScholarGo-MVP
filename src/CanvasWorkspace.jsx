@@ -830,35 +830,65 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         setDiscoveryLoadingStep('generating');
 
         try {
-            const prompt = `
-Berdasarkan data Resume, Riset Universitas, dan Wawancara berikut, buatlah draf esai beasiswa yang LENGKAP dan MANDIRI dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
+            // STEP 1: INITIAL DRAFT GENERATION
+            setDiscoveryLoadingStep('generating');
+            const initialPrompt = `
+Berdasarkan data Resume, Riset Universitas, dan Wawancara berikut, buatlah draf esai beasiswa AWAL yang lengkap dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
 
-JENIS ESAI: Identifikasi jenis esai dari jawaban narasi user (misal: Personal Statement, Rencana Studi, dsb) dan sesuaikan nada serta fokusnya.
-
-TARGET PANJANG: Minimal 1000-1500 kata (sesuai standar LPDP). Jangan terpaku hanya pada 4 paragraf. Setiap fase dapat memiliki beberapa paragraf detail.
+TARGET PANJANG: Minimal 1000-1500 kata.
 
 DATA RESUME & RISET:
 ${JSON.stringify(discoveryData, null, 2)}
 
-JAWABAN NARASI USER (Termasuk Pilihan Jurusan/Visi):
+JAWABAN NARASI USER:
 ${userNarrative}
 
-INSTRUKSI AGENTIC (STRICT):
-1. PRIORITASKAN NARASI USER: Ikuti secara ketat visi, jurusan, dan motivasi yang diberikan user dalam jawaban narasi mereka.
-2. KURASI PORTFOLIO: Masukkan hanya pengalaman/skill dari resume yang RELEVAN dan MENDUKUNG visi user. SISISIHKAN atau jangan masukkan pengalaman yang tidak penting atau tidak nyambung dengan narasi baru user.
-3. DETAIL NARRATIVE: Jabarkan setiap poin secara naratif dan emosional (Target minimal 1000-1500 kata).
-4. STRUKTUR: Tetap gunakan 4-Phase Framework sebagai kerangka besar.
-
-FORMAT ESASI (Gunakan Markdown):
-- Phase 1: Hook & Background (Multiple Paragraphs)
-- Phase 2: Track Record & Achievements (Multiple Paragraphs)
-- Phase 3: Strategic Gap (Why this campus/major?)
-- Phase 4: Vision & Impact (Long-term Contribution)
-
-Berikan draf lengkap tanpa penjelasan tambahan.
+FORMAT: Kembalikan draf lengkap.
             `;
+            const initialDraft = await sendChatMessage(initialPrompt, [], "", null, "gpt-4o");
 
-            const draft = await sendChatMessage(prompt, [], "", null, "gpt-4o");
+            // STEP 2: INTERNAL CRITIQUE (SELF-REFINE)
+            setDiscoveryLoadingStep('reviewing');
+            const critiquePrompt = `
+Anda adalah Pakar Reviewer Beasiswa Internasional. Analisis draf esai berikut secara kritis berdasarkan ScholarGo Master Framework dan Jawaban Narasi user.
+
+DRAF ESAI:
+"""
+${initialDraft}
+"""
+
+JAWABAN NARASI USER:
+${userNarrative}
+
+TUGAS ANDA:
+1. Identifikasi bagian yang masih terlalu umum (generik) atau kurang emosional.
+2. Temukan bagian di mana pengalaman resume bisa ditekankan lebih kuat untuk mendukung visi user.
+3. Berikan "Internal Critique" singkat dalam poin-poin tentang apa yang HARUS diperbaiki agar draf ini menjadi versi "Gold Standard".
+
+FORMAT: Berikan poin-poin kritik Anda saja.
+            `;
+            const internalCritique = await sendChatMessage(critiquePrompt, [], "", null, "gpt-4o");
+
+            // STEP 3: FINAL REFINEMENT
+            setDiscoveryLoadingStep('refining');
+            const finalPrompt = `
+Sempurnakan draf esai berikut berdasarkan Kritik Internal yang telah Anda buat.
+
+DRAF AWAL:
+"""
+${initialDraft}
+"""
+
+KRITIK INTERNAL:
+"""
+${internalCritique}
+"""
+
+TUJUAN AKHIR: Berikan esai "Gold Standard" (1500 kata) yang super personal, emosional, dan tak terbantahkan. Gunakan bahasa yang elegan dan profesional.
+
+FORMAT: Kembalikan hasil akhir esai saja tanpa penjelasan tambahan.
+            `;
+            const draft = await sendChatMessage(finalPrompt, [], "", null, "gpt-4o");
             
             // Apply to editor
             editor.commands.setContent(draft);
