@@ -250,6 +250,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [analyzedFile, setAnalyzedFile] = useState(null); // Stores file for preview history
     const [isFileParsing, setIsFileParsing] = useState(false);
     const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+    const [awardeeDNA, setAwardeeDNA] = useState(null);
+    const [isLearning, setIsLearning] = useState(false);
 
     // --- Selection and Comments State ---
     const [comments, setComments] = useState([]);
@@ -840,11 +842,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 suggestions: discoveryData.uni_major_suggestions
             };
 
+            const dnaContext = awardeeDNA ? `\n[NARRATIVE DNA OVERRIDE]: ${awardeeDNA.system_prompt_injection}\n` : "";
+
             // STEP 1: INITIAL DRAFT GENERATION
             setDiscoveryLoadingStep('generating');
             const initialPrompt = `
 Berdasarkan data profil dan Jawaban Narasi berikut, buatlah draf esai beasiswa AWAL (1500 kata) menggunakan **4-Phase Master Framework**.
-
+${dnaContext}
 PROFIL: ${JSON.stringify(slimData)}
 NARASI USER: ${userNarrative}
 
@@ -1263,6 +1267,39 @@ FORMAT: Kembalikan hasil akhir esai saja.
             inputToUse = "Gunakan Master Framework untuk review esai saya ini secara mendalam dan berikan saran strategis.";
         }
 
+        // @learn COMMAND: Extract Awardee DNA
+        if (cleanInput.startsWith('@learn')) {
+            const reviewText = inputToUse.substring(7).trim();
+            if (!reviewText) {
+                setChatHistory(prev => [...prev, { role: 'assistant', content: "Silakan masukkan teks review awardee setelah perintah `@learn`. Contoh: `@learn [Teks Review Di Sini]`" }]);
+                setChatInput('');
+                return;
+            }
+
+            setIsLearning(true);
+            setChatHistory(prev => [...prev, { role: 'user', content: `[TEACHING SYSTEM] Mengimpor DNA Narasi dari review awardee...` }]);
+            setChatInput('');
+
+            try {
+                const { extractAwardeeDNA } = await import('./services/awardeeService');
+                const dna = await extractAwardeeDNA(reviewText);
+                setAwardeeDNA(dna);
+                
+                const successMsg = {
+                    role: 'assistant',
+                    content: `✨ **Sistem Berhasil Belajar!** 🧬\n\ Saya telah membedah review awardee tersebut dan mengekstrak "Narrative DNA" pemenang:\n\n**Persona Reviewer**: ${dna.awardee_persona}\n\n**Aturan Baru yang Saya Pelajari**:\n${dna.structural_dna.map(s => `- ${s}`).join('\n')}\n\nSistem sekarang akan mengikuti gaya "Winning Logic" ini untuk semua draf dan review Anda ke depannya.`
+                };
+                setChatHistory(prev => [...prev, successMsg]);
+                return;
+            } catch (err) {
+                console.error("Learning Error:", err);
+                setChatHistory(prev => [...prev, { role: 'assistant', content: "Gagal memproses review: " + err.message }]);
+                return;
+            } finally {
+                setIsLearning(false);
+            }
+        }
+
         // 1. NUCLEAR FIX: Capture context directly from Tiptap instance (source of truth)
         let currentEssay = '';
         if (editor) {
@@ -1394,10 +1431,12 @@ User is asking for a comparison or seeking the "better" version.
         // 2. Truncate History to last 10 messages
         const trimmedHistory = chatHistory.slice(-10);
 
+        const dnaContext = awardeeDNA ? `\n[LEARNED AWARDEE DNA]: ${awardeeDNA.system_prompt_injection}\n` : "";
+
         const context = trimmedFileContext
-            ? `${docMetadata}[Attached Document Content]\n${trimmedFileContext}\n\n${customInstructions}\n\n${versionsContext}`
-            : `${docMetadata}${customInstructions}\n\n${versionsContext}`;
-        console.log("Context sent to AI (Trimmed):", context);
+            ? `${docMetadata}[Attached Document Content]\n${trimmedFileContext}\n\n${dnaContext}${customInstructions}\n\n${versionsContext}`
+            : `${docMetadata}${dnaContext}${customInstructions}\n\n${versionsContext}`;
+        console.log("Context sent to AI (Trimmed + DNA):", context);
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
         const displayMessage = { 
