@@ -250,8 +250,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [analyzedFile, setAnalyzedFile] = useState(null); // Stores file for preview history
     const [isFileParsing, setIsFileParsing] = useState(false);
     const [showDocumentPreview, setShowDocumentPreview] = useState(false);
-    const [awardeeDNA, setAwardeeDNA] = useState(null);
-    const [isLearning, setIsLearning] = useState(false);
 
     // --- Selection and Comments State ---
     const [comments, setComments] = useState([]);
@@ -315,6 +313,8 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // --- Discovery Mode State ---
     const [discoveryStep, setDiscoveryStep] = useState(null); // null, 'upload', 'thinking', 'interview'
     const [discoveryData, setDiscoveryData] = useState(null);
+    const [awardeeSample, setAwardeeSample] = useState(null);
+    const [awardeeSampleName, setAwardeeSampleName] = useState(null);
     const [discoveryLoadingStep, setDiscoveryLoadingStep] = useState('parsing'); // 'parsing', 'matching', 'planning', 'generating'
     const [discoveryFile, setDiscoveryFile] = useState(null);
 
@@ -820,10 +820,29 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             setChatHistory([initialMsg]);
             if (!isChatOpen) setIsChatOpen(true);
 
-        } catch (err) {
+            } catch (err) {
             console.error("Discovery Error:", err);
             alert(`Gagal memproses resume: ${err.message}`);
             setDiscoveryStep(null);
+        }
+    };
+
+    const handleAwardeeSampleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setDiscoveryStep('thinking');
+        setDiscoveryLoadingStep('parsing');
+
+        try {
+            const text = await extractResumeText(file);
+            setAwardeeSample(text);
+            setAwardeeSampleName(file.name);
+            setDiscoveryStep('upload'); // Return to upload selection
+        } catch (err) {
+            console.error("Sample Upload Error:", err);
+            alert(`Gagal memproses contoh esai: ${err.message}`);
+            setDiscoveryStep('upload');
         }
     };
 
@@ -842,15 +861,17 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 suggestions: discoveryData.uni_major_suggestions
             };
 
-            const dnaContext = awardeeDNA ? `\n[NARRATIVE DNA OVERRIDE]: ${awardeeDNA.system_prompt_injection}\n` : "";
-
             // STEP 1: INITIAL DRAFT GENERATION
             setDiscoveryLoadingStep('generating');
             const initialPrompt = `
-Berdasarkan data profil dan Jawaban Narasi berikut, buatlah draf esai beasiswa AWAL (1500 kata) menggunakan **4-Phase Master Framework**.
-${dnaContext}
-PROFIL: ${JSON.stringify(slimData)}
-NARASI USER: ${userNarrative}
+Berdasarkan data profil, Jawaban Narasi, serta CONTOH ESAI REFERENSI (jika ada) berikut, buatlah draf esai beasiswa AWAL (1500 kata) menggunakan **4-Phase Master Framework**.
+
+${awardeeSample ? `### CONTOH ESAI REFERENSI (NORTH STAR):
+${awardeeSample}
+Gunakan contoh di atas sebagai tolok ukur kualitas, gaya bahasa, kedalaman refleksi, dan struktur narasi. Jika terdapat komentar, serap esensi dari kritik tersebut untuk menghindari kesalahan serupa.` : ''}
+
+PROFIL USER: ${JSON.stringify(slimData)}
+NARASI KHUSUS USER: ${userNarrative}
 
 FORMAT: Kirimkan draf esai lengkap saja.
             `;
@@ -1267,39 +1288,6 @@ FORMAT: Kembalikan hasil akhir esai saja.
             inputToUse = "Gunakan Master Framework untuk review esai saya ini secara mendalam dan berikan saran strategis.";
         }
 
-        // @learn COMMAND: Extract Awardee DNA
-        if (cleanInput.startsWith('@learn')) {
-            const reviewText = inputToUse.substring(7).trim();
-            if (!reviewText) {
-                setChatHistory(prev => [...prev, { role: 'assistant', content: "Silakan masukkan teks review awardee setelah perintah `@learn`. Contoh: `@learn [Teks Review Di Sini]`" }]);
-                setChatInput('');
-                return;
-            }
-
-            setIsLearning(true);
-            setChatHistory(prev => [...prev, { role: 'user', content: `[TEACHING SYSTEM] Mengimpor DNA Narasi dari review awardee...` }]);
-            setChatInput('');
-
-            try {
-                const { extractAwardeeDNA } = await import('./services/awardeeService');
-                const dna = await extractAwardeeDNA(reviewText);
-                setAwardeeDNA(dna);
-                
-                const successMsg = {
-                    role: 'assistant',
-                    content: `✨ **Sistem Berhasil Belajar!** 🧬\n\ Saya telah membedah review awardee tersebut dan mengekstrak "Narrative DNA" pemenang:\n\n**Persona Reviewer**: ${dna.awardee_persona}\n\n**Aturan Baru yang Saya Pelajari**:\n${dna.structural_dna.map(s => `- ${s}`).join('\n')}\n\nSistem sekarang akan mengikuti gaya "Winning Logic" ini untuk semua draf dan review Anda ke depannya.`
-                };
-                setChatHistory(prev => [...prev, successMsg]);
-                return;
-            } catch (err) {
-                console.error("Learning Error:", err);
-                setChatHistory(prev => [...prev, { role: 'assistant', content: "Gagal memproses review: " + err.message }]);
-                return;
-            } finally {
-                setIsLearning(false);
-            }
-        }
-
         // 1. NUCLEAR FIX: Capture context directly from Tiptap instance (source of truth)
         let currentEssay = '';
         if (editor) {
@@ -1431,12 +1419,10 @@ User is asking for a comparison or seeking the "better" version.
         // 2. Truncate History to last 10 messages
         const trimmedHistory = chatHistory.slice(-10);
 
-        const dnaContext = awardeeDNA ? `\n[LEARNED AWARDEE DNA]: ${awardeeDNA.system_prompt_injection}\n` : "";
-
         const context = trimmedFileContext
-            ? `${docMetadata}[Attached Document Content]\n${trimmedFileContext}\n\n${dnaContext}${customInstructions}\n\n${versionsContext}`
-            : `${docMetadata}${dnaContext}${customInstructions}\n\n${versionsContext}`;
-        console.log("Context sent to AI (Trimmed + DNA):", context);
+            ? `${docMetadata}[Attached Document Content]\n${trimmedFileContext}\n\n${customInstructions}\n\n${versionsContext}`
+            : `${docMetadata}${customInstructions}\n\n${versionsContext}`;
+        console.log("Context sent to AI (Trimmed):", context);
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
         const displayMessage = { 
@@ -2526,31 +2512,73 @@ User is asking for a comparison or seeking the "better" version.
                                 )}
 
                                 {discoveryStep === 'upload' && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-white z-20 animate-fadeIn">
-                                        <div className="text-center space-y-6 max-w-sm w-full px-6">
-                                            <div className="relative group border-2 border-dashed border-gray-200 rounded-3xl p-12 hover:border-bronze/50 hover:bg-bronze/5 transition-all cursor-pointer">
-                                                <input
-                                                    type="file"
-                                                    accept=".pdf,.docx,.txt"
-                                                    onChange={handleDiscoveryFileUpload}
-                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                />
-                                                <div className="flex flex-col items-center gap-4">
-                                                    <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-bronze transition-colors">
-                                                        <FileText size={28} />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white z-20 animate-fadeIn overflow-y-auto">
+                                        <div className="text-center space-y-8 max-w-2xl w-full px-6 py-12">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-serif font-bold text-oxford-blue">Siapkan Referensi Anda</h3>
+                                                <p className="text-sm text-oxford-blue/40">Upload resume Anda (Wajib) dan contoh esai awardee (Opsional) untuk hasil terbaik.</p>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* RESUME SLOT */}
+                                                <div className={`relative group border-2 border-dashed rounded-3xl p-8 transition-all ${discoveryData?.full_name ? 'border-green-200 bg-green-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.docx,.txt"
+                                                        onChange={handleDiscoveryFileUpload}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    />
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${discoveryData?.full_name ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-blue-500'}`}>
+                                                            {discoveryData?.full_name ? <CheckCircle size={24} /> : <FileText size={24} />}
+                                                        </div>
+                                                        <div className="space-y-0.5">
+                                                            <p className="text-sm font-bold text-oxford-blue">
+                                                                {discoveryData?.full_name ? 'Resume Terupload' : 'Unggah Resume / CV'}
+                                                            </p>
+                                                            <p className="text-[10px] text-oxford-blue/40 uppercase tracking-widest font-bold">Wajib</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-sm font-bold text-oxford-blue">Unggah Resume / CV</p>
-                                                        <p className="text-xs text-oxford-blue/40">PDF, DOCX, atau TXT (Max 10MB)</p>
+                                                </div>
+
+                                                {/* AWARDEE SAMPLE SLOT */}
+                                                <div className={`relative group border-2 border-dashed rounded-3xl p-8 transition-all ${awardeeSample ? 'border-blue-200 bg-blue-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.docx,.txt"
+                                                        onChange={handleAwardeeSampleUpload}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    />
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${awardeeSample ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-blue-500'}`}>
+                                                            {awardeeSample ? <CheckCircle size={24} /> : <Sparkles size={24} />}
+                                                        </div>
+                                                        <div className="space-y-0.5">
+                                                            <p className="text-sm font-bold text-oxford-blue line-clamp-1">
+                                                                {awardeeSampleName || 'Contoh Esai Awardee'}
+                                                            </p>
+                                                            <p className="text-[10px] text-blue-500 uppercase tracking-widest font-bold">Opsional (Learning Mode)</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button 
-                                                onClick={() => setDiscoveryStep(null)}
-                                                className="text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors"
-                                            >
-                                                Batal, saya ingin tulis manual
-                                            </button>
+
+                                            <div className="pt-4 space-y-4">
+                                                <button
+                                                    disabled={!discoveryData?.full_name}
+                                                    onClick={() => setDiscoveryStep('interview')}
+                                                    className={`w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${discoveryData?.full_name ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:scale-[1.02] active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                                >
+                                                    Mulai Wawancara Strategis
+                                                </button>
+                                                
+                                                <button 
+                                                    onClick={() => setDiscoveryStep(null)}
+                                                    className="text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors"
+                                                >
+                                                    Batal, saya ingin tulis manual
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
