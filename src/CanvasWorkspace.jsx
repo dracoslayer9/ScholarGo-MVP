@@ -830,63 +830,59 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         setDiscoveryLoadingStep('generating');
 
         try {
+            // SLIM CONTEXT: Only send essential data to the AI to save TPM
+            const slimData = {
+                full_name: discoveryData.full_name,
+                ai_identity: discoveryData.ai_identity,
+                education: discoveryData.education,
+                experience: discoveryData.experience?.slice(0, 5), // Top 5 experiences only
+                portfolio_match: discoveryData.portfolio_match,
+                suggestions: discoveryData.uni_major_suggestions
+            };
+
             // STEP 1: INITIAL DRAFT GENERATION
             setDiscoveryLoadingStep('generating');
             const initialPrompt = `
-Berdasarkan data Resume, Riset Universitas, dan Wawancara berikut, buatlah draf esai beasiswa AWAL yang lengkap dalam bahasa yang sama dengan input user menggunakan **4-Phase Master Framework**.
+Berdasarkan data profil dan Jawaban Narasi berikut, buatlah draf esai beasiswa AWAL (1500 kata) menggunakan **4-Phase Master Framework**.
 
-TARGET PANJANG: Minimal 1000-1500 kata.
+PROFIL: ${JSON.stringify(slimData)}
+NARASI USER: ${userNarrative}
 
-DATA RESUME & RISET:
-${JSON.stringify(discoveryData, null, 2)}
-
-JAWABAN NARASI USER:
-${userNarrative}
-
-FORMAT: Kembalikan draf lengkap.
+FORMAT: Kirimkan draf esai lengkap saja.
             `;
             const initialDraft = await sendChatMessage(initialPrompt, [], "", null, "gpt-4o");
 
-            // STEP 2: INTERNAL CRITIQUE (SELF-REFINE)
+            // STEP 2: INTERNAL CRITIQUE (Use gpt-4o-mini to save gpt-4o TPM quota)
             setDiscoveryLoadingStep('reviewing');
             const critiquePrompt = `
-Anda adalah Pakar Reviewer Beasiswa Internasional. Analisis draf esai berikut secara kritis berdasarkan ScholarGo Master Framework dan Jawaban Narasi user.
+Analisis draf esai ini secara kritis. Berikan 3 poin "Internal Critique" untuk memperkuat detail emosional dan keselarasan dengan visi user.
 
-DRAF ESAI:
-"""
+DRAF:
 ${initialDraft}
-"""
 
-JAWABAN NARASI USER:
+VISI USER:
 ${userNarrative}
 
-TUGAS ANDA:
-1. Identifikasi bagian yang masih terlalu umum (generik) atau kurang emosional.
-2. Temukan bagian di mana pengalaman resume bisa ditekankan lebih kuat untuk mendukung visi user.
-3. Berikan "Internal Critique" singkat dalam poin-poin tentang apa yang HARUS diperbaiki agar draf ini menjadi versi "Gold Standard".
-
-FORMAT: Berikan poin-poin kritik Anda saja.
+FORMAT: Berikan poin-poin kritik singkat saja.
             `;
-            const internalCritique = await sendChatMessage(critiquePrompt, [], "", null, "gpt-4o");
+            // USE GPT-4O-MINI for cheaper/higher-limit critique
+            const internalCritique = await sendChatMessage(critiquePrompt, [], "", null, "gpt-4o-mini");
 
-            // STEP 3: FINAL REFINEMENT
+            // STEP 3: FINAL REFINEMENT (Back to gpt-4o for quality)
             setDiscoveryLoadingStep('refining');
             const finalPrompt = `
-Sempurnakan draf esai berikut berdasarkan Kritik Internal yang telah Anda buat.
+Sempurnakan draf berikut berdasarkan Kritik Internal. Pastikan hasilnya super personal dan emosional (Target 1500 kata).
 
 DRAF AWAL:
-"""
 ${initialDraft}
-"""
 
 KRITIK INTERNAL:
-"""
 ${internalCritique}
-"""
 
-TUJUAN AKHIR: Berikan esai "Gold Standard" (1500 kata) yang super personal, emosional, dan tak terbantahkan. Gunakan bahasa yang elegan dan profesional.
+VISI USER:
+${userNarrative}
 
-FORMAT: Kembalikan hasil akhir esai saja tanpa penjelasan tambahan.
+FORMAT: Kembalikan hasil akhir esai saja.
             `;
             const draft = await sendChatMessage(finalPrompt, [], "", null, "gpt-4o");
             
@@ -1388,10 +1384,20 @@ User is asking for a comparison or seeking the "better" version.
         }
 
         const docMetadata = fileName ? `[Filename: ${fileName}]\n` : '';
-        const context = fileContext
-            ? `${docMetadata}[Attached Document Content]\n${fileContext}\n\n${customInstructions}\n\n${versionsContext}`
+        
+        // --- GLOBAL TOKEN TRIMMING ---
+        // 1. Truncate fileContext (Resume/Reference) if huge
+        const trimmedFileContext = (fileContext && fileContext.length > 8000) 
+            ? (fileContext.substring(0, 8000) + "\n\n[...CONTEXT TRUNCATED TO SAVE TOKENS...]")
+            : fileContext;
+            
+        // 2. Truncate History to last 10 messages
+        const trimmedHistory = chatHistory.slice(-10);
+
+        const context = trimmedFileContext
+            ? `${docMetadata}[Attached Document Content]\n${trimmedFileContext}\n\n${customInstructions}\n\n${versionsContext}`
             : `${docMetadata}${customInstructions}\n\n${versionsContext}`;
-        console.log("Context sent to AI:", context);
+        console.log("Context sent to AI (Trimmed):", context);
 
         // Add User Message (Display the original short message in UI, not the huge prompt)
         const displayMessage = { 
@@ -1465,10 +1471,8 @@ User is asking for a comparison or seeking the "better" version.
         const memoryContext = chatSummary ? `\n[CONVERSATION SUMMARY (PAST MEMORY)]: ${chatSummary}\n` : "";
         const historyToUseRaw = historyOverride || chatHistory;
         
-        // 6. TOKEN SAVER: Limit visible history to 10 mesages if we have a summary
-        const historyToUse = chatSummary 
-            ? historyToUseRaw.slice(-10) 
-            : historyToUseRaw;
+        // 6. TOKEN SAVER: Limit visible history to 15 messages (Strict ceiling)
+        const historyToUse = historyToUseRaw.slice(-15);
 
             // Push an initial empty assistant message to chatHistory for streaming
             const tempAiId = Date.now() + "-ai";
