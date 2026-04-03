@@ -149,15 +149,21 @@ const MessageContent = ({ content, onReferenceClick }) => {
             continue;
         }
 
-        // 4. Fallback for broken collapsible blocks or other states
+        // 4. Fallback for collapsible blocks: CHECK FOR TERMINATION
         if (currentBlock?.type === 'collapsible') {
-            if (trimmed === '---' || trimmed === '***') {
+            // Termination triggers: Separators, Headers, or common Analysis keywords
+            const isSeparator = trimmed === '---' || trimmed === '***';
+            const isAnyMarkdownHeader = trimmed.startsWith('#');
+            const isAnalysisMarker = /^(phase|analisis|saran|kritik|catatan|poin|langkah|step)\s*\d*\s*:?/i.test(trimmed);
+
+            if (isSeparator || isAnyMarkdownHeader || isAnalysisMarker) {
+                // Terminate collapsible block and process this line normally
                 currentBlock = null;
-                processedBlocks.push({ type: 'line', content: line, trimmed });
+                // Fall through to default line processing below
             } else {
                 currentBlock.contentLines.push(line);
+                continue;
             }
-            continue;
         }
 
         // 5. Default standard lines
