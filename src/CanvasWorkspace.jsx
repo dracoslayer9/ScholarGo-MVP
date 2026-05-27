@@ -313,8 +313,6 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // --- Discovery Mode State ---
     const [discoveryStep, setDiscoveryStep] = useState(null); // null, 'upload', 'thinking', 'interview'
     const [discoveryData, setDiscoveryData] = useState(null);
-    const [awardeeSample, setAwardeeSample] = useState(null);
-    const [awardeeSampleName, setAwardeeSampleName] = useState(null);
     const [discoveryLoadingStep, setDiscoveryLoadingStep] = useState('parsing'); // 'parsing', 'matching', 'planning', 'generating'
     const [discoveryFile, setDiscoveryFile] = useState(null);
 
@@ -820,29 +818,10 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             setChatHistory([initialMsg]);
             if (!isChatOpen) setIsChatOpen(true);
 
-            } catch (err) {
+        } catch (err) {
             console.error("Discovery Error:", err);
             alert(`Gagal memproses resume: ${err.message}`);
             setDiscoveryStep(null);
-        }
-    };
-
-    const handleAwardeeSampleUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setDiscoveryStep('thinking');
-        setDiscoveryLoadingStep('parsing');
-
-        try {
-            const text = await extractResumeText(file);
-            setAwardeeSample(text);
-            setAwardeeSampleName(file.name);
-            setDiscoveryStep('upload'); // Return to upload selection
-        } catch (err) {
-            console.error("Sample Upload Error:", err);
-            alert(`Gagal memproses contoh esai: ${err.message}`);
-            setDiscoveryStep('upload');
         }
     };
 
@@ -864,14 +843,10 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             // STEP 1: INITIAL DRAFT GENERATION
             setDiscoveryLoadingStep('generating');
             const initialPrompt = `
-Berdasarkan data profil, Jawaban Narasi, serta CONTOH ESAI REFERENSI (jika ada) berikut, buatlah draf esai beasiswa AWAL (1500 kata) menggunakan **4-Phase Master Framework**.
+Berdasarkan data profil dan Jawaban Narasi berikut, buatlah draf esai beasiswa AWAL (1500 kata) menggunakan **4-Phase Master Framework**.
 
-${awardeeSample ? `### CONTOH ESAI REFERENSI (NORTH STAR):
-${awardeeSample}
-Gunakan contoh di atas sebagai tolok ukur kualitas, gaya bahasa, kedalaman refleksi, dan struktur narasi. Jika terdapat komentar, serap esensi dari kritik tersebut untuk menghindari kesalahan serupa.` : ''}
-
-PROFIL USER: ${JSON.stringify(slimData)}
-NARASI KHUSUS USER: ${userNarrative}
+PROFIL: ${JSON.stringify(slimData)}
+NARASI USER: ${userNarrative}
 
 FORMAT: Kirimkan draf esai lengkap saja.
             `;
@@ -2484,101 +2459,33 @@ User is asking for a comparison or seeking the "better" version.
 
                             {/* TIPTAP EDITOR LAYER - Anchoring Discovery Mode to paper div (line 2386) */}
                             <div className="z-10 custom-tiptap-editor w-full h-auto">
-                                {!essayContent && !discoveryStep && (
-                                    <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col items-center pt-32 bg-white z-20 animate-fadeIn overflow-hidden">
-                                        <div className="text-center space-y-8 max-w-sm px-6">
-                                            <div className="inline-flex items-center justify-center w-24 h-24 bg-blue-50 rounded-[2.5rem] relative mb-4">
-                                                <Sparkle size={48} className="text-blue-600 animate-pulse" />
-                                                <Plus size={20} className="absolute top-4 right-4 text-blue-400" />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <h3 className="text-3xl font-serif font-bold text-oxford-blue tracking-tight">Mulai Esai dari 0?</h3>
-                                                <p className="text-base text-oxford-blue/60 leading-relaxed">
-                                                    Biarkan Agen AI kami membedah Resume Anda dan menenun draf pertama yang memukau.
-                                                </p>
-                                            </div>
-                                            <button
-                                                onClick={handleStartDiscovery}
-                                                className="w-full py-5 bg-blue-600 text-white rounded-2xl font-serif text-xl font-bold shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group"
-                                            >
-                                                <Zap size={22} className="text-white fill-white group-hover:animate-pulse" />
-                                                Gunakan Agentic Mode
-                                            </button>
-                                            <p className="text-xs text-oxford-blue/40 font-medium italic">
-                                                Cukup upload Resume, jawab 1 pertanyaan, dan draf esai siap.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
 
                                 {discoveryStep === 'upload' && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-white z-20 animate-fadeIn overflow-y-auto">
-                                        <div className="text-center space-y-8 max-w-2xl w-full px-6 py-12">
-                                            <div className="space-y-2">
-                                                <h3 className="text-2xl font-serif font-bold text-oxford-blue">Siapkan Referensi Anda</h3>
-                                                <p className="text-sm text-oxford-blue/40">Upload resume Anda (Wajib) dan contoh esai awardee (Opsional) untuk hasil terbaik.</p>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {/* RESUME SLOT */}
-                                                <div className={`relative group border-2 border-dashed rounded-3xl p-8 transition-all ${discoveryData?.full_name ? 'border-green-200 bg-green-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
-                                                    <input
-                                                        type="file"
-                                                        accept=".pdf,.docx,.txt"
-                                                        onChange={handleDiscoveryFileUpload}
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                    />
-                                                    <div className="flex flex-col items-center gap-3">
-                                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${discoveryData?.full_name ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-blue-500'}`}>
-                                                            {discoveryData?.full_name ? <CheckCircle size={24} /> : <FileText size={24} />}
-                                                        </div>
-                                                        <div className="space-y-0.5">
-                                                            <p className="text-sm font-bold text-oxford-blue">
-                                                                {discoveryData?.full_name ? 'Resume Terupload' : 'Unggah Resume / CV'}
-                                                            </p>
-                                                            <p className="text-[10px] text-oxford-blue/40 uppercase tracking-widest font-bold">Wajib</p>
-                                                        </div>
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white z-20 animate-fadeIn">
+                                        <div className="text-center space-y-6 max-w-sm w-full px-6">
+                                            <div className="relative group border-2 border-dashed border-gray-200 rounded-3xl p-12 hover:border-bronze/50 hover:bg-bronze/5 transition-all cursor-pointer">
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf,.docx,.txt"
+                                                    onChange={handleDiscoveryFileUpload}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                />
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 group-hover:bg-white group-hover:text-bronze transition-colors">
+                                                        <FileText size={28} />
                                                     </div>
-                                                </div>
-
-                                                {/* AWARDEE SAMPLE SLOT */}
-                                                <div className={`relative group border-2 border-dashed rounded-3xl p-8 transition-all ${awardeeSample ? 'border-blue-200 bg-blue-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
-                                                    <input
-                                                        type="file"
-                                                        accept=".pdf,.docx,.txt"
-                                                        onChange={handleAwardeeSampleUpload}
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                    />
-                                                    <div className="flex flex-col items-center gap-3">
-                                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${awardeeSample ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-blue-500'}`}>
-                                                            {awardeeSample ? <CheckCircle size={24} /> : <Sparkles size={24} />}
-                                                        </div>
-                                                        <div className="space-y-0.5">
-                                                            <p className="text-sm font-bold text-oxford-blue line-clamp-1">
-                                                                {awardeeSampleName || 'Contoh Esai Awardee'}
-                                                            </p>
-                                                            <p className="text-[10px] text-blue-500 uppercase tracking-widest font-bold">Opsional (Learning Mode)</p>
-                                                        </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-bold text-oxford-blue">Unggah Resume / CV</p>
+                                                        <p className="text-xs text-oxford-blue/40">PDF, DOCX, atau TXT (Max 10MB)</p>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <div className="pt-4 space-y-4">
-                                                <button
-                                                    disabled={!discoveryData?.full_name}
-                                                    onClick={() => setDiscoveryStep('interview')}
-                                                    className={`w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${discoveryData?.full_name ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:scale-[1.02] active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                                                >
-                                                    Mulai Wawancara Strategis
-                                                </button>
-                                                
-                                                <button 
-                                                    onClick={() => setDiscoveryStep(null)}
-                                                    className="text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors"
-                                                >
-                                                    Batal, saya ingin tulis manual
-                                                </button>
-                                            </div>
+                                            <button 
+                                                onClick={() => setDiscoveryStep(null)}
+                                                className="text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors"
+                                            >
+                                                Batal, saya ingin tulis manual
+                                            </button>
                                         </div>
                                     </div>
                                 )}
