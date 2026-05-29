@@ -14,7 +14,7 @@ if (!rootElement) {
 // Initialize PostHog
 if (typeof window !== 'undefined' && import.meta.env.VITE_POSTHOG_KEY) {
   posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-    api_host: `${window.location.origin}/api/ingest`,
+    api_host: 'https://us.i.posthog.com',
     ui_host: 'https://us.posthog.com',
     autocapture: true,
     capture_pageview: false // We capture this manually in App.jsx
