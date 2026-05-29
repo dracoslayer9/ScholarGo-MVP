@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 import { Loader, AlertCircle, ChevronLeft } from 'lucide-react';
+import posthog from 'posthog-js';
 
 const LoginPage = ({ onBack }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +42,7 @@ const LoginPage = ({ onBack }) => {
 
         try {
             if (isSignUp) {
-                const { error } = await supabase.auth.signUp({
+                const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
@@ -51,13 +52,19 @@ const LoginPage = ({ onBack }) => {
                     },
                 });
                 if (error) throw error;
+                if (data?.user) {
+                    posthog.identify(data.user.id, { email: data.user.email });
+                }
                 setSuccessMsg("Account created! Please check your email to confirm.");
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
                 if (error) throw error;
+                if (data?.user) {
+                    posthog.identify(data.user.id, { email: data.user.email });
+                }
                 // Session update is handled by onAuthStateChange in App.jsx
             }
         } catch (error) {

@@ -14,10 +14,15 @@ if (!rootElement) {
 // Initialize PostHog
 if (typeof window !== 'undefined' && import.meta.env.VITE_POSTHOG_KEY) {
   posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
+    api_host: `${window.location.origin}/ingest`,
+    ui_host: 'https://us.posthog.com',
     autocapture: true,
     capture_pageview: false // We capture this manually in App.jsx
   });
+
+  if (import.meta.env.DEV) {
+    posthog.opt_out_capturing();
+  }
 }
 
 try {
