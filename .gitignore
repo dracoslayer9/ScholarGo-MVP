@@ -23,3 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Analytics and user data exports
+analytics_results.json
+churned_users.csv
+essay_writers.csv
+essay_writers.json
+user_data/
+

@@ -7,7 +7,10 @@ import {
     BookOpen,
     CheckCircle,
     Youtube,
-    Search
+    Search,
+    FileText,
+    Scan,
+    ArrowDown
 } from 'lucide-react';
 import GuideModal from './components/GuideModal';
 
@@ -21,34 +24,30 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-oxford-blue/5">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     {/* Left: Logo */}
-                    <div className="flex-1 flex items-center justify-start gap-3">
-                        <div className="w-10 h-10 bg-bronze rounded-xl flex items-center justify-center text-white shadow-lg shadow-bronze/20">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#2563eb] rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
                             <BookOpen size={20} />
                         </div>
-                        <span className="text-xl font-serif font-bold tracking-tight text-oxford-blue">ScholarGo</span>
+                        <span className="text-xl font-sans font-bold tracking-tight text-oxford-blue">ScholarGo</span>
                     </div>
 
-                    {/* Center: Navigation */}
-                    <div className="hidden md:flex items-center justify-center gap-2">
+                    {/* Right: Navigation Actions grouped together */}
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={onPricing}
-                            className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-md shadow-blue-500/20"
+                            className="px-4 py-2 text-sm font-semibold text-oxford-blue border border-gray-200 bg-white hover:bg-gray-50 rounded-xl transition-all"
                         >
                             Upgrade Plan
                         </button>
                         <button
                             onClick={() => setShowGuide(true)}
-                            className="px-4 py-2 text-sm font-medium text-oxford-blue/80 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded-xl transition-all"
+                            className="px-4 py-2 text-sm font-semibold text-oxford-blue border border-gray-200 bg-white hover:bg-gray-50 rounded-xl transition-all"
                         >
                             Panduan
                         </button>
-                    </div>
-
-                    {/* Right: Login */}
-                    <div className="flex-1 flex items-center justify-end gap-6">
                         <button
                             onClick={onLogin}
-                            className="px-5 py-2 text-sm font-bold text-oxford-blue hover:text-bronze transition-colors"
+                            className="px-4 py-2 text-sm font-semibold text-oxford-blue border border-gray-200 bg-white hover:bg-gray-50 rounded-xl transition-all"
                         >
                             Masuk
                         </button>
@@ -57,38 +56,103 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
             </nav>
 
             {/* Hero Section */}
-            <section className="relative pt-32 pb-12 lg:pt-48 lg:pb-20 px-6 overflow-hidden">
+            <section className="relative pt-32 pb-12 lg:pt-40 lg:pb-16 px-6 overflow-hidden">
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="flex flex-col items-center text-center">
 
                         {/* Headline */}
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-6 pb-1 leading-tight tracking-tight max-w-4xl">
+                        <h1 className="text-4xl md:text-5xl lg:text-6.5xl font-sans font-extrabold text-[#1d3557] mb-6 leading-tight tracking-tight max-w-4xl text-center">
                             Your Personal <br />
                             Scholarship Writing Assistant
                         </h1>
 
                         {/* Subtitle */}
-                        <p className="text-lg md:text-xl text-oxford-blue/80 mb-10 max-w-2xl leading-relaxed font-normal">
+                        <p className="text-lg md:text-xl text-oxford-blue/60 mb-10 max-w-2xl leading-relaxed font-normal">
                             Canvas kolaboratif yang didukung AI canggih untuk memenangkan beasiswa
                         </p>
 
-                        {/* CTAs */}
-                        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto relative z-20">
-                            <button
-                                onClick={onStart}
-                                className="w-full px-8 py-4 bg-bronze text-white rounded-xl font-bold hover:brightness-90 transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg shadow-bronze/20 text-lg"
-                            >
-                                Mulai Menulis
-                            </button>
+                        {/* Two Cards Section */}
+                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl w-full mb-12 px-4 relative z-20">
+                            {/* Card 1: Tulis dari nol */}
+                            <div className="bg-[#2563eb] rounded-3xl p-8 text-white flex flex-col justify-between shadow-xl min-h-[360px] text-left hover:scale-[1.02] transition-transform duration-300">
+                                <div className="space-y-6">
+                                    {/* Icon Box */}
+                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white">
+                                        <FileText size={24} />
+                                    </div>
+                                    
+                                    {/* Content */}
+                                    <div className="space-y-2">
+                                        <h3 className="text-xl font-bold">Tulis dari nol</h3>
+                                        <p className="text-white/80 leading-relaxed text-sm">
+                                            AI membimbing kamu langkah demi langkah — dari hook pembuka sampai visi kontribusi.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 space-y-4">
+                                    {/* Recommended Badge */}
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 rounded-full text-xs font-medium text-white w-fit">
+                                        <Sparkles size={12} className="animate-pulse" />
+                                        <span>Direkomendasikan untuk pemula</span>
+                                    </div>
+
+                                    {/* Button with white text */}
+                                    <button
+                                        onClick={onStart}
+                                        className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold bg-[#1d4ed8] hover:bg-[#1e40af] border border-white/20 text-white transition-all group"
+                                    >
+                                        <span>Mulai menulis</span>
+                                        <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform text-white" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Card 2: Scan essay saya */}
+                            <div className="bg-white border border-gray-200 rounded-3xl p-8 text-oxford-blue flex flex-col justify-between shadow-md min-h-[360px] text-left hover:scale-[1.02] transition-transform duration-300">
+                                <div className="space-y-6">
+                                    {/* Icon Box */}
+                                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-[#2563eb]">
+                                        <Scan size={24} />
+                                    </div>
+                                    
+                                    {/* Content */}
+                                    <div className="space-y-2">
+                                        <h3 className="text-xl font-bold text-oxford-blue">Scan essay saya</h3>
+                                        <p className="text-oxford-blue/60 leading-relaxed text-sm">
+                                            Sudah punya draft? Dapatkan skor, feedback, dan saran perbaikan dalam 10 detik.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8">
+                                    {/* Button */}
+                                    <button
+                                        onClick={onStart}
+                                        className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold border border-gray-200 bg-white hover:bg-gray-50 text-oxford-blue transition-all group"
+                                    >
+                                        <span>Upload essay</span>
+                                        <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform text-oxford-blue/60" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="mt-8 flex items-center justify-center gap-3 animate-fadeIn">
-                            <span className="text-3xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                        {/* Social Proof */}
+                        <div className="mt-4 flex items-center justify-center gap-2 animate-fadeIn relative z-20">
+                            <span className="text-xl font-bold text-[#2563eb]">
                                 300+
                             </span>
-                            <span className="text-oxford-blue/60 font-medium">
+                            <span className="text-oxford-blue/60 font-medium text-sm">
                                 pejuang beasiswa sudah gabung!
                             </span>
+                        </div>
+
+                        {/* Scroll Down Indicator */}
+                        <div className="mt-8 flex justify-center animate-bounce">
+                            <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-oxford-blue/40 bg-white shadow-sm">
+                                <ArrowDown size={16} />
+                            </div>
                         </div>
 
                         {/* App Screenshot */}
