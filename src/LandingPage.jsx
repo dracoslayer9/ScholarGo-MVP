@@ -94,12 +94,6 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                             Upgrade Plan
                         </button>
                         <button
-                            onClick={() => setShowGuide(true)}
-                            className="px-4 py-2 text-sm font-semibold text-oxford-blue border border-gray-200 bg-white hover:bg-gray-50 rounded-xl transition-all"
-                        >
-                            Panduan
-                        </button>
-                        <button
                             onClick={onLogin}
                             className="px-4 py-2 text-sm font-semibold text-oxford-blue border border-gray-200 bg-white hover:bg-gray-50 rounded-xl transition-all"
                         >
