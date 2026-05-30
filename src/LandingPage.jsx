@@ -126,9 +126,9 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                         </p>
 
                         {/* Two Cards Section */}
-                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl w-full mb-12 px-4 relative z-20 items-center">
-                            {/* Card 1: Tulis dari nol - DOMINANT CARD */}
-                            <div className="bg-[#2563eb] rounded-3xl p-8 text-white flex flex-col justify-between shadow-2xl ring-8 ring-blue-500/10 min-h-[370px] text-left hover:scale-[1.05] transition-all duration-300 md:scale-105 z-10">
+                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl w-full mb-12 px-4 relative z-20">
+                            {/* Card 1: Tulis dari nol */}
+                            <div className="bg-[#2563eb] rounded-3xl p-8 text-white flex flex-col justify-between shadow-xl min-h-[360px] text-left hover:scale-[1.02] transition-all duration-300 w-full">
                                 <div className="space-y-6">
                                     {/* Icon Box */}
                                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white">
@@ -137,7 +137,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                                     
                                     {/* Content */}
                                     <div className="space-y-2">
-                                        <h3 className="text-2xl font-extrabold tracking-tight">Tulis dari nol</h3>
+                                        <h3 className="text-xl font-bold tracking-tight">Tulis dari nol</h3>
                                         <p className="text-white/90 leading-relaxed text-sm">
                                             AI membimbing kamu langkah demi langkah — dari hook pembuka sampai visi kontribusi.
                                         </p>
@@ -162,8 +162,8 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                                 </div>
                             </div>
 
-                            {/* Card 2: Scan essay saya - LESS DOMINANT */}
-                            <div className="bg-white border border-gray-200 rounded-3xl p-8 text-oxford-blue flex flex-col justify-between shadow-sm min-h-[340px] text-left hover:scale-[1.02] transition-all duration-300 md:scale-95 opacity-85 hover:opacity-100">
+                            {/* Card 2: Scan essay saya */}
+                            <div className="bg-white border border-gray-200 rounded-3xl p-8 text-oxford-blue flex flex-col justify-between shadow-sm min-h-[360px] text-left hover:scale-[1.02] transition-all duration-300 w-full">
                                 <div className="space-y-6">
                                     {/* Icon Box */}
                                     <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-[#2563eb]">
@@ -172,7 +172,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                                     
                                     {/* Content */}
                                     <div className="space-y-2">
-                                        <h3 className="text-xl font-bold tracking-tight text-oxford-blue/90">Scan essay saya</h3>
+                                        <h3 className="text-xl font-bold tracking-tight text-oxford-blue">Scan essay saya</h3>
                                         <p className="text-oxford-blue/60 leading-relaxed text-sm">
                                             Sudah punya draft? Dapatkan skor, feedback, dan saran perbaikan dalam 10 detik.
                                         </p>
