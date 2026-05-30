@@ -18,13 +18,22 @@ import {
 import GuideModal from './components/GuideModal';
 import { analyzeMindDump } from './services/gemini';
 
-const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampusMatch }) => {
+const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampusMatch, session, autoOpenMindDump, onCloseMindDump }) => {
     const [showGuide, setShowGuide] = React.useState(false);
     const [isMindDumpOpen, setIsMindDumpOpen] = React.useState(false);
     const [mindDumpText, setMindDumpText] = React.useState('');
     const [analysisLoading, setAnalysisLoading] = React.useState(false);
     const [analysisResult, setAnalysisResult] = React.useState(null);
     const [analysisError, setAnalysisError] = React.useState(null);
+
+    React.useEffect(() => {
+        if (autoOpenMindDump) {
+            setIsMindDumpOpen(true);
+            if (onCloseMindDump) {
+                onCloseMindDump();
+            }
+        }
+    }, [autoOpenMindDump, onCloseMindDump]);
 
     const handleAnalyze = async () => {
         if (!mindDumpText.trim()) {
@@ -93,12 +102,21 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                         >
                             Upgrade Plan
                         </button>
-                        <button
-                            onClick={onLogin}
-                            className="px-4 py-2 text-sm font-semibold text-oxford-blue border border-gray-200 bg-white hover:bg-gray-50 rounded-xl transition-all"
-                        >
-                            Masuk
-                        </button>
+                        {session ? (
+                            <button
+                                onClick={() => onStart()}
+                                className="px-4 py-2 text-sm font-semibold text-white bg-[#2563eb] hover:bg-blue-700 rounded-xl transition-all shadow-sm"
+                            >
+                                Dashboard
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => onLogin()}
+                                className="px-4 py-2 text-sm font-semibold text-oxford-blue border border-gray-200 bg-white hover:bg-gray-50 rounded-xl transition-all"
+                            >
+                                Masuk
+                            </button>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -147,7 +165,13 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
 
                                     {/* Button with white text */}
                                     <button
-                                        onClick={() => setIsMindDumpOpen(true)}
+                                        onClick={() => {
+                                            if (!session) {
+                                                onLogin('mind-dump');
+                                            } else {
+                                                setIsMindDumpOpen(true);
+                                            }
+                                        }}
                                         className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold bg-[#1d4ed8] hover:bg-[#1e40af] border border-white/20 text-white transition-all group"
                                     >
                                         <span>Mulai menulis</span>
@@ -176,7 +200,13 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                                 <div className="mt-8">
                                     {/* Button */}
                                     <button
-                                        onClick={onStart}
+                                        onClick={() => {
+                                            if (!session) {
+                                                onLogin('upload-essay');
+                                            } else {
+                                                onStart();
+                                            }
+                                        }}
                                         className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold border border-gray-200 bg-white hover:bg-gray-50 text-oxford-blue transition-all group"
                                     >
                                         <span>Upload essay</span>

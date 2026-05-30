@@ -103,6 +103,7 @@ function App() {
   // Auth State
   const [session, setSession] = useState(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [autoOpenMindDump, setAutoOpenMindDump] = useState(false);
 
   // App State
   const [essayText, setEssayText] = useState('');
@@ -262,6 +263,17 @@ function App() {
         }
 
         setAppMode((prevMode) => {
+          const action = localStorage.getItem('postLoginAction');
+          localStorage.removeItem('postLoginAction'); // Consume immediately
+
+          if (action === 'mind-dump') {
+            setAutoOpenMindDump(true);
+            return 'landing';
+          }
+          if (action === 'upload-essay') {
+            return 'canvas';
+          }
+
           if (prevMode === 'login') {
             return 'canvas';
           }
@@ -806,8 +818,16 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
           onStart={handleStart}
           onPrivacy={() => setAppMode('privacy')}
           onTerms={() => setAppMode('terms')}
-          onLogin={() => setAppMode('login')}
+          onLogin={(action) => {
+            if (action) {
+              localStorage.setItem('postLoginAction', action);
+            }
+            setAppMode('login');
+          }}
           onPricing={() => setAppMode('pricing')}
+          session={session}
+          autoOpenMindDump={autoOpenMindDump}
+          onCloseMindDump={() => setAutoOpenMindDump(false)}
         />
       </>
     );
