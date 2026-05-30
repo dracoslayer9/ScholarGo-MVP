@@ -126,9 +126,9 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                         </p>
 
                         {/* Two Cards Section */}
-                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl w-full mb-12 px-4 relative z-20">
-                            {/* Card 1: Tulis dari nol */}
-                            <div className="bg-[#2563eb] rounded-3xl p-8 text-white flex flex-col justify-between shadow-xl min-h-[360px] text-left hover:scale-[1.02] transition-transform duration-300">
+                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl w-full mb-12 px-4 relative z-20 items-center">
+                            {/* Card 1: Tulis dari nol - DOMINANT CARD */}
+                            <div className="bg-[#2563eb] rounded-3xl p-8 text-white flex flex-col justify-between shadow-2xl ring-8 ring-blue-500/10 min-h-[370px] text-left hover:scale-[1.05] transition-all duration-300 md:scale-105 z-10">
                                 <div className="space-y-6">
                                     {/* Icon Box */}
                                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white">
@@ -137,8 +137,8 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                                     
                                     {/* Content */}
                                     <div className="space-y-2">
-                                        <h3 className="text-xl font-bold">Tulis dari nol</h3>
-                                        <p className="text-white/80 leading-relaxed text-sm">
+                                        <h3 className="text-2xl font-extrabold tracking-tight">Tulis dari nol</h3>
+                                        <p className="text-white/90 leading-relaxed text-sm">
                                             AI membimbing kamu langkah demi langkah — dari hook pembuka sampai visi kontribusi.
                                         </p>
                                     </div>
@@ -146,7 +146,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
 
                                 <div className="mt-8 space-y-4">
                                     {/* Recommended Badge */}
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 rounded-full text-xs font-medium text-white w-fit">
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 rounded-full text-xs font-semibold text-white w-fit">
                                         <Sparkles size={12} className="animate-pulse" />
                                         <span>Direkomendasikan untuk pemula</span>
                                     </div>
@@ -162,8 +162,8 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                                 </div>
                             </div>
 
-                            {/* Card 2: Scan essay saya */}
-                            <div className="bg-white border border-gray-200 rounded-3xl p-8 text-oxford-blue flex flex-col justify-between shadow-md min-h-[360px] text-left hover:scale-[1.02] transition-transform duration-300">
+                            {/* Card 2: Scan essay saya - LESS DOMINANT */}
+                            <div className="bg-white border border-gray-200 rounded-3xl p-8 text-oxford-blue flex flex-col justify-between shadow-sm min-h-[340px] text-left hover:scale-[1.02] transition-all duration-300 md:scale-95 opacity-85 hover:opacity-100">
                                 <div className="space-y-6">
                                     {/* Icon Box */}
                                     <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-[#2563eb]">
@@ -172,7 +172,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                                     
                                     {/* Content */}
                                     <div className="space-y-2">
-                                        <h3 className="text-xl font-bold text-oxford-blue">Scan essay saya</h3>
+                                        <h3 className="text-xl font-bold tracking-tight text-oxford-blue/90">Scan essay saya</h3>
                                         <p className="text-oxford-blue/60 leading-relaxed text-sm">
                                             Sudah punya draft? Dapatkan skor, feedback, dan saran perbaikan dalam 10 detik.
                                         </p>
@@ -402,8 +402,8 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
 
                         {!analysisResult ? (
                             <>
-                                {/* Badge */}
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200/50 rounded-full text-xs font-semibold w-fit">
+                                {/* Badge - ScholarGo signature colors (blue) */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-xs font-semibold w-fit">
                                     <span>Free brainstorm</span>
                                 </div>
 
@@ -425,10 +425,10 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                                     className="w-full min-h-[160px] p-4 border border-gray-200 rounded-2xl outline-none focus:border-[#2563eb] transition-all font-sans text-sm text-oxford-blue bg-white resize-none shadow-sm placeholder-oxford-blue/30"
                                 />
 
-                                {/* Tip Box */}
-                                <div className="flex items-start gap-3 p-4 bg-[#fffbeb] border-l-4 border-[#f97316] rounded-r-2xl text-[#9a3412] text-sm">
-                                    <Lightbulb size={18} className="shrink-0 mt-0.5" />
-                                    <p className="font-semibold text-xs md:text-sm leading-relaxed">
+                                {/* Tip Box - ScholarGo signature colors (blue) & smaller fonts to make the main content dominant */}
+                                <div className="flex items-start gap-2.5 p-3.5 bg-blue-50/40 border-l-4 border-[#2563eb] rounded-r-2xl text-[#1e3a8a]">
+                                    <Lightbulb size={16} className="shrink-0 mt-0.5 text-[#2563eb]" />
+                                    <p className="font-medium text-[11px] md:text-xs leading-normal">
                                         Makin jujur dan detail ceritamu, makin tajam AI bisa bantu menemukan benang merahnya.
                                     </p>
                                 </div>
