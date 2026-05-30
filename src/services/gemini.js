@@ -346,3 +346,46 @@ export const summarizeChatHistory = async (history = []) => {
         return "";
     }
 };
+
+export const analyzeMindDump = async (dumpText) => {
+    try {
+        console.log("Running Gemini Mind Dump Analysis...");
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const prompt = `Anda adalah seorang Konsultan Beasiswa senior yang mahir merangkum ide-ide mentah menjadi poin-poin struktural esai beasiswa.
+Analisis teks curahan pikiran (mind dumping) pemohon beasiswa berikut:
+"""
+${dumpText}
+"""
+
+Tugas Anda adalah memetakan ceritanya secara spesifik dan tajam menjadi 3 bagian utama dalam Bahasa Indonesia:
+1. **Masalah utama**: Sebutkan 1 masalah spesifik dan mendesak (gap) yang ingin diselesaikan oleh pelamar berdasarkan ceritanya.
+2. **Jurusan selaras**: Rekomendasikan nama program studi (jurusan) S2/S3 yang paling relevan dengan minat dan masalah tersebut, lengkap dengan alasan singkat.
+3. **Visi kontribusi**: Rancang rencana kontribusi konkret (vision) yang bisa dilakukan pelamar setelah lulus.
+
+PENTING:
+- Keluarkan respons Anda dalam bentuk format JSON yang valid agar dapat ditampilkan secara elegan di UI. 
+- Struktur JSON yang harus Anda kembalikan adalah:
+{
+  "masalahUtama": "isi analisis masalah utama...",
+  "jurusanSelaras": "isi analisis jurusan selaras...",
+  "visiKontribusi": "isi analisis visi kontribusi..."
+}
+- Pastikan hanya mengembalikan JSON yang valid saja, tanpa ada format markdown (\`\`\`json ...) di sekelilingnya.`;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text().trim();
+        // Remove markdown tags if any
+        const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanedText);
+    } catch (error) {
+        console.error("Gemini Mind Dump Analysis Failed:", error);
+        // Fallback in case of parse issues
+        return {
+            masalahUtama: "Mengalami kendala menganalisis masalah utama.",
+            jurusanSelaras: "Rekomendasi jurusan tidak dapat dihasilkan.",
+            visiKontribusi: "Visi kontribusi tidak dapat dimunculkan."
+        };
+    }
+};
+

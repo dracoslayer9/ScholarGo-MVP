@@ -10,12 +10,66 @@ import {
     Search,
     FileText,
     Scan,
-    ArrowDown
+    ArrowDown,
+    Loader2,
+    Lightbulb,
+    X
 } from 'lucide-react';
 import GuideModal from './components/GuideModal';
+import { analyzeMindDump } from './services/gemini';
 
 const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampusMatch }) => {
     const [showGuide, setShowGuide] = React.useState(false);
+    const [isMindDumpOpen, setIsMindDumpOpen] = React.useState(false);
+    const [mindDumpText, setMindDumpText] = React.useState('');
+    const [analysisLoading, setAnalysisLoading] = React.useState(false);
+    const [analysisResult, setAnalysisResult] = React.useState(null);
+    const [analysisError, setAnalysisError] = React.useState(null);
+
+    const handleAnalyze = async () => {
+        if (!mindDumpText.trim()) {
+            alert("Harap tuliskan cerita atau ide esai Anda terlebih dahulu.");
+            return;
+        }
+        setAnalysisLoading(true);
+        setAnalysisError(null);
+        try {
+            const result = await analyzeMindDump(mindDumpText);
+            setAnalysisResult(result);
+        } catch (err) {
+            console.error("Brainstorming failed:", err);
+            setAnalysisError("Gagal menganalisis cerita Anda. Silakan coba beberapa saat lagi.");
+        } finally {
+            setAnalysisLoading(false);
+        }
+    };
+
+    const handleLanjutNulis = () => {
+        if (!analysisResult) return;
+        const formattedDraft = `<h2>Hasil Brainstorming Esai Beasiswa</h2>
+<p>Berikut adalah hasil pemetaan ide esai beasiswa Anda yang dianalisis oleh AI:</p>
+
+<h3>1. Masalah Utama (Gap)</h3>
+<p>${analysisResult.masalahUtama}</p>
+
+<h3>2. Jurusan Selaras (Bridge)</h3>
+<p>${analysisResult.jurusanSelaras}</p>
+
+<h3>3. Visi Kontribusi (Vision)</h3>
+<p>${analysisResult.visiKontribusi}</p>
+
+<p><em>Silakan edit teks ini untuk merangkai esai beasiswa Anda lebih lanjut. Gunakan bantuan AI di panel kanan untuk meninjau struktur paragraf demi paragraf.</em></p>`;
+        
+        setIsMindDumpOpen(false);
+        setMindDumpText('');
+        setAnalysisResult(null);
+        onStart(formattedDraft);
+    };
+
+    const handleEksploreLagi = () => {
+        setAnalysisResult(null);
+        setAnalysisError(null);
+    };
 
     return (
         <div className="min-h-screen bg-white font-sans text-oxford-blue overflow-x-hidden selection:bg-bronze/20">
@@ -99,7 +153,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
 
                                     {/* Button with white text */}
                                     <button
-                                        onClick={onStart}
+                                        onClick={() => setIsMindDumpOpen(true)}
                                         className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold bg-[#1d4ed8] hover:bg-[#1e40af] border border-white/20 text-white transition-all group"
                                     >
                                         <span>Mulai menulis</span>
@@ -328,6 +382,148 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                 <p>© 2026 ScholarGo. All rights reserved.</p>
             </footer>
             <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
+
+            {/* Mind Dumping / Free Brainstorm Modal */}
+            {isMindDumpOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#172554]/40 backdrop-blur-md animate-fadeIn">
+                    <div className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative border border-gray-100 max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col gap-6">
+                        {/* Close button */}
+                        <button
+                            onClick={() => {
+                                setIsMindDumpOpen(false);
+                                setMindDumpText('');
+                                setAnalysisResult(null);
+                                setAnalysisError(null);
+                            }}
+                            className="absolute top-4 right-4 text-oxford-blue/40 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-gray-100"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        {!analysisResult ? (
+                            <>
+                                {/* Badge */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200/50 rounded-full text-xs font-semibold w-fit">
+                                    <span>Free brainstorm</span>
+                                </div>
+
+                                {/* Title & Subtitle */}
+                                <div className="space-y-2">
+                                    <h2 className="text-xl md:text-2xl font-sans font-bold text-oxford-blue leading-tight">
+                                        Ceritakan saja — apa yang ada di pikiranmu
+                                    </h2>
+                                    <p className="text-sm text-oxford-blue/60 leading-relaxed">
+                                        Tidak perlu terstruktur. Tulis seperti ngobrol dengan teman. AI yang akan petakan.
+                                    </p>
+                                </div>
+
+                                {/* Textarea */}
+                                <textarea
+                                    value={mindDumpText}
+                                    onChange={(e) => setMindDumpText(e.target.value)}
+                                    placeholder="cth: aku dari lombok, pengen S2 tapi bingung jurusan apa. kayaknya tertarik teknologi tapi peduli sama anak-anak yang putus sekolah di pesisir pantai. pernah bikin program bimbel kecil-kecilan tapi ga tahu gimana scale-nya"
+                                    className="w-full min-h-[160px] p-4 border border-gray-200 rounded-2xl outline-none focus:border-[#2563eb] transition-all font-sans text-sm text-oxford-blue bg-white resize-none shadow-sm placeholder-oxford-blue/30"
+                                />
+
+                                {/* Tip Box */}
+                                <div className="flex items-start gap-3 p-4 bg-[#fffbeb] border-l-4 border-[#f97316] rounded-r-2xl text-[#9a3412] text-sm">
+                                    <Lightbulb size={18} className="shrink-0 mt-0.5" />
+                                    <p className="font-semibold text-xs md:text-sm leading-relaxed">
+                                        Makin jujur dan detail ceritamu, makin tajam AI bisa bantu menemukan benang merahnya.
+                                    </p>
+                                </div>
+
+                                {analysisError && (
+                                    <p className="text-sm text-red-500 font-medium">{analysisError}</p>
+                                )}
+
+                                {/* Action */}
+                                <button
+                                    onClick={handleAnalyze}
+                                    disabled={analysisLoading}
+                                    className="w-full py-4 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 text-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {analysisLoading ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            <span>Menganalisis...</span>
+                                        </>
+                                    ) : (
+                                        <span>Analysis</span>
+                                    )}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                {/* Result State */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-xs font-semibold w-fit">
+                                    <span>Hasil Pemetaan AI</span>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h2 className="text-xl md:text-2xl font-sans font-bold text-oxford-blue leading-tight">
+                                        Rekomendasi Struktur Esai Kamu
+                                    </h2>
+                                    <p className="text-sm text-oxford-blue/60 leading-relaxed">
+                                        Berikut adalah rangkuman terstruktur berdasarkan curahan pikiran Anda.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4 my-2">
+                                    {/* Masalah Utama */}
+                                    <div className="bg-red-50/50 border border-red-100 rounded-2xl p-4 md:p-5 space-y-2">
+                                        <div className="flex items-center gap-2 text-red-700 font-bold text-sm">
+                                            <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                                            <span>Masalah Utama (Gap)</span>
+                                        </div>
+                                        <p className="text-sm text-oxford-blue/80 leading-relaxed">
+                                            {analysisResult.masalahUtama}
+                                        </p>
+                                    </div>
+
+                                    {/* Jurusan Selaras */}
+                                    <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 md:p-5 space-y-2">
+                                        <div className="flex items-center gap-2 text-blue-700 font-bold text-sm">
+                                            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                                            <span>Jurusan Selaras (Bridge)</span>
+                                        </div>
+                                        <p className="text-sm text-oxford-blue/80 leading-relaxed">
+                                            {analysisResult.jurusanSelaras}
+                                        </p>
+                                    </div>
+
+                                    {/* Visi Kontribusi */}
+                                    <div className="bg-green-50/50 border border-green-100 rounded-2xl p-4 md:p-5 space-y-2">
+                                        <div className="flex items-center gap-2 text-green-700 font-bold text-sm">
+                                            <span className="w-2 h-2 rounded-full bg-green-600"></span>
+                                            <span>Visi Kontribusi (Vision)</span>
+                                        </div>
+                                        <p className="text-sm text-oxford-blue/80 leading-relaxed">
+                                            {analysisResult.visiKontribusi}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-4 mt-4 w-full">
+                                    <button
+                                        onClick={handleEksploreLagi}
+                                        className="py-3.5 px-6 rounded-2xl font-bold border border-gray-200 bg-white hover:bg-gray-50 text-oxford-blue transition-all flex-1 text-center text-sm md:text-md"
+                                    >
+                                        Eksplore lagi
+                                    </button>
+                                    <button
+                                        onClick={handleLanjutNulis}
+                                        className="py-3.5 px-6 rounded-2xl font-bold bg-[#2563eb] hover:bg-[#1d4ed8] text-white transition-all flex-1 text-center text-sm md:text-md shadow-lg shadow-blue-500/10"
+                                    >
+                                        Lanjut nulis
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

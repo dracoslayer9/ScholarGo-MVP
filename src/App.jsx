@@ -299,8 +299,11 @@ function App() {
     }
   };
 
-  const handleStart = () => {
+  const handleStart = (prefilledText = '') => {
     // Lazy Auth: Always go to canvas, check auth later on action
+    if (prefilledText && typeof prefilledText === 'string') {
+      setEssayText(prefilledText);
+    }
     setAppMode('canvas');
   };
 
