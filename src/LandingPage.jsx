@@ -126,9 +126,9 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                         </p>
 
                         {/* Two Cards Section */}
-                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl w-full mb-12 px-4 relative z-20">
+                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl w-full mb-12 px-4 relative z-20 items-stretch">
                             {/* Card 1: Tulis dari nol */}
-                            <div className="bg-[#2563eb] rounded-3xl p-8 text-white flex flex-col justify-between shadow-xl min-h-[360px] text-left hover:scale-[1.02] transition-all duration-300 w-full">
+                            <div className="bg-[#2563eb] rounded-3xl p-8 text-white flex flex-col justify-between shadow-xl min-h-[365px] h-full text-left hover:scale-[1.02] transition-all duration-300 w-full ring-8 ring-blue-500/10">
                                 <div className="space-y-6">
                                     {/* Icon Box */}
                                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white">
@@ -163,7 +163,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                             </div>
 
                             {/* Card 2: Scan essay saya */}
-                            <div className="bg-white border border-gray-200 rounded-3xl p-8 text-oxford-blue flex flex-col justify-between shadow-sm min-h-[360px] text-left hover:scale-[1.02] transition-all duration-300 w-full">
+                            <div className="bg-white border border-gray-200 rounded-3xl p-8 text-oxford-blue flex flex-col justify-between shadow-sm min-h-[365px] h-full text-left hover:scale-[1.02] transition-all duration-300 w-full ring-8 ring-transparent">
                                 <div className="space-y-6">
                                     {/* Icon Box */}
                                     <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-[#2563eb]">
