@@ -143,7 +143,7 @@ import {
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis, summarizeChatHistory } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat, deleteMessagesAfter } from './services/chatService';
-import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck, MoreVertical, SlidersHorizontal } from 'lucide-react';
+import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck, MoreVertical, SlidersHorizontal, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
 import { extractTextFromFile } from './utils/fileUtils';
 import { PDFViewer } from './components/PDFViewer';
@@ -2243,8 +2243,13 @@ User is asking for a comparison or seeking the "better" version.
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                             className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                            title={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
                         >
-                            <Menu size={18} />
+                            {isSidebarOpen ? (
+                                <PanelLeftClose size={18} />
+                            ) : (
+                                <PanelLeftOpen size={18} />
+                            )}
                         </button>
                     </div>
 
