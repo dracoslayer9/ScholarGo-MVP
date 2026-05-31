@@ -143,7 +143,7 @@ import {
 } from 'lucide-react';
 import { sendChatMessage, runRealAnalysis, summarizeChatHistory } from './services/analysis';
 import { createChat, saveMessage, updateChatTitle, getUserChats, getChatMessages, updateChatPayload, deleteChat, deleteMessagesAfter } from './services/chatService';
-import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck } from 'lucide-react';
+import { Trash2, MessageSquare, Edit2, Check, X, ListChecks, MessageCircle, FileText, PenLine, ClipboardCheck, MoreVertical, SlidersHorizontal } from 'lucide-react';
 import { generateSmartTitle } from './utils/chatUtils';
 import { extractTextFromFile } from './utils/fileUtils';
 import { PDFViewer } from './components/PDFViewer';
@@ -197,6 +197,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // --- State ---
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [activeMenuChatId, setActiveMenuChatId] = useState(null);
     const userMenuRef = useRef(null);
 
     const [essayContent, setEssayContent] = useState(initialContent || '');
@@ -297,6 +298,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // Close menu on click outside - MOVED DOWN after all refs are defined
     useEffect(() => {
         const handleClickOutside = (event) => {
+            setActiveMenuChatId(null);
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
                 setIsUserMenuOpen(false);
             }
@@ -2111,85 +2113,102 @@ User is asking for a comparison or seeking the "better" version.
                     <div className="pt-4 pb-2">
                         <button
                             onClick={handleNewChat}
-                            className="w-full flex items-center gap-3 bg-white border border-oxford-blue/10 hover:border-bronze/50 text-oxford-blue px-4 py-3 rounded-xl transition-all shadow-sm hover:shadow-md group"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 rounded-xl transition-colors group select-none"
                         >
-                            <div className="w-8 h-8 rounded-full bg-oxford-blue/5 flex items-center justify-center group-hover:bg-bronze/10 group-hover:text-bronze transition-colors">
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 group-hover:bg-gray-200 transition-colors">
                                 <Plus size={16} />
                             </div>
-                            <span className="font-bold text-sm">New Chat</span>
+                            <span className="font-normal text-sm text-gray-700">New chat</span>
                         </button>
+                    </div>
+
+                    {/* HISTORY LIST HEADER */}
+                    <div className="flex items-center justify-between px-4 pt-4 pb-2 select-none">
+                        <span className="text-xs font-semibold text-gray-400 font-sans tracking-wide">Recents</span>
+                        <SlidersHorizontal size={14} className="text-gray-400" />
                     </div>
 
                     {/* HISTORY LIST */}
                     <div className="flex-1 overflow-y-auto px-1 space-y-1 custom-scrollbar max-h-[calc(100vh-320px)]">
-                        {savedChats.length === 0 && (
+                        {savedChats.length === 0 ? (
                             <div className="text-center py-4 text-xs text-oxford-blue/40 italic">
                                 No canvas history yet.
                             </div>
-                        )}
-                        {groupChatsByTime(savedChats).map(group => (
-                            <div key={group.label} className="mb-6 last:mb-0 space-y-1">
-                                <div className="px-4 py-2 text-xs font-bold text-oxford-blue/40 uppercase tracking-wider">
-                                    {group.label}
-                                </div>
-                                {group.chats.map(chat => (
-                                    <div
-                                        key={chat.id}
-                                        onClick={() => handleLoadChat(chat.id)}
-                                        className={`w-full text-left px-4 py-3 rounded-xl transition-all text-sm truncate flex items-center gap-3 group cursor-pointer ${currentChatId === chat.id
-                                            ? 'bg-oxford-blue/5 text-oxford-blue font-medium'
-                                            : 'text-oxford-blue/60 hover:bg-white hover:shadow-sm'
-                                            }`}
-                                    >
-                                        <MessageSquare size={16} className={`shrink-0 ${currentChatId === chat.id ? 'text-bronze' : 'opacity-50'}`} />
+                        ) : (
+                            savedChats.map(chat => (
+                                <div
+                                    key={chat.id}
+                                    onClick={() => handleLoadChat(chat.id)}
+                                    className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm truncate flex items-center justify-between group cursor-pointer relative ${currentChatId === chat.id
+                                        ? 'bg-gray-100 text-gray-800 font-normal shadow-sm'
+                                        : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {editingChatId === chat.id ? (
+                                        <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+                                            <input
+                                                autoFocus
+                                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                value={editingTitle}
+                                                onChange={(e) => setEditingTitle(e.target.value)}
+                                                onKeyDown={(e) => handleRenameChat(e, chat.id)}
+                                                onBlur={(e) => handleRenameChat(e, chat.id)}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <span className="truncate flex-1 pr-2">{chat.title.replace("Canvas: ", "")}</span>
 
-                                        {editingChatId === chat.id ? (
-                                            <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
-                                                <input
-                                                    autoFocus
-                                                    className="w-full bg-white border border-oxford-blue/20 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-bronze"
-                                                    value={editingTitle}
-                                                    onChange={(e) => setEditingTitle(e.target.value)}
-                                                    onKeyDown={(e) => handleRenameChat(e, chat.id)}
-                                                    onBlur={(e) => handleRenameChat(e, chat.id)}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <span className="truncate flex-1">{chat.title.replace("Canvas: ", "")}</span>
-
-                                                {/* Action Buttons (Visible on Group Hover) */}
-                                                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                                            {/* Action Dropdown Menu Button */}
+                                            {currentChatId === chat.id && (
+                                                <div className="relative shrink-0 flex items-center justify-center">
                                                     <button
-                                                        className="p-1 hover:bg-oxford-blue/10 rounded text-oxford-blue/40 hover:text-oxford-blue transition-all"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setEditingChatId(chat.id);
-                                                            setEditingTitle(chat.title.replace("Canvas: ", "") || "");
+                                                            setActiveMenuChatId(activeMenuChatId === chat.id ? null : chat.id);
                                                         }}
-                                                        title="Rename"
+                                                        className="p-1 hover:bg-gray-200/80 rounded transition-all text-gray-500 hover:text-gray-700"
+                                                        title="Options"
                                                     >
-                                                        <div className="w-4 h-4">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                                <path d="M18.5 2.5a2.121 2 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                            </svg>
+                                                        <MoreVertical size={15} />
+                                                    </button>
+
+                                                    {/* Absolute Position Dropdown */}
+                                                    {activeMenuChatId === chat.id && (
+                                                        <div className="absolute right-0 top-7 w-28 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-[60] font-sans" onClick={e => e.stopPropagation()}>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingChatId(chat.id);
+                                                                    setEditingTitle(chat.title.replace("Canvas: ", "") || "");
+                                                                    setActiveMenuChatId(null);
+                                                                }}
+                                                                className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-medium"
+                                                            >
+                                                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                                    <path d="M18.5 2.5a2.121 2 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                                </svg>
+                                                                Rename
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    handleDeleteChat(e, chat.id);
+                                                                    setActiveMenuChatId(null);
+                                                                }}
+                                                                className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                                Delete
+                                                            </button>
                                                         </div>
-                                                    </button>
-                                                    <button
-                                                        className="p-1 hover:bg-red-100 rounded text-oxford-blue/40 hover:text-red-500 transition-all"
-                                                        onClick={(e) => handleDeleteChat(e, chat.id)}
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 size={12} />
-                                                    </button>
+                                                    )}
                                                 </div>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
