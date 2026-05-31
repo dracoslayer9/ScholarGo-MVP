@@ -156,25 +156,27 @@ import { extractResumeText, parseResumeWithAI } from './services/resumeService';
 import DiscoveryThinkingState from './components/DiscoveryThinkingState';
 
 const getScoreDetails = (score) => {
-    if (score < 60) {
+    // Clamp score strictly between 1 and 100
+    const clampedScore = Math.min(100, Math.max(1, score));
+    if (clampedScore < 60) {
         return {
             label: "Unacceptable",
             colorClass: "text-rose-600 bg-rose-50 border-rose-100 hover:bg-rose-100",
             strokeColor: "#E11D48"
         };
-    } else if (score >= 60 && score <= 69) {
+    } else if (clampedScore >= 60 && clampedScore <= 69) {
         return {
             label: "Below Average",
             colorClass: "text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100",
             strokeColor: "#D97706"
         };
-    } else if (score >= 70 && score <= 79) {
+    } else if (clampedScore >= 70 && clampedScore <= 79) {
         return {
             label: "Good",
             colorClass: "text-emerald-600 bg-emerald-50 border-emerald-100 hover:bg-emerald-100",
             strokeColor: "#059669"
         };
-    } else if (score >= 80 && score <= 89) {
+    } else if (clampedScore >= 80 && clampedScore <= 89) {
         return {
             label: "Very Good",
             colorClass: "text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100",
@@ -2700,8 +2702,12 @@ User is asking for a comparison or seeking the "better" version.
 
                     {/* Header / Score Indicator */}
                     <div className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 shrink-0 font-sans">
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center">
                             <span className="text-md font-bold text-oxford-blue">Score</span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            {/* Grade description badge next to the circle */}
                             <button 
                                 onClick={() => setEssayScore(prev => (prev >= 100 ? 45 : prev + 10))}
                                 className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border transition-all ${scoreDetails.colorClass}`}
@@ -2709,9 +2715,7 @@ User is asking for a comparison or seeking the "better" version.
                             >
                                 {scoreDetails.label}
                             </button>
-                        </div>
 
-                        <div className="flex items-center gap-4">
                             {/* Circular Progress Bar */}
                             <div className="relative flex items-center justify-center w-10 h-10 cursor-pointer select-none" 
                                  onClick={() => setEssayScore(prev => (prev >= 100 ? 45 : prev + 10))}
@@ -2733,13 +2737,13 @@ User is asking for a comparison or seeking the "better" version.
                                         strokeWidth="3"
                                         fill="transparent"
                                         strokeDasharray={2 * Math.PI * 16}
-                                        strokeDashoffset={(2 * Math.PI * 16) - (essayScore / 100) * (2 * Math.PI * 16)}
+                                        strokeDashoffset={(2 * Math.PI * 16) - (Math.min(100, Math.max(1, essayScore)) / 100) * (2 * Math.PI * 16)}
                                         strokeLinecap="round"
                                         className="transition-all duration-500 ease-out"
                                     />
                                 </svg>
                                 <span className="absolute text-[13px] font-bold text-oxford-blue">
-                                    {essayScore}
+                                    {Math.min(100, Math.max(1, essayScore))}
                                 </span>
                             </div>
 
