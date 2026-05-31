@@ -155,6 +155,40 @@ import { checkUsageQuota, incrementUsage } from './services/subscriptionService'
 import { extractResumeText, parseResumeWithAI } from './services/resumeService';
 import DiscoveryThinkingState from './components/DiscoveryThinkingState';
 
+const getScoreDetails = (score) => {
+    if (score < 60) {
+        return {
+            label: "Unacceptable",
+            colorClass: "text-rose-600 bg-rose-50 border-rose-100 hover:bg-rose-100",
+            strokeColor: "#E11D48"
+        };
+    } else if (score >= 60 && score <= 69) {
+        return {
+            label: "Below Average",
+            colorClass: "text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100",
+            strokeColor: "#D97706"
+        };
+    } else if (score >= 70 && score <= 79) {
+        return {
+            label: "Good",
+            colorClass: "text-emerald-600 bg-emerald-50 border-emerald-100 hover:bg-emerald-100",
+            strokeColor: "#059669"
+        };
+    } else if (score >= 80 && score <= 89) {
+        return {
+            label: "Very Good",
+            colorClass: "text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100",
+            strokeColor: "#2563EB"
+        };
+    } else {
+        return {
+            label: "Gold",
+            colorClass: "text-yellow-700 bg-yellow-50 border-yellow-200 hover:bg-yellow-100",
+            strokeColor: "#CA8A04"
+        };
+    }
+};
+
 
 
 const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSettings, initialContent = '', initialFileName = '', initialFileUrl = null, initialFileType = null, initialFileContext = '' }) => {
@@ -286,6 +320,15 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Analysis State
     const [analysisResult, setAnalysisResult] = useState(null);
+    const [essayScore, setEssayScore] = useState(73);
+
+    useEffect(() => {
+        if (analysisResult && typeof analysisResult.score === 'number') {
+            setEssayScore(analysisResult.score);
+        }
+    }, [analysisResult]);
+
+    const scoreDetails = getScoreDetails(essayScore);
 
     const [currentChatId, setCurrentChatId] = useState(null); // Canvas Chat Persistence
     const [chatSummary, setChatSummary] = useState(""); // Long-term memory summary
@@ -2655,24 +2698,71 @@ User is asking for a comparison or seeking the "better" version.
             {isChatOpen && (
                 <div className="w-[500px] flex flex-col bg-white h-full shadow-xl shadow-oxford-blue/5 z-20 border-l border-oxford-blue/10 shrink-0">
 
-                    {/* Header / Quota Indicator */}
-                    <div className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 shrink-0">
-                        <QuotaDisplay userId={user?.id} visibleQuotas={['chat', 'deep_review']} minimal={true} />
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setShowInChatHistory(true)}
-                                className="p-1.5 text-oxford-blue/40 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded transition-colors"
-                                title="In-Chat History"
+                    {/* Header / Score Indicator */}
+                    <div className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 shrink-0 font-sans">
+                        <div className="flex items-center gap-2.5">
+                            <span className="text-md font-bold text-oxford-blue">Score</span>
+                            <button 
+                                onClick={() => setEssayScore(prev => (prev >= 100 ? 45 : prev + 10))}
+                                className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border transition-all ${scoreDetails.colorClass}`}
+                                title="Click to test different score ranges"
                             >
-                                <History size={16} />
+                                {scoreDetails.label}
                             </button>
-                            <button
-                                onClick={() => setIsChatOpen(false)}
-                                className="p-1.5 text-oxford-blue/40 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded transition-colors"
-                                title="Close Chat"
-                            >
-                                <X size={16} />
-                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            {/* Circular Progress Bar */}
+                            <div className="relative flex items-center justify-center w-10 h-10 cursor-pointer select-none" 
+                                 onClick={() => setEssayScore(prev => (prev >= 100 ? 45 : prev + 10))}
+                                 title={`Score: ${essayScore} (${scoreDetails.label}) - Click to test ranges`}>
+                                <svg className="w-10 h-10 transform -rotate-90">
+                                    <circle
+                                        cx="20"
+                                        cy="20"
+                                        r="16"
+                                        stroke="#E5E7EB"
+                                        strokeWidth="3"
+                                        fill="transparent"
+                                    />
+                                    <circle
+                                        cx="20"
+                                        cy="20"
+                                        r="16"
+                                        stroke={scoreDetails.strokeColor}
+                                        strokeWidth="3"
+                                        fill="transparent"
+                                        strokeDasharray={2 * Math.PI * 16}
+                                        strokeDashoffset={(2 * Math.PI * 16) - (essayScore / 100) * (2 * Math.PI * 16)}
+                                        strokeLinecap="round"
+                                        className="transition-all duration-500 ease-out"
+                                    />
+                                </svg>
+                                <span className="absolute text-[13px] font-bold text-oxford-blue">
+                                    {essayScore}
+                                </span>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="w-[1px] h-5 bg-gray-200"></div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setShowInChatHistory(true)}
+                                    className="p-1.5 text-oxford-blue/40 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded transition-colors"
+                                    title="In-Chat History"
+                                >
+                                    <History size={16} />
+                                </button>
+                                <button
+                                    onClick={() => setIsChatOpen(false)}
+                                    className="p-1.5 text-oxford-blue/40 hover:text-oxford-blue hover:bg-oxford-blue/5 rounded transition-colors"
+                                    title="Close Chat"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
