@@ -99,9 +99,9 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                             </div>
 
                             <div className="space-y-4 mb-8 flex-1 relative z-10">
-                                <FeatureRow text="Unlimited PDF Analysis" highlight />
-                                <FeatureRow text="Unlimited Chat Messages" highlight />
-                                <FeatureRow text="Unlimited Deep Reviews" highlight />
+                                <FeatureRow text="20x Deep Review & Analysis" highlight />
+                                <FeatureRow text="75x Chat AI Assistant" highlight />
+                                <FeatureRow text="Live Score in The Toolbar" highlight />
                                 <FeatureRow text="Priority Support" highlight />
                             </div>
 
@@ -123,18 +123,18 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                             <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/20 shadow-inner">
                                 <Crown size={28} className="text-yellow-400" />
                             </div>
-                            <h2 className="text-xl font-serif font-bold mb-2">Unlock Unlimited Access</h2>
+                            <h2 className="text-xl font-serif font-bold mb-2">Unlock Plus Access</h2>
                             <p className="text-white/80 text-sm">You've reached your free limit for <span className="font-bold text-white">{featureName}</span>.</p>
                         </div>
                         <div className="p-8">
                             <div className="text-center mb-8">
                                 <p className="text-oxford-blue/60 mb-6 text-sm">
-                                    Upgrade to <span className="font-bold text-oxford-blue">ScholarGo Plus</span> to continue analyzing without limits.
+                                    Upgrade to <span className="font-bold text-oxford-blue">ScholarGo Plus</span> to continue analyzing.
                                 </p>
                                 <div className="space-y-3 text-left max-w-xs mx-auto">
-                                    <FeatureRow text="Unlimited PDF Analysis" highlight />
-                                    <FeatureRow text="Unlimited Chat Messages" highlight />
-                                    <FeatureRow text="Unlimited Deep Reviews" highlight />
+                                    <FeatureRow text="20x Deep Review & Analysis" highlight />
+                                    <FeatureRow text="75x Chat AI Assistant" highlight />
+                                    <FeatureRow text="Live Score in The Toolbar" highlight />
                                 </div>
                             </div>
                             <button

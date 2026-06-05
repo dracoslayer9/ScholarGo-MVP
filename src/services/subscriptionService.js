@@ -7,9 +7,9 @@ export const PLAN_LIMITS = {
         deep_review: 1
     },
     plus: {
-        pdf_analysis: 9999, // Unlimited
-        chat: 9999,
-        deep_review: 9999
+        pdf_analysis: 20,
+        chat: 75,
+        deep_review: 20
     }
 };
 

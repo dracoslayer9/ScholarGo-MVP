@@ -144,9 +144,9 @@ const PricingPage = ({ onBack, onLogin, session }) => {
 
                             <div className="space-y-4 relative z-10">
                                 <p className="font-bold text-oxford-blue text-sm mb-4 block">Semua fitur Free, ditambah:</p>
-                                <FeatureItem text="Unlimited Analisis Dokumen" />
-                                <FeatureItem text="Unlimited Chat AI Assistant" />
-                                <FeatureItem text="Unlimited Deep Review" />
+                                <FeatureItem text="20x Deep Review & Analysis" />
+                                <FeatureItem text="75x Chat AI Assistant" />
+                                <FeatureItem text="Live Score in The Toolbar" />
                                 <FeatureItem text="Prioritas Akses Fitur Baru" />
                             </div>
                         </div>

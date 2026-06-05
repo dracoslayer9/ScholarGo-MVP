@@ -155,7 +155,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                                     ScholarGo Plus
                                                     <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] uppercase font-bold">Pro</span>
                                                 </h4>
-                                                <p className="text-sm text-oxford-blue/60 mt-1">Unlimited AI analysis & advanced features</p>
+                                                <p className="text-sm text-oxford-blue/60 mt-1">Advanced AI analysis & features</p>
                                             </div>
                                             <div className="text-right shrink-0 ml-2">
                                                 <span className="block font-bold text-lg text-blue-600">Rp 49.000</span>
@@ -164,7 +164,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                         </div>
 
                                         <div className="mt-4 space-y-2">
-                                            {['Unlimited Essay Analysis', 'Detailed AI Feedback', 'Export to PDF', 'Priority Support'].map((feature, i) => (
+                                            {['20x Deep Review & Analysis', '75x Chat AI Assistant', 'Live Score in The Toolbar', 'Priority Support'].map((feature, i) => (
                                                 <div key={i} className="flex items-center gap-2">
                                                     <div className="w-4 h-4 rounded-full bg-bronze/20 flex items-center justify-center text-bronze text-[10px]">✓</div>
                                                     <span className="text-xs text-oxford-blue/70">{feature}</span>

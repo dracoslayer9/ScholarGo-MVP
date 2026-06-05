@@ -46,8 +46,8 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
 
     const visible = visibleQuotas || ['pdf_analysis', 'chat', 'deep_review'];
 
-    const formatLimit = (current, max) => isPlus ? 'Unlimited' : `${current} / ${max}`;
-    const getProgress = (current, max) => isPlus ? 100 : Math.min((current / max) * 100, 100);
+    const formatLimit = (current, max) => max >= 9999 ? 'Unlimited' : `${current} / ${max}`;
+    const getProgress = (current, max) => max >= 9999 ? 100 : Math.min((current / max) * 100, 100);
 
     const headerText = isAdmin ? "ScholarGo Dev" : (isPlus ? "Plus Plan Active" : "Free Plan Usage");
 
@@ -72,7 +72,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
                         </div>
                         <span className={minimal ? "" : "font-bold text-sm"}>{formatLimit(usage.usage_pdf_analysis, limits.pdf_analysis)}</span>
                     </div>
-                    {!isPlus && !minimal && (
+                    {limits.pdf_analysis < 9999 && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${usage.usage_pdf_analysis >= limits.pdf_analysis ? 'bg-red-500' : 'bg-blue-500'}`}
@@ -93,7 +93,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
                         </div>
                         <span className={minimal ? "" : "font-bold text-sm"}>{formatLimit(usage.usage_chat, limits.chat)}</span>
                     </div>
-                    {!isPlus && !minimal && (
+                    {limits.chat < 9999 && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${usage.usage_chat >= limits.chat ? 'bg-red-500' : 'bg-indigo-500'}`}
@@ -114,7 +114,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
                         </div>
                         <span className={minimal ? "" : "font-bold text-sm"}>{formatLimit(usage.usage_deep_review, limits.deep_review)}</span>
                     </div>
-                    {!isPlus && !minimal && (
+                    {limits.deep_review < 9999 && !minimal && (
                         <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${usage.usage_deep_review >= limits.deep_review ? 'bg-red-500' : 'bg-bronze'}`}
