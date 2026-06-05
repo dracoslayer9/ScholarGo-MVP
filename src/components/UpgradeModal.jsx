@@ -102,6 +102,8 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                 <FeatureRow text="20x Deep Review & Analysis" highlight />
                                 <FeatureRow text="75x Chat AI Assistant" highlight />
                                 <FeatureRow text="Live Score in The Toolbar" highlight />
+                                <FeatureRow text="AI generated text detector" highlight />
+                                <FeatureRow text="5000 humanizer words" highlight />
                                 <FeatureRow text="Priority Support" highlight />
                             </div>
 
@@ -135,6 +137,8 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                     <FeatureRow text="20x Deep Review & Analysis" highlight />
                                     <FeatureRow text="75x Chat AI Assistant" highlight />
                                     <FeatureRow text="Live Score in The Toolbar" highlight />
+                                    <FeatureRow text="AI generated text detector" highlight />
+                                    <FeatureRow text="5000 humanizer words" highlight />
                                 </div>
                             </div>
                             <button

@@ -164,7 +164,7 @@ const SettingsModal = ({ open, onClose, user, onSignOut, onOpenPrivacy }) => {
                                         </div>
 
                                         <div className="mt-4 space-y-2">
-                                            {['20x Deep Review & Analysis', '75x Chat AI Assistant', 'Live Score in The Toolbar', 'Priority Support'].map((feature, i) => (
+                                            {['20x Deep Review & Analysis', '75x Chat AI Assistant', 'Live Score in The Toolbar', 'AI generated text detector', '5000 humanizer words', 'Priority Support'].map((feature, i) => (
                                                 <div key={i} className="flex items-center gap-2">
                                                     <div className="w-4 h-4 rounded-full bg-bronze/20 flex items-center justify-center text-bronze text-[10px]">✓</div>
                                                     <span className="text-xs text-oxford-blue/70">{feature}</span>
