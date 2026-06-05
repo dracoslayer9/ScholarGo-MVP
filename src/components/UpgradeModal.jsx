@@ -40,21 +40,19 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-oxford-blue/60 backdrop-blur-sm transition-opacity animate-fadeIn"
-                onClick={loading ? null : onClose}
+                onClick={onClose}
             ></div>
 
             {/* Modal */}
             <div className={`relative bg-white rounded-3xl shadow-2xl w-full ${isGeneralUpgrade ? 'max-w-2xl' : 'max-w-lg'} overflow-hidden animate-slideIn`}>
 
                 {/* Close Button */}
-                {!loading && (
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 p-2 text-oxford-blue/40 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 z-20"
-                    >
-                        <X size={20} />
-                    </button>
-                )}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 p-2 text-oxford-blue/40 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 z-20"
+                >
+                    <X size={20} />
+                </button>
 
                 {isGeneralUpgrade ? (
                     // --- GENERAL UPGRADE VIEW (Used for Guests too) ---
@@ -149,7 +147,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                 {loading ? <Loader size={16} className="animate-spin" /> : <Crown size={16} />}
                                 {loading ? 'Processing...' : 'Upgrade to Plus'}
                             </button>
-                            <button onClick={onClose} disabled={loading} className="w-full mt-4 text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors">
+                            <button onClick={onClose} className="w-full mt-4 text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors">
                                 Maybe Later
                             </button>
                         </div>
