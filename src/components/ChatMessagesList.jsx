@@ -3,6 +3,8 @@ import React from 'react';
 import { Sparkles, Pencil, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import MessageContent from './MessageContent';
 import AnalysisResultView from './AnalysisResultView';
+import { parseAIResponse } from '../utils/chatUtils';
+import ActionChips from './ActionChips';
 
 const ContextCard = ({ context }) => {
     const [isExpanded, setIsExpanded] = React.useState(false);
@@ -70,7 +72,7 @@ const FoldableUserMessage = ({ content, onReferenceClick }) => {
 
 // Helper: Chat Messages List
 // Pure list component, specific styling for User vs AI
-const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceClick, onLineClick, editingIndex, editingText, setEditingText, onSave, onCancel, onGenerateDiscovery, discoveryStep }) => {
+const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceClick, onLineClick, editingIndex, editingText, setEditingText, onSave, onCancel, onGenerateDiscovery, discoveryStep, onChipClick }) => {
     const safeMessages = Array.isArray(messages) ? messages : [];
 
     return (
@@ -148,9 +150,15 @@ const ChatMessagesList = ({ messages, onEdit, onOpenFile, fileName, onReferenceC
                                                 {msg.focusedContext && <ContextCard context={msg.focusedContext} />}
                                                 {msg.role === 'user' ? (
                                                     <FoldableUserMessage content={msg.content} onReferenceClick={onReferenceClick} />
-                                                ) : (
-                                                    <MessageContent content={msg.content} onReferenceClick={onReferenceClick} />
-                                                )}
+                                                ) : (() => {
+                                                    const parsed = parseAIResponse(msg.content);
+                                                    return (
+                                                        <>
+                                                            <MessageContent content={parsed.text} onReferenceClick={onReferenceClick} />
+                                                            {onChipClick && <ActionChips actions={parsed.actions} onChipClick={onChipClick} />}
+                                                        </>
+                                                    );
+                                                })()}
                                             </>
                                         )
                                     )

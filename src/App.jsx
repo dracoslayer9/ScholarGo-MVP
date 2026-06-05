@@ -545,6 +545,89 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
     }
   };
 
+  const detectScholarshipTarget = (title, content, filename) => {
+    const combined = `${title || ''} ${content || ''} ${filename || ''}`.toLowerCase();
+    if (combined.includes('lpdp')) return 'LPDP';
+    if (combined.includes('chevening')) return 'Chevening';
+    if (combined.includes('fulbright')) return 'Fulbright';
+    if (combined.includes('aas') || combined.includes('australian awards')) return 'AAS';
+    if (combined.includes('mext')) return 'MEXT';
+    if (combined.includes('eraser') || combined.includes('erasmus')) return 'Erasmus Mundus';
+    return 'General Scholarship';
+  };
+
+  const isEnglishContent = (content) => {
+    const clean = (content || '').toLowerCase();
+    const enCount = (clean.match(/\b(the|and|this|essay|scholarship|my|of|in|to)\b/g) || []).length;
+    const idCount = (clean.match(/\b(yang|dan|ini|esai|beasiswa|saya|dari|di|untuk)\b/g) || []).length;
+    return enCount >= idCount;
+  };
+
+  const handleChipClick = (actionId, label) => {
+    const cleanEssay = essayText || '';
+    const activeChat = savedChats.find(c => c.id === currentChatId);
+    const target = detectScholarshipTarget(activeChat?.title, cleanEssay, fileName);
+    const isEn = isEnglishContent(cleanEssay || chatInput || label);
+    
+    let expandedPrompt = "";
+    
+    if (isEn) {
+      switch (actionId) {
+        case 'edit_hook':
+          expandedPrompt = `I want to re-draft the opening hook of my essay to make it more emotional, engaging, and aligned with the ${target} criteria. Here is my current draft:\n\n"""\n${cleanEssay}\n"""\n\nPlease help me rewrite the introduction, providing a few alternative options.`;
+          break;
+        case 'strengthen_achievement':
+          expandedPrompt = `I want to highlight my academic and professional achievements more strongly for the ${target} scholarship. Here is my current draft:\n\n"""\n${cleanEssay}\n"""\n\nWhich parts should be deepened, and how should I frame my accomplishments to stand out as contribution-oriented?`;
+          break;
+        case 'align_values':
+          expandedPrompt = `I want to align this essay with the core values sought by the ${target} scholarship. Here is my current draft:\n\n"""\n${cleanEssay}\n"""\n\nIdentify what values are missing or need highlighting, and help me integrate them into the relevant paragraphs.`;
+          break;
+        case 'add_concrete_examples':
+          expandedPrompt = `I feel my essay is still too generic. I want to add concrete examples (specific evidence) to support my claims for the ${target} scholarship. Here is my current draft:\n\n"""\n${cleanEssay}\n"""\n\nPoint out which sentences sound too abstract and help me draft relevant, real-world action descriptions.`;
+          break;
+        case 'improve_flow':
+          expandedPrompt = `I want to improve the transitions and logical flow between my paragraphs in my ${target} essay. Here is my current draft:\n\n"""\n${cleanEssay}\n"""\n\nHow can I construct smoother narrative bridges so the flow doesn't feel disconnected or abrupt?`;
+          break;
+        case 'simplify_sentences':
+          expandedPrompt = `Some sentences in my draft feel too wordy or overly complex. Help me simplify and clarify the phrasing without losing the academic essence for the ${target} scholarship. Here is my current draft:\n\n"""\n${cleanEssay}\n"""\n\nRewrite the ineffective parts to be more concise, clear, and direct.`;
+          break;
+        case 'deepen_reflection':
+          expandedPrompt = `I want to deepen my self-reflection and the lessons learned from my experiences to match the ${target} scholarship expectations. Here is my current draft:\n\n"""\n${cleanEssay}\n"""\n\nHelp me formulate my personal growth and insights so it doesn't just tell a chronological story.`;
+          break;
+        default:
+          expandedPrompt = `I want to take the action '${label}' (ID: ${actionId}) on my essay. Here is my current draft:\n\n"""\n${cleanEssay}\n"""\n\nPlease provide specific guidance and improvements to meet the ${target} standards.`;
+      }
+    } else {
+      switch (actionId) {
+        case 'edit_hook':
+          expandedPrompt = `Saya ingin merombak bagian pembuka (hook) esai saya agar lebih emosional, menarik, dan selaras dengan kriteria beasiswa ${target}. Berikut draf esai saya saat ini:\n\n"""\n${cleanEssay}\n"""\n\nBantu saya menulis ulang bagian pembuka tersebut dengan beberapa opsi alternatif.`;
+          break;
+        case 'strengthen_achievement':
+          expandedPrompt = `Saya ingin menyoroti pencapaian akademik dan profesional saya secara lebih kuat untuk beasiswa ${target}. Berikut draf esai saya:\n\n"""\n${cleanEssay}\n"""\n\nBagian mana yang perlu diperdalam dan bagaimana cara memformulasikan pencapaian saya agar terlihat menonjol dan kontributif?`;
+          break;
+        case 'align_values':
+          expandedPrompt = `Saya ingin menyelaraskan esai ini dengan nilai-nilai utama yang dicari oleh beasiswa ${target}. Berikut draf esai saya:\n\n"""\n${cleanEssay}\n"""\n\nIdentifikasi nilai apa saja yang masih kurang atau perlu diperjelas, dan bantu saya mengintegrasikannya ke dalam paragraf terkait.`;
+          break;
+        case 'add_concrete_examples':
+          expandedPrompt = `Saya merasa esai saya masih terlalu general. Saya ingin menambahkan contoh konkret (bukti spesifik) untuk memperkuat argumen saya dalam beasiswa ${target}. Berikut draf esai saya:\n\n"""\n${cleanEssay}\n"""\n\nTunjukkan kalimat/bagian mana yang terdengar terlalu abstrak dan bantu saya merancang deskripsi aksi nyata yang relevan.`;
+          break;
+        case 'improve_flow':
+          expandedPrompt = `Saya ingin meningkatkan alur transisi dan logika berpikir antargaragraf dalam esai ${target} saya. Berikut draf esai saya:\n\n"""\n${cleanEssay}\n"""\n\nBagaimana cara merangkai jembatan narasi (bridging) yang lebih mulus agar alur cerita tidak terasa melompat-lompat?`;
+          break;
+        case 'simplify_sentences':
+          expandedPrompt = `Beberapa kalimat dalam draf saya terasa terlalu berbelit-belit atau terlalu panjang. Bantu saya menyederhanakan kalimat-kalimat tersebut tanpa mengurangi esensi akademik untuk beasiswa ${target}. Berikut draf esai saya:\n\n"""\n${cleanEssay}\n"""\n\nTulis ulang bagian yang kurang efektif menjadi lebih padat, jelas, dan lugas.`;
+          break;
+        case 'deepen_reflection':
+          expandedPrompt = `Saya ingin memperdalam refleksi diri dan pembelajaran dari pengalaman saya agar sesuai dengan espektasi beasiswa ${target}. Berikut draf esai saya:\n\n"""\n${cleanEssay}\n"""\n\nBantu saya merumuskan hikmah/transformasi diri saya dari draf di atas agar tidak sekadar menceritakan kronologi kejadian.`;
+          break;
+        default:
+          expandedPrompt = `Saya ingin mengambil langkah tindakan '${label}' (ID: ${actionId}) pada esai saya. Berikut draf esai saya saat ini:\n\n"""\n${cleanEssay}\n"""\n\nBerikan panduan dan alternatif perbaikan spesifik agar memenuhi standar beasiswa ${target}.`;
+      }
+    }
+    
+    handleChatSubmit(expandedPrompt, true);
+  };
+
   const handleChatSubmit = async (manualMessage = null, forceChat = false) => {
     // FIX: If manualMessage is an event object (from onClick), ignore it and use chatInput
     const rawMessage = (manualMessage && typeof manualMessage === 'string') ? manualMessage : chatInput;
@@ -1247,7 +1330,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
                   {/* Chat History */}
                   {chatHistory.length > 0 && (
-                    <ChatMessagesList messages={chatHistory} />
+                    <ChatMessagesList messages={chatHistory} onChipClick={handleChipClick} />
                   )}
 
                   <div ref={messagesEndRef} className="h-2" />

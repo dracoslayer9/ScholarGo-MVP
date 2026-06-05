@@ -328,6 +328,19 @@ export const sendChatMessage = async (
             ---
             ${segmentedText || '(Draft Empty - Provide framework-based outline suggestions to help the user get started.)'}
             ---
+
+            **ACTION CHIPS PROTOCOL**:
+            At the end of EVERY response, you MUST generate between 1 and 3 action chips suggesting the next logical steps for the user based on the feedback you just provided.
+            You MUST follow this exact format at the very end of your response, preceded by a blank line:
+            :::actions
+            [Label Text 1](action_id_1) | [Label Text 2](action_id_2) | [Label Text 3](action_id_3)
+            :::
+            
+            Rules:
+            1. Max 3 chips.
+            2. Short, active labels (max 4 words).
+            3. Order: from easiest/immediate action (e.g. edit a sentence, check a fact) to deepest/most strategic action (e.g. restructure, align values).
+            4. 'action_id' must be a simple snake_case string (e.g., edit_hook, strengthen_achievement, align_values, add_concrete_examples, improve_flow, simplify_sentences, deepen_reflection).
             `;
 
             // PATTERN COMMAND INTERCEPT
@@ -351,6 +364,12 @@ export const sendChatMessage = async (
                 - Identify the *primary* pattern used.
                 - Explain *how* it is used effectively (or where it fails).
                 - Cite the exact lines where the pattern emerges.
+
+                **ACTION CHIPS PROTOCOL**:
+                At the end of your response, you MUST append action chips following the format:
+                :::actions
+                [Label Text 1](action_id_1) | [Label Text 2](action_id_2) | [Label Text 3](action_id_3)
+                :::
                 `;
             }
 
