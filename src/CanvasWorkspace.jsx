@@ -2142,7 +2142,7 @@ User is asking for a comparison or seeking the "better" version.
         <div className="flex h-screen bg-[#F8FAFC] overflow-hidden animate-fadeIn">
 
             {/* CANVAS SIDEBAR */}
-            <aside className={`${isSidebarOpen ? 'w-64 translate-x-0 overflow-visible' : 'w-0 -translate-x-full overflow-hidden'} bg-slate-50 border-r border-oxford-blue/10 text-oxford-blue transition-all duration-300 ease-in-out flex flex-col shrink-0 z-30`}>
+            <aside className={`${isSidebarOpen ? 'w-64 translate-x-0 overflow-visible' : 'w-0 -translate-x-full overflow-hidden'} bg-[#F2F1EF] border-r border-oxford-blue/10 text-oxford-blue transition-all duration-300 ease-in-out flex flex-col shrink-0 z-30`}>
                 <div className="p-4 space-y-2">
                     <button
                         onClick={onBack}
@@ -2181,7 +2181,7 @@ User is asking for a comparison or seeking the "better" version.
                                 <div
                                     key={chat.id}
                                     onClick={() => handleLoadChat(chat.id)}
-                                    className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm truncate flex items-center justify-between group cursor-pointer relative ${currentChatId === chat.id
+                                    className={`w-full text-left px-4 py-2.5 rounded-xl transition-all text-sm flex items-center justify-between group cursor-pointer relative ${currentChatId === chat.id
                                         ? 'bg-gray-100 text-gray-800 font-normal shadow-sm'
                                         : 'text-gray-600 hover:bg-gray-50'
                                         }`}
@@ -2764,10 +2764,10 @@ User is asking for a comparison or seeking the "better" version.
 
             {/* RIGHT PANEL: AI ASSISTANT CHAT */}
             {isChatOpen && (
-                <div className="w-[500px] flex flex-col bg-[#F0F4FA] h-full shadow-xl shadow-oxford-blue/5 z-20 border-l border-oxford-blue/10 shrink-0">
+                <div className="w-[500px] flex flex-col bg-[#FAFAF9] h-full shadow-xl shadow-oxford-blue/5 z-20 border-l border-oxford-blue/10 shrink-0">
 
                     {/* Header / Score Indicator */}
-                    <div className="h-14 border-b border-gray-200 bg-[#F0F4FA] flex items-center justify-between px-6 shrink-0 font-sans">
+                    <div className="h-14 border-b border-gray-200 bg-[#FAFAF9] flex items-center justify-between px-6 shrink-0 font-sans">
                         <div className="flex items-center">
                             <span className="text-md font-bold text-oxford-blue">Score</span>
                         </div>
@@ -2833,7 +2833,7 @@ User is asking for a comparison or seeking the "better" version.
                     {/* Chat History & Content */}
                     <div 
                         ref={chatContainerRef}
-                        className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F0F4FA] custom-scrollbar scroll-fade-top"
+                        className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#FAFAF9] custom-scrollbar scroll-fade-top"
                     >
                         {/* Welcome Message */}
                         {chatHistory.length === 0 && (
@@ -3071,7 +3071,7 @@ User is asking for a comparison or seeking the "better" version.
                     )}
 
                     {/* Input Area (Unified Style) */}
-                    <div className="p-3 bg-[#F0F4FA] shrink-0">
+                    <div className="p-3 bg-[#FAFAF9] shrink-0">
                         <div className="bg-white border border-oxford-blue/10 rounded-xl p-3 focus-within:ring-2 focus-within:ring-bronze/10 focus-within:border-bronze/30 transition-all shadow-sm">
 
                             {/* File Attachment Preview */}

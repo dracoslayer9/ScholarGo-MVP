@@ -935,7 +935,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
       {/* Sidebar ... */}
       {/* Sidebar ... */}
       {/* Sidebar ... */}
-      <aside className={`${sidebarOpen ? 'w-64 translate-x-0 overflow-visible' : 'w-0 -translate-x-full overflow-hidden'} bg-white border-r border-gray-200 text-oxford-blue transition-all duration-300 ease-in-out flex flex-col shrink-0 z-20`}>
+      <aside className={`${sidebarOpen ? 'w-64 translate-x-0 overflow-visible' : 'w-0 -translate-x-full overflow-hidden'} bg-[#F2F1EF] border-r border-gray-200 text-oxford-blue transition-all duration-300 ease-in-out flex flex-col shrink-0 z-20`}>
         {/* ... Sidebar Content ... */}
         <div className="p-4 space-y-2">
           <button
@@ -1204,7 +1204,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
 
               {/* RIGHT PANEL: AI Assistant Sidebar */}
-              <div className="w-full lg:w-[480px] lg:h-full h-[500px] bg-white border-t lg:border-t-0 border-oxford-blue/10 flex flex-col shrink-0 z-20 shadow-xl shadow-oxford-blue/5">
+              <div className="w-full lg:w-[480px] lg:h-full h-[500px] bg-[#FAFAF9] border-t lg:border-t-0 border-oxford-blue/10 flex flex-col shrink-0 z-20 shadow-xl shadow-oxford-blue/5">
 
                 {/* Sidebar Header */}
                 {/* Sidebar Header with Quota */}
@@ -1329,7 +1329,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 )}
 
                 {/* Input Area (Fixed Bottom - Gemini Style) */}
-                <div className="p-3 bg-[#F8FAFC]">
+                <div className="p-3 bg-[#FAFAF9]">
 
                   {/* Context Indicator (if selected) */}
                   {contextText && (
