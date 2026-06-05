@@ -148,7 +148,7 @@ const PricingPage = ({ onBack, onLogin, session }) => {
                                 <FeatureItem text="75x Chat AI Assistant" />
                                 <FeatureItem text="Live Score in The Toolbar" />
                                 <FeatureItem text="AI generated text detector" />
-                                <FeatureItem text="5000 humanizer words" />
+                                <FeatureItem text="1500 humanizer words" />
                                 <FeatureItem text="Prioritas Akses Fitur Baru" />
                             </div>
                         </div>

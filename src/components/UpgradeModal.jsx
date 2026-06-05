@@ -40,7 +40,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-oxford-blue/60 backdrop-blur-sm transition-opacity animate-fadeIn"
-                onClick={onClose}
+                onClick={loading ? null : onClose}
             ></div>
 
             {/* Modal */}
@@ -49,7 +49,8 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 p-2 text-oxford-blue/40 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 z-20"
+                    disabled={loading}
+                    className="absolute top-4 right-4 p-2 text-oxford-blue/40 hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-full hover:bg-red-50 z-20"
                 >
                     <X size={20} />
                 </button>
@@ -101,7 +102,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                 <FeatureRow text="75x Chat AI Assistant" highlight />
                                 <FeatureRow text="Live Score in The Toolbar" highlight />
                                 <FeatureRow text="AI generated text detector" highlight />
-                                <FeatureRow text="5000 humanizer words" highlight />
+                                <FeatureRow text="1500 humanizer words" highlight />
                                 <FeatureRow text="Priority Support" highlight />
                             </div>
 
@@ -113,6 +114,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                 {loading ? <Loader size={16} className="animate-spin" /> : <Crown size={16} />}
                                 {loading ? 'Processing...' : (isGuest ? 'Mulai Gratis' : 'Upgrade Plan')}
                             </button>
+
                         </div>
                     </div>
                 ) : (
@@ -136,7 +138,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                     <FeatureRow text="75x Chat AI Assistant" highlight />
                                     <FeatureRow text="Live Score in The Toolbar" highlight />
                                     <FeatureRow text="AI generated text detector" highlight />
-                                    <FeatureRow text="5000 humanizer words" highlight />
+                                    <FeatureRow text="1500 humanizer words" highlight />
                                 </div>
                             </div>
                             <button
@@ -147,7 +149,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
                                 {loading ? <Loader size={16} className="animate-spin" /> : <Crown size={16} />}
                                 {loading ? 'Processing...' : 'Upgrade to Plus'}
                             </button>
-                            <button onClick={onClose} className="w-full mt-4 text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors">
+                            <button onClick={onClose} disabled={loading} className="w-full mt-4 text-xs text-oxford-blue/40 hover:text-oxford-blue font-medium transition-colors">
                                 Maybe Later
                             </button>
                         </div>
