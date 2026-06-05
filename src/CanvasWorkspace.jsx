@@ -155,37 +155,44 @@ import { checkUsageQuota, incrementUsage } from './services/subscriptionService'
 import { extractResumeText, parseResumeWithAI } from './services/resumeService';
 import DiscoveryThinkingState from './components/DiscoveryThinkingState';
 
-const getScoreDetails = (score) => {
+const getScoreDetails = (score, hasAnalysis) => {
+    if (!hasAnalysis) {
+        return {
+            label: "Not Reviewed",
+            colorClass: "text-gray-500 bg-gray-50 border-gray-200",
+            strokeColor: "#E5E7EB"
+        };
+    }
     // Clamp score strictly between 1 and 100
     const clampedScore = Math.min(100, Math.max(1, score));
     if (clampedScore < 60) {
         return {
             label: "Unacceptable",
-            colorClass: "text-rose-600 bg-rose-50 border-rose-100 hover:bg-rose-100",
+            colorClass: "text-rose-600 bg-rose-50 border-rose-100",
             strokeColor: "#E11D48"
         };
     } else if (clampedScore >= 60 && clampedScore <= 69) {
         return {
             label: "Below Average",
-            colorClass: "text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100",
+            colorClass: "text-amber-600 bg-amber-50 border-amber-100",
             strokeColor: "#D97706"
         };
     } else if (clampedScore >= 70 && clampedScore <= 79) {
         return {
             label: "Good",
-            colorClass: "text-emerald-600 bg-emerald-50 border-emerald-100 hover:bg-emerald-100",
+            colorClass: "text-emerald-600 bg-emerald-50 border-emerald-100",
             strokeColor: "#059669"
         };
     } else if (clampedScore >= 80 && clampedScore <= 89) {
         return {
             label: "Very Good",
-            colorClass: "text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100",
+            colorClass: "text-blue-600 bg-blue-50 border-blue-100",
             strokeColor: "#2563EB"
         };
     } else {
         return {
             label: "Gold",
-            colorClass: "text-yellow-700 bg-yellow-50 border-yellow-200 hover:bg-yellow-100",
+            colorClass: "text-yellow-700 bg-yellow-50 border-yellow-200",
             strokeColor: "#CA8A04"
         };
     }
@@ -199,6 +206,7 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [activeMenuChatId, setActiveMenuChatId] = useState(null);
     const userMenuRef = useRef(null);
+    const chatMenuRef = useRef(null);
 
     const [essayContent, setEssayContent] = useState(initialContent || '');
     const [isAlignMenuOpen, setIsAlignMenuOpen] = useState(false);
@@ -298,7 +306,9 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
     // Close menu on click outside - MOVED DOWN after all refs are defined
     useEffect(() => {
         const handleClickOutside = (event) => {
-            setActiveMenuChatId(null);
+            if (chatMenuRef.current && !chatMenuRef.current.contains(event.target)) {
+                setActiveMenuChatId(null);
+            }
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
                 setIsUserMenuOpen(false);
             }
@@ -324,15 +334,17 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
 
     // Analysis State
     const [analysisResult, setAnalysisResult] = useState(null);
-    const [essayScore, setEssayScore] = useState(73);
+    const [essayScore, setEssayScore] = useState(0);
 
     useEffect(() => {
         if (analysisResult && typeof analysisResult.score === 'number') {
             setEssayScore(analysisResult.score);
+        } else {
+            setEssayScore(0);
         }
     }, [analysisResult]);
 
-    const scoreDetails = getScoreDetails(essayScore);
+    const scoreDetails = getScoreDetails(essayScore, !!analysisResult);
 
     const [currentChatId, setCurrentChatId] = useState(null); // Canvas Chat Persistence
     const [chatSummary, setChatSummary] = useState(""); // Long-term memory summary
@@ -719,8 +731,14 @@ const CanvasWorkspace = ({ onBack, onRequireAuth, user, onSignOut, onOpenSetting
             try {
                 const { allowed } = await checkUsageQuota(user.id, 'pdf_analysis');
                 if (!allowed) {
-                    setUpgradeFeature('Essay Analysis');
-                    setShowUpgradeModal(true);
+                    setChatHistory(prev => [
+                        ...prev,
+                        {
+                            role: 'assistant',
+                            content: 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+                        }
+                    ]);
+                    if (!isChatOpen) setIsChatOpen(true);
                     return;
                 }
             } catch (err) {
@@ -981,8 +999,14 @@ FORMAT: Kembalikan hasil akhir esai saja.
             const quotaType = type === 'review' ? 'deep_review' : 'chat';
             const { allowed } = await checkUsageQuota(user.id, quotaType);
             if (!allowed) {
-                setUpgradeFeature(quotaType === 'deep_review' ? 'Deep Review' : 'Chat Messages');
-                setShowUpgradeModal(true);
+                setChatHistory(prev => [
+                    ...prev,
+                    {
+                        role: 'assistant',
+                        content: 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+                    }
+                ]);
+                if (!isChatOpen) setIsChatOpen(true);
                 return;
             }
             incrementUsage(user.id, quotaType).catch(err => console.error("Increment failed", err));
@@ -1339,8 +1363,16 @@ FORMAT: Kembalikan hasil akhir esai saja.
             
             const { allowed } = await checkUsageQuota(user.id, quotaType);
             if (!allowed) {
-                setUpgradeFeature(quotaType === 'deep_review' ? 'Deep Review' : 'Chat Messages');
-                setShowUpgradeModal(true);
+                setChatHistory(prev => [
+                    ...prev,
+                    { role: 'user', content: inputToUse.trim() },
+                    {
+                        role: 'assistant',
+                        content: 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+                    }
+                ]);
+                setChatInput('');
+                if (!isChatOpen) setIsChatOpen(true);
                 return;
             }
             incrementUsage(user.id, quotaType).catch(err => console.error("Increment failed", err));
@@ -1791,6 +1823,7 @@ User is asking for a comparison or seeking the "better" version.
             setChatSummary("");
             setChatInput('');
             setEssayContent('');
+            setAnalysisResult(null);
             if (editor) {
                 editor.commands.setContent('');
             }
@@ -1871,6 +1904,7 @@ User is asking for a comparison or seeking the "better" version.
         console.log("Loading chat session:", chatId);
         blockAutoSaveRef.current = true; // Lock auto-save
         setChatHistory([]); // Clear current history to avoid flickering stale content
+        setAnalysisResult(null);
 
         // Clear file attachments from previous session to ensure isolation
         setFileUrl(null);
@@ -2161,7 +2195,7 @@ User is asking for a comparison or seeking the "better" version.
 
                                             {/* Action Dropdown Menu Button */}
                                             {currentChatId === chat.id && (
-                                                <div className="relative shrink-0 flex items-center justify-center">
+                                                <div ref={chatMenuRef} className="relative shrink-0 flex items-center justify-center">
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -2460,7 +2494,7 @@ User is asking for a comparison or seeking the "better" version.
                 </div>
 
                 {/* Editor Area (Google Docs Style) */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FAF9F7] relative flex flex-col items-center">
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FAF9F7] relative flex flex-col items-center scroll-fade-top">
 
                     {/* Version & Review Changes Header (Above the paper) */}
                     <div className="w-full max-w-[816px] flex items-center justify-between mt-6 px-4">
@@ -2732,18 +2766,12 @@ User is asking for a comparison or seeking the "better" version.
 
                         <div className="flex items-center gap-3">
                             {/* Grade description badge next to the circle */}
-                            <button 
-                                onClick={() => setEssayScore(prev => (prev >= 100 ? 45 : prev + 10))}
-                                className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border transition-all ${scoreDetails.colorClass}`}
-                                title="Click to test different score ranges"
-                            >
+                            <div className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border transition-all ${scoreDetails.colorClass}`}>
                                 {scoreDetails.label}
-                            </button>
+                            </div>
 
                             {/* Circular Progress Bar */}
-                            <div className="relative flex items-center justify-center w-10 h-10 cursor-pointer select-none" 
-                                 onClick={() => setEssayScore(prev => (prev >= 100 ? 45 : prev + 10))}
-                                 title={`Score: ${essayScore} (${scoreDetails.label}) - Click to test ranges`}>
+                            <div className="relative flex items-center justify-center w-10 h-10 select-none">
                                 <svg className="w-10 h-10 transform -rotate-90">
                                     <circle
                                         cx="20"
@@ -2761,13 +2789,13 @@ User is asking for a comparison or seeking the "better" version.
                                         strokeWidth="3"
                                         fill="transparent"
                                         strokeDasharray={2 * Math.PI * 16}
-                                        strokeDashoffset={(2 * Math.PI * 16) - (Math.min(100, Math.max(1, essayScore)) / 100) * (2 * Math.PI * 16)}
+                                        strokeDashoffset={!analysisResult ? (2 * Math.PI * 16) : (2 * Math.PI * 16) - (Math.min(100, Math.max(1, essayScore)) / 100) * (2 * Math.PI * 16)}
                                         strokeLinecap="round"
                                         className="transition-all duration-500 ease-out"
                                     />
                                 </svg>
                                 <span className="absolute text-[13px] font-bold text-oxford-blue">
-                                    {Math.min(100, Math.max(1, essayScore))}
+                                    {essayScore}
                                 </span>
                             </div>
 
@@ -2797,7 +2825,7 @@ User is asking for a comparison or seeking the "better" version.
                     {/* Chat History & Content */}
                     <div 
                         ref={chatContainerRef}
-                        className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F0F4FA] custom-scrollbar"
+                        className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F0F4FA] custom-scrollbar scroll-fade-top"
                     >
                         {/* Welcome Message */}
                         {chatHistory.length === 0 && (

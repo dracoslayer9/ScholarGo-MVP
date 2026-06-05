@@ -75,7 +75,18 @@ const MessageContent = ({ content, onReferenceClick }) => {
                             </a>
                         );
                     }
-                    return <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline">{label}</a>;
+                    const isMailto = url.startsWith('mailto:');
+                    return (
+                        <a 
+                            key={index} 
+                            href={url} 
+                            target={isMailto ? undefined : "_blank"} 
+                            rel={isMailto ? undefined : "noopener noreferrer"} 
+                            className="text-blue-600 font-medium hover:underline"
+                        >
+                            {label}
+                        </a>
+                    );
                 }
             }
             if (part.match(/^\[\^?\d+\]$/)) {

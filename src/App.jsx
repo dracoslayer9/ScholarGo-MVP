@@ -584,8 +584,15 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         try {
           const { allowed } = await checkUsageQuota(session.user.id, 'chat');
           if (!allowed) {
-            setUpgradeFeature('Chat Messages');
-            setShowUpgradeModal(true);
+            setChatHistory(prev => [
+              ...prev,
+              { role: 'user', content: messageToSend },
+              {
+                role: 'assistant',
+                content: 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+              }
+            ]);
+            setChatInput('');
             setIsAnalyzing(false); // Reset loading state
             abortControllerRef.current = null;
             return;
@@ -685,8 +692,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
       try {
         const { allowed } = await checkUsageQuota(session.user.id, 'pdf_analysis');
         if (!allowed) {
-          setUpgradeFeature('Essay Analysis');
-          setShowUpgradeModal(true);
+          setChatHistory(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+            }
+          ]);
           return;
         }
       } catch (err) {
@@ -711,8 +723,13 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
       try {
         const { allowed } = await checkUsageQuota(session.user.id, 'deep_review');
         if (!allowed) {
-          setUpgradeFeature('Deep Review');
-          setShowUpgradeModal(true);
+          setChatHistory(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+            }
+          ]);
           return;
         }
       } catch (err) {
@@ -1106,7 +1123,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
             <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
 
               {/* LEFT PANEL: Document Workspace */}
-              <div className="flex-1 bg-white flex flex-col relative min-w-0 overflow-y-auto custom-scrollbar scroll-smooth">
+              <div className="flex-1 bg-white flex flex-col relative min-w-0 overflow-y-auto custom-scrollbar scroll-smooth scroll-fade-top">
                 <div className="flex-1 w-full max-w-4xl mx-auto px-12 py-8 min-h-full flex flex-col">
 
                   {/* Document Header (Meta Only - Simplified) */}
@@ -1188,7 +1205,7 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
                 </button>
 
                 {/* Chat Stream */}
-                <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-6">
+                <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-6 scroll-fade-top">
                   {/* Empty State in Sidebar */}
                   {(!analysisResult && chatHistory.length === 0) && (
                     <div className="text-center py-10">
