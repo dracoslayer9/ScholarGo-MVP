@@ -2258,7 +2258,7 @@ User is asking for a comparison or seeking the "better" version.
                     </div>
 
                     {/* HISTORY LIST */}
-                    <div className="flex-1 overflow-y-auto px-1 space-y-1 custom-scrollbar max-h-[calc(100vh-320px)]">
+                    <div className="flex-1 overflow-y-auto px-1 pb-24 space-y-1 custom-scrollbar max-h-[calc(100vh-320px)]">
                         {savedChats.length === 0 ? (
                             <div className="text-center py-4 text-xs text-oxford-blue/40 italic">
                                 No canvas history yet.
