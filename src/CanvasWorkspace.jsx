@@ -832,8 +832,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error("Analysis Failed:", error);
-                alert(`Analysis Failed: ${error.message}`);
-                setChatHistory(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
+                const isQuotaError = error.message?.includes("exceeded your current quota") || error.message?.includes("429");
+                const displayMessage = isQuotaError 
+                    ? 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+                    : `Error: ${error.message}`;
+                alert(isQuotaError ? 'Analysis Failed: 429 You exceeded your current quota.' : `Analysis Failed: ${error.message}`);
+                setChatHistory(prev => [...prev, { role: 'assistant', content: displayMessage }]);
             }
         } finally {
             setIsAnalyzing(false);
@@ -1628,8 +1632,12 @@ User is asking for a comparison or seeking the "better" version.
                 console.log("Request cancelled by user");
             } else {
                 console.error("Chat Error:", error);
-                setChatHistory(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
-                alert(`Chat Failed: ${error.message}`);
+                const isQuotaError = error.message?.includes("exceeded your current quota") || error.message?.includes("429");
+                const displayMessage = isQuotaError 
+                    ? 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+                    : `Chat Failed: ${error.message}`;
+                alert(isQuotaError ? 'Chat Failed: 429 You exceeded your current quota.' : `Chat Failed: ${error.message}`);
+                setChatHistory(prev => [...prev, { role: 'assistant', content: displayMessage }]);
             }
         } finally {
             setIsAnalyzing(false);

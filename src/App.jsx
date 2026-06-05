@@ -469,8 +469,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
         console.log('Analysis aborted');
       } else {
         console.error("Narrative analysis failed", error);
-        alert(`Analysis Failed: ${error.message}`);
-        setChatHistory(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
+        const isQuotaError = error.message?.includes("exceeded your current quota") || error.message?.includes("429");
+        const displayMessage = isQuotaError 
+            ? 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+            : `Error: ${error.message}`;
+        alert(isQuotaError ? 'Analysis Failed: 429 You exceeded your current quota.' : `Analysis Failed: ${error.message}`);
+        setChatHistory(prev => [...prev, { role: 'assistant', content: displayMessage }]);
       }
     } finally {
       setIsAnalyzing(false);
@@ -670,7 +674,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
           // setChatHistory(prev => [...prev, { role: "assistant", content: "[Request cancelled]" }]); // Optional
         } else {
           console.error("Chat Failed:", err);
-          alert(`Chat Failed: ${err.message}`);
+          const isQuotaError = err.message?.includes("exceeded your current quota") || err.message?.includes("429");
+          const displayMessage = isQuotaError 
+              ? 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+              : `Chat Failed: ${err.message}`;
+          alert(isQuotaError ? 'Chat Failed: 429 You exceeded your current quota.' : `Chat Failed: ${err.message}`);
+          setChatHistory(prev => [...prev, { role: 'assistant', content: displayMessage }]);
         }
       } finally {
         setIsAnalyzing(false);
@@ -751,7 +760,12 @@ ${suggestions.length > 0 ? suggestions.map(s => `- ${s}`).join('\n') : '-'}
 
     } catch (err) {
       console.error("Insight Failed", err);
-      alert(`Insight Failed: ${err.message}`);
+      const isQuotaError = err.message?.includes("exceeded your current quota") || err.message?.includes("429");
+      const displayMessage = isQuotaError 
+          ? 'Chat Failed: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, e-mail: [teamscholargo@gmail.com](mailto:teamscholargo@gmail.com)'
+          : `Insight Failed: ${err.message}`;
+      alert(isQuotaError ? 'Insight Failed: 429 You exceeded your current quota.' : `Insight Failed: ${err.message}`);
+      setChatHistory(prev => [...prev, { role: "assistant", content: displayMessage }]);
     } finally {
       setIsAnalyzing(false);
     }
