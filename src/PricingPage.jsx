@@ -116,7 +116,7 @@ const PricingPage = ({ onBack, onLogin, session }) => {
 
                             <div className="space-y-4">
                                 <FeatureItem text="5 Chat AI Assistant" />
-                                <FeatureItem text="1 Deep Review (Insight)" />
+                                <FeatureItem text="1 Deep Review" />
                                 <FeatureItem text="Akses Fitur Dasar" />
                             </div>
                         </div>

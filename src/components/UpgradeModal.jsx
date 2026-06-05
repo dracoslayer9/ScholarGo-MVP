@@ -72,7 +72,7 @@ const UpgradeModal = ({ open, onClose, featureName, session, onLogin }) => {
 
                             <div className="space-y-4 mb-8 flex-1">
                                 <FeatureRow text="5 Chat AI Assistant" />
-                                <FeatureRow text="1 Deep Review (Insight)" />
+                                <FeatureRow text="1 Deep Review" />
                                 <FeatureRow text="Akses Fitur Dasar" />
                             </div>
 
