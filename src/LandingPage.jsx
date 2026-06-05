@@ -134,7 +134,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
 
                         {/* Subtitle */}
                         <p className="text-lg md:text-xl text-oxford-blue/60 mb-10 max-w-2xl leading-relaxed font-normal">
-                            Canvas kolaboratif yang didukung AI canggih untuk memenangkan beasiswa
+                            Canvas kolaboratif yang didukung AI canggih untuk memenangkan beasiswa LPDP
                         </p>
 
                         {/* Two Cards Section */}
