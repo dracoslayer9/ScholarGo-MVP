@@ -63,7 +63,7 @@ const QuotaDisplay = ({ userId, visibleQuotas, minimal = false }) => {
             )}
 
             {/* PDF Analysis */}
-            {visible.includes('pdf_analysis') && (
+            {visible.includes('pdf_analysis') && limits.pdf_analysis > 0 && (
                 <div className="space-y-1">
                     <div className={minimal ? "flex justify-between items-center gap-2 text-[10px] font-medium text-oxford-blue/40 leading-none" : "flex justify-between text-xs text-oxford-blue font-medium items-end"}>
                         <div className="flex items-center gap-1.5">
