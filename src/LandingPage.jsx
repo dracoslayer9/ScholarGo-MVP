@@ -248,17 +248,7 @@ const LandingPage = ({ onStart, onPrivacy, onTerms, onLogin, onPricing, onCampus
                             <div className="absolute -bottom-1 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/20 to-transparent z-20 pointer-events-none" />
                         </div>
 
-                        {/* Social Proof / Trust */}
-                        <div className="mt-8 md:mt-10 text-center relative z-20">
-                            <h3 className="text-sm font-medium text-oxford-blue/40 mb-6">Partner andalan raih beasiswa impian.</h3>
-                            <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-700 ease-in-out">
-                                <span className="text-xl font-serif font-bold cursor-default">Fulbright</span>
-                                <span className="text-xl font-serif font-bold cursor-default">Chevening</span>
-                                <span className="text-xl font-serif font-bold cursor-default">AAS</span>
-                                <span className="text-xl font-serif font-bold cursor-default">LPDP</span>
-                                <span className="text-xl font-serif font-bold cursor-default">GKS</span>
-                            </div>
-                        </div>
+
 
                     </div>
                 </div>
